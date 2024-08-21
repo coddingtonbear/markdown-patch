@@ -52,5 +52,38 @@ describe("patch", () => {
       const actualResult = applyPatch(sample, instruction);
       expect(actualResult).toEqual(expected);
     });
+    describe("seamless", () => {
+      test("prepend", () => {
+        const expected = fs.readFileSync(
+          path.join(__dirname, "sample.patch.heading.seamless.prepend.md"),
+          "utf-8"
+        );
+        const instruction: PatchInstruction = {
+          targetType: "heading",
+          target: "Page Targets\u001fHeading",
+          operation: "prepend",
+          content: "\nBeep Boop\n",
+        };
+
+        const actualResult = applyPatch(sample, instruction);
+        expect(actualResult).toEqual(expected);
+      });
+      test("append", () => {
+        const expected = fs.readFileSync(
+          path.join(__dirname, "sample.patch.heading.seamless.append.md"),
+          "utf-8"
+        );
+        const instruction: PatchInstruction = {
+          targetType: "heading",
+          target: "Problems",
+          operation: "append",
+          content: "\n\nBeep Boop\n\n",
+          seamless: true,
+        };
+
+        const actualResult = applyPatch(sample, instruction);
+        expect(actualResult).toEqual(expected);
+      });
+    });
   });
 });
