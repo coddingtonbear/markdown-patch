@@ -22,7 +22,7 @@ describe("patch", () => {
       const actualResult = applyPatch(sample, instruction);
       expect(actualResult).toEqual(expected);
     });
-    test("appepend", () => {
+    test("append", () => {
       const expected = fs.readFileSync(
         path.join(__dirname, "sample.patch.heading.append.md"),
         "utf-8"
@@ -31,6 +31,21 @@ describe("patch", () => {
         targetType: "heading",
         target: "Overview",
         operation: "append",
+        content: "Beep Boop\n",
+      };
+
+      const actualResult = applyPatch(sample, instruction);
+      expect(actualResult).toEqual(expected);
+    });
+    test("replace", () => {
+      const expected = fs.readFileSync(
+        path.join(__dirname, "sample.patch.heading.replace.md"),
+        "utf-8"
+      );
+      const instruction: PatchInstruction = {
+        targetType: "heading",
+        target: "Overview",
+        operation: "replace",
         content: "Beep Boop\n",
       };
 

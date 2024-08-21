@@ -11,7 +11,7 @@ function getHeadingPositions(document: string) {
   while ((match = headingPattern.exec(document)) !== null) {
     const [fullMatch, hashes, headingText] = match;
     const startHeading = match.index;
-    const endHeading = match.index + fullMatch.length;
+    const endHeading = match.index + fullMatch.length + 1;
     const headingLevel = hashes.length;
 
     // Determine the start of the content after this heading
@@ -21,7 +21,7 @@ function getHeadingPositions(document: string) {
     const nextMatch = headingPattern.exec(document);
     const nextStart = nextMatch ? nextMatch.index : document.length;
 
-    const endContent = nextStart - 1;
+    const endContent = nextStart;
 
     const currentHeading: HeadingMarkerContentPair = {
       marker: {
