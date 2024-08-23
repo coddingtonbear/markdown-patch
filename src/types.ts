@@ -21,19 +21,29 @@ export type PatchTargetType = "heading";
 
 export type PatchOperation = "replace" | "prepend" | "append";
 
-export interface BasePatchInstruction {
-  operation: string;
+export interface BasePatchInstructionTarget {
   targetType: PatchTargetType;
-  target: string;
+  target: any;
   content: string;
 }
 
-export interface NonExtendingPatchInstruction extends BasePatchInstruction {
+export interface BasePatchInstructionOperation {
+  operation: string;
+}
+
+export interface BaseHeadingPatchInstruction
+  extends BasePatchInstructionTarget {
+  targetType: "heading";
+  target: string[];
+}
+
+export interface NonExtendingPatchInstruction
+  extends BasePatchInstructionOperation {
   operation: "replace";
 }
 
-export interface ExtendingPatchInstruction extends BasePatchInstruction {
-  operation: "prepend" | "append";
+export interface ExtendingPatchInstruction
+  extends BasePatchInstructionOperation {
   /** Trim whitepsace from target before joining with content
    *
    * - For `prepend`: Trims content from the beginning of
@@ -54,6 +64,27 @@ export interface ExtendingPatchInstruction extends BasePatchInstruction {
   rejectIfExists?: boolean;
 }
 
-export type PatchInstruction =
-  | ExtendingPatchInstruction
-  | NonExtendingPatchInstruction;
+export interface PrependHeadingPatchInstruction
+  extends ExtendingPatchInstruction,
+    BaseHeadingPatchInstruction {
+  operation: "prepend";
+}
+
+export interface AppendHeadingPatchInstruction
+  extends ExtendingPatchInstruction,
+    BaseHeadingPatchInstruction {
+  operation: "append";
+}
+
+export interface ReplaceHeadingPatchInstruction
+  extends NonExtendingPatchInstruction,
+    BaseHeadingPatchInstruction {
+  operation: "replace";
+}
+
+export type HeadingPatchInstruction =
+  | PrependHeadingPatchInstruction
+  | AppendHeadingPatchInstruction
+  | ReplaceHeadingPatchInstruction;
+
+export type PatchInstruction = HeadingPatchInstruction;

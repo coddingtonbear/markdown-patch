@@ -14,7 +14,7 @@ describe("patch", () => {
       );
       const instruction: PatchInstruction = {
         targetType: "heading",
-        target: "Overview",
+        target: ["Overview"],
         operation: "prepend",
         content: "Beep Boop\n",
       };
@@ -29,7 +29,7 @@ describe("patch", () => {
       );
       const instruction: PatchInstruction = {
         targetType: "heading",
-        target: "Overview",
+        target: ["Overview"],
         operation: "append",
         content: "Beep Boop\n",
       };
@@ -44,7 +44,7 @@ describe("patch", () => {
       );
       const instruction: PatchInstruction = {
         targetType: "heading",
-        target: "Overview",
+        target: ["Overview"],
         operation: "replace",
         content: "Beep Boop\n",
       };
@@ -60,7 +60,7 @@ describe("patch", () => {
         );
         const instruction: PatchInstruction = {
           targetType: "heading",
-          target: "",
+          target: [""],
           operation: "prepend",
           content: "Beep Boop\n",
         };
@@ -75,7 +75,7 @@ describe("patch", () => {
         );
         const instruction: PatchInstruction = {
           targetType: "heading",
-          target: "",
+          target: [""],
           operation: "append",
           content: "Beep Boop\n",
         };
@@ -95,7 +95,7 @@ describe("patch", () => {
         );
         const instruction: PatchInstruction = {
           targetType: "heading",
-          target: "Page Targets\u001fDocument Properties (Exploratory)",
+          target: ["Page Targets", "Document Properties (Exploratory)"],
           operation: "prepend",
           content: "Beep Boop",
           trimTargetWhitespace: true,
@@ -114,7 +114,7 @@ describe("patch", () => {
         );
         const instruction: PatchInstruction = {
           targetType: "heading",
-          target: "Problems",
+          target: ["Problems"],
           operation: "append",
           content: "Beep Boop\n",
           trimTargetWhitespace: true,
