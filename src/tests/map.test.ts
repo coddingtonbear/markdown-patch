@@ -10,6 +10,17 @@ describe("map", () => {
     const actualHeadings = getDocumentMap(sample).heading;
 
     const expectedHeadings = {
+      "": {
+        marker: {
+          start: 0,
+          end: 0,
+        },
+        content: {
+          start: 130,
+          end: 6988,
+        },
+        level: 0,
+      },
       Overview: {
         marker: {
           start: 131,

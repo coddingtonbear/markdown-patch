@@ -1,9 +1,18 @@
 import { DocumentMap, HeadingMarkerContentPair } from "./types";
 
 function getHeadingPositions(document: string) {
-  const headingPattern = /^(#{1,6})\s+(.*)/gm;
+  const frontmatterPattern = /^---\s*\n[\s\S]*?\n---\s*\n/;
+  const frontmatterMatch = frontmatterPattern.exec(document);
+  const documentStart = frontmatterMatch ? frontmatterMatch[0].length - 1 : 0;
 
-  const positions: Record<string, HeadingMarkerContentPair> = {};
+  const headingPattern = /^(#{1,6})\s+(.*)/gm;
+  const positions: Record<string, HeadingMarkerContentPair> = {
+    "": {
+      marker: { start: 0, end: 0 },
+      content: { start: documentStart, end: document.length },
+      level: 0,
+    },
+  };
   const stack: Array<{ heading: string; position: HeadingMarkerContentPair }> =
     [];
   let match: RegExpExecArray | null;

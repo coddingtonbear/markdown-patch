@@ -52,6 +52,38 @@ describe("patch", () => {
       const actualResult = applyPatch(sample, instruction);
       expect(actualResult).toEqual(expected);
     });
+    describe("document", () => {
+      test("prepend", () => {
+        const expected = fs.readFileSync(
+          path.join(__dirname, "sample.patch.heading.document.prepend.md"),
+          "utf-8"
+        );
+        const instruction: PatchInstruction = {
+          targetType: "heading",
+          target: "",
+          operation: "prepend",
+          content: "Beep Boop\n",
+        };
+
+        const actualResult = applyPatch(sample, instruction);
+        expect(actualResult).toEqual(expected);
+      });
+      test("append", () => {
+        const expected = fs.readFileSync(
+          path.join(__dirname, "sample.patch.heading.document.append.md"),
+          "utf-8"
+        );
+        const instruction: PatchInstruction = {
+          targetType: "heading",
+          target: "",
+          operation: "append",
+          content: "Beep Boop\n",
+        };
+
+        const actualResult = applyPatch(sample, instruction);
+        expect(actualResult).toEqual(expected);
+      });
+    });
     describe("trimTargetWhitespace", () => {
       test("prepend", () => {
         const expected = fs.readFileSync(
