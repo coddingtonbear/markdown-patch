@@ -26,5 +26,5 @@ export interface PatchInstruction {
   target: string;
   operation: PatchOperation;
   content: string;
-  seamless?: boolean;
+  trimTargetWhitespace?: boolean;
 }

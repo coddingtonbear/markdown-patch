@@ -14,8 +14,6 @@ I came up with this project for supporting [[Obsidian Local Rest API]] (and via 
 	- I changed my mind in the end and went with the more-likely-to-collide-but-at-least-not-bizarre `///`.
 - Should we allow partial matches?  The pros are that it would make the usual, garden path of just wanting to push content into a section very easy.  The cons are that it makes it kind of unclear what's going to happen when you do an `upsert` or `insert` for a particular value.  (See [[#^bfec1f]] for more).
 
-Beep Boop
-
 # Actions
 | Name      | Description                                                                                                                                                                       | Heading? | Frontmatter? | Block               |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------ | ------------------- |
@@ -79,5 +77,4 @@ A "Block" in Obsidian can be any *block*-type element.  This might mean a paragr
 - ✅: ...replacing the content of an existing frontmatter field. ^259a73
 - ✅: ...adding a new frontmatter field. ^e6068e
 ## Document Properties (Exploratory)
-
-[^block-ambiguity]: There is currently no obvious place to plop a block were we to create a new one.  So, I might implement this such that these actions *work*, but will just add the block to the end of a file.  This isn't great, but it's at least consistent?
+Beep Boop[^block-ambiguity]: There is currently no obvious place to plop a block were we to create a new one.  So, I might implement this such that these actions *work*, but will just add the block to the end of a file.  This isn't great, but it's at least consistent?

@@ -13,24 +13,6 @@ class PatchFailed extends Error {
   }
 }
 
-export const joinStrings = (values: string[], seamless?: boolean): string => {
-  if (!seamless) {
-    return values.join("");
-  } else {
-    function removeOverlap(first: string, second: string): string {
-      let overlapLength = 0;
-      for (let i = 1; i <= Math.min(first.length, second.length); i++) {
-        if (first.slice(-i) === second.slice(0, i)) {
-          overlapLength = i;
-        }
-      }
-      return first + second.slice(overlapLength);
-    }
-
-    return values.reduce((acc, current) => removeOverlap(acc, current));
-  }
-};
-
 export const applyPatch = (
   document: string,
   instruction: PatchInstruction
@@ -45,32 +27,27 @@ export const applyPatch = (
       }
       switch (instruction.operation) {
         case "append":
-          return joinStrings(
-            [
-              document.slice(0, targetMap.content.end),
-              instruction.content,
-              document.slice(targetMap.content.end),
-            ],
-            instruction.seamless
-          );
+          return [
+            instruction.trimTargetWhitespace
+              ? document.slice(0, targetMap.content.end).trimEnd()
+              : document.slice(0, targetMap.content.end),
+            instruction.content,
+            document.slice(targetMap.content.end),
+          ].join("");
         case "prepend":
-          return joinStrings(
-            [
-              document.slice(0, targetMap.content.start),
-              instruction.content,
-              document.slice(targetMap.content.start),
-            ],
-            instruction.seamless
-          );
+          return [
+            document.slice(0, targetMap.content.start),
+            instruction.content,
+            instruction.trimTargetWhitespace
+              ? document.slice(targetMap.content.start).trimStart()
+              : document.slice(targetMap.content.start),
+          ].join("");
         case "replace":
-          return joinStrings(
-            [
-              document.slice(0, targetMap.content.start),
-              instruction.content,
-              document.slice(targetMap.content.end),
-            ],
-            instruction.seamless
-          );
+          return [
+            document.slice(0, targetMap.content.start),
+            instruction.content,
+            document.slice(targetMap.content.end),
+          ].join("");
       }
   }
 };

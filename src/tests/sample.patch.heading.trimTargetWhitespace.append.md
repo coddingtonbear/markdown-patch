@@ -12,8 +12,7 @@ I came up with this project for supporting [[Obsidian Local Rest API]] (and via 
 	- This was solved by making every content block directly-addressable.  All interactions treat the document as a key-value mapping.
 - ~~You can't use our earlier header delimiter `::` in an HTTP header; how did I not notice that?  I've had a [conversation with ChatGPT](https://chatgpt.com/share/117b262a-f534-40e6-bc05-287758706f34) to land on a choice of `@#@` instead, but there aren't obvious good options.  See [[#^1d6271]]~~
 	- I changed my mind in the end and went with the more-likely-to-collide-but-at-least-not-bizarre `///`.
-- Should we allow partial matches?  The pros are that it would make the usual, garden path of just wanting to push content into a section very easy.  The cons are that it makes it kind of unclear what's going to happen when you do an `upsert` or `insert` for a particular value.  (See [[#^bfec1f]] for more).
-
+- Should we allow partial matches?  The pros are that it would make the usual, garden path of just wanting to push content into a section very easy.  The cons are that it makes it kind of unclear what's going to happen when you do an `upsert` or `insert` for a particular value.  (See [[#^bfec1f]] for more).Beep Boop
 # Actions
 | Name      | Description                                                                                                                                                                       | Heading? | Frontmatter? | Block               |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------ | ------------------- |
@@ -37,8 +36,6 @@ I came up with this project for supporting [[Obsidian Local Rest API]] (and via 
 # Page Targets
 
 ## Heading
-
-Beep Boop
 
 | Heading       | Value                                                 |
 | ------------- | ----------------------------------------------------- |
