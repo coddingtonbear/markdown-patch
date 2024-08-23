@@ -17,14 +17,43 @@ export interface DocumentMap {
   block: Record<string, DocumentMapMarkerContentPair>;
 }
 
-export type PatchTarget = "heading";
+export type PatchTargetType = "heading";
 
 export type PatchOperation = "replace" | "prepend" | "append";
 
-export interface PatchInstruction {
-  targetType: PatchTarget;
+export interface BasePatchInstruction {
+  operation: string;
+  targetType: PatchTargetType;
   target: string;
-  operation: PatchOperation;
   content: string;
-  trimTargetWhitespace?: boolean;
 }
+
+export interface NonExtendingPatchInstruction extends BasePatchInstruction {
+  operation: "replace";
+}
+
+export interface ExtendingPatchInstruction extends BasePatchInstruction {
+  operation: "prepend" | "append";
+  /** Trim whitepsace from target before joining with content
+   *
+   * - For `prepend`: Trims content from the beginning of
+   *   the target content.
+   * - For `append`: Trims content from the end of the target
+   *   content.  Your content should probably end in a newline
+   *   in this case, or the trailing heading will no longer
+   *   be the start of its own line
+   */
+  trimTargetWhitespace?: boolean;
+  /** Fail to patch if supplied content already exists in target.
+   *
+   * In some cases, you may want your patch operation to be
+   * idempotent. You can use `rejectIfExists` if you would like
+   * a patch operation to be rejected if your supplied `content`
+   * already exists (anywhere) in the `target` content.
+   */
+  rejectIfExists?: boolean;
+}
+
+export type PatchInstruction =
+  | ExtendingPatchInstruction
+  | NonExtendingPatchInstruction;
