@@ -60,7 +60,7 @@ describe("patch", () => {
         );
         const instruction: PatchInstruction = {
           targetType: "heading",
-          target: [""],
+          target: null,
           operation: "prepend",
           content: "Beep Boop\n",
         };
@@ -75,7 +75,7 @@ describe("patch", () => {
         );
         const instruction: PatchInstruction = {
           targetType: "heading",
-          target: [""],
+          target: null,
           operation: "append",
           content: "Beep Boop\n",
         };

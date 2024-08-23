@@ -21,7 +21,10 @@ export const applyPatch = (
 
   switch (instruction.targetType) {
     case "heading":
-      const targetMap = map.heading[instruction.target.join("\u001f")];
+      const targetMap =
+        map.heading[
+          instruction.target ? instruction.target.join("\u001f") : ""
+        ];
       if (!targetMap) {
         throw new PatchFailed(instruction);
       }

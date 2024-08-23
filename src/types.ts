@@ -34,7 +34,7 @@ export interface BasePatchInstructionOperation {
 export interface BaseHeadingPatchInstruction
   extends BasePatchInstructionTarget {
   targetType: "heading";
-  target: string[];
+  target: string[] | null;
 }
 
 export interface NonExtendingPatchInstruction
