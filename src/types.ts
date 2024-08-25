@@ -54,14 +54,15 @@ export interface ExtendingPatchInstruction
    *   be the start of its own line
    */
   trimTargetWhitespace?: boolean;
-  /** Fail to patch if supplied content already exists in target.
+  /** Apply patch even if content already exists at target
    *
-   * In some cases, you may want your patch operation to be
-   * idempotent. You can use `rejectIfExists` if you would like
-   * a patch operation to be rejected if your supplied `content`
-   * already exists (anywhere) in the `target` content.
+   * By default, we will fail to apply a patch if the supplied
+   * content is found anywhere in your target content.  If you
+   * would instead like the patch to occur, regardless of whether
+   * it appears the content is already there, you can set
+   * `applyIfContentPreexists` to `true`.
    */
-  rejectIfExists?: boolean;
+  applyIfContentPreexists?: boolean;
 }
 
 export interface PrependHeadingPatchInstruction
