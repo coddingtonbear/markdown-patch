@@ -17,7 +17,7 @@ export interface DocumentMap {
   block: Record<string, DocumentMapMarkerContentPair>;
 }
 
-export type PatchTargetType = "heading";
+export type PatchTargetType = "heading" | "block";
 
 export type PatchOperation = "replace" | "prepend" | "append";
 
@@ -35,6 +35,11 @@ export interface BaseHeadingPatchInstruction
   extends BasePatchInstructionTarget {
   targetType: "heading";
   target: string[] | null;
+}
+
+export interface BaseBlockPatchInstruction extends BasePatchInstructionTarget {
+  targetType: "block";
+  target: string;
 }
 
 export interface NonExtendingPatchInstruction
@@ -83,9 +88,32 @@ export interface ReplaceHeadingPatchInstruction
   operation: "replace";
 }
 
+export interface PrependBlockPatchInstruction
+  extends ExtendingPatchInstruction,
+    BaseBlockPatchInstruction {
+  operation: "prepend";
+}
+
+export interface AppendBlockPatchInstruction
+  extends ExtendingPatchInstruction,
+    BaseBlockPatchInstruction {
+  operation: "append";
+}
+
+export interface ReplaceBlockPatchInstruction
+  extends NonExtendingPatchInstruction,
+    BaseBlockPatchInstruction {
+  operation: "replace";
+}
+
 export type HeadingPatchInstruction =
   | PrependHeadingPatchInstruction
   | AppendHeadingPatchInstruction
   | ReplaceHeadingPatchInstruction;
 
-export type PatchInstruction = HeadingPatchInstruction;
+export type BlockPatchInstruction =
+  | PrependBlockPatchInstruction
+  | AppendBlockPatchInstruction
+  | ReplaceBlockPatchInstruction;
+
+export type PatchInstruction = HeadingPatchInstruction | BlockPatchInstruction;

@@ -86,6 +86,55 @@ describe("patch", () => {
     });
   });
 
+  describe("block", () => {
+    /*
+    test("prepend", () => {
+      const expected = fs.readFileSync(
+        path.join(__dirname, "sample.patch.block.prepend.md"),
+        "utf-8"
+      );
+      const instruction: PatchInstruction = {
+        targetType: "block",
+        target: "2c67a6",
+        operation: "prepend",
+        content: "Beep Boop\n",
+      };
+
+      const actualResult = applyPatch(sample, instruction);
+      expect(actualResult).toEqual(expected);
+    });
+    test("append", () => {
+      const expected = fs.readFileSync(
+        path.join(__dirname, "sample.patch.block.append.md"),
+        "utf-8"
+      );
+      const instruction: PatchInstruction = {
+        targetType: "block",
+        target: ["Overview"],
+        operation: "append",
+        content: "Beep Boop\n",
+      };
+
+      const actualResult = applyPatch(sample, instruction);
+      expect(actualResult).toEqual(expected);
+    });
+    test("replace", () => {
+      const expected = fs.readFileSync(
+        path.join(__dirname, "sample.patch.block.replace.md"),
+        "utf-8"
+      );
+      const instruction: PatchInstruction = {
+        targetType: "block",
+        target: ["Overview"],
+        operation: "replace",
+        content: "Beep Boop\n",
+      };
+
+      const actualResult = applyPatch(sample, instruction);
+      expect(actualResult).toEqual(expected);
+    });*/
+  });
+
   describe("parameter", () => {
     describe("trimTargetWhitespace", () => {
       describe("heading", () => {
