@@ -132,8 +132,8 @@ describe("patch", () => {
 
       const actualResult = applyPatch(sample, instruction);
       expect(actualResult).toEqual(expected);
-    });*/
-  });
+    });
+  });*/
 
   describe("parameter", () => {
     describe("trimTargetWhitespace", () => {

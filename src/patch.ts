@@ -83,7 +83,7 @@ const getTarget = (
         instruction.target ? instruction.target.join("\u001f") : ""
       ];
     case "block":
-      return map.block[instruction.target];
+      return undefined;
   }
 };
 
@@ -109,6 +109,7 @@ export const applyPatch = (
       document.slice(target.content.start, target.content.end) +
       "<END>"
   );*/
+
   if (
     (!("applyIfContentPreexists" in instruction) ||
       !instruction.applyIfContentPreexists) &&

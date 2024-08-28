@@ -37,7 +37,7 @@ describe("map", () => {
       },
       "Page Targets": {
         marker: { start: 4282, end: 4296 },
-        content: { start: 4296, end: 6987 },
+        content: { start: 4296, end: 6988 },
         level: 1,
       },
       "Page Targets\u001fHeading": {
@@ -67,7 +67,7 @@ describe("map", () => {
       },
       "Page Targets\u001fDocument Properties (Exploratory)": {
         marker: { start: 6690, end: 6726 },
-        content: { start: 6726, end: 6987 },
+        content: { start: 6726, end: 6988 },
         level: 2,
       },
     };
