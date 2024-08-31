@@ -14,6 +14,7 @@ export interface HeadingMarkerContentPair extends DocumentMapMarkerContentPair {
 
 export interface DocumentMap {
   heading: Record<string, HeadingMarkerContentPair>;
+  block: Record<string, DocumentMapMarkerContentPair>;
 }
 
 export type PatchTargetType = "heading" | "block";

@@ -1,6 +1,15 @@
-import marked from "marked";
+import marked, { Token } from "marked";
 
-import { DocumentMap, HeadingMarkerContentPair } from "./types";
+import {
+  DocumentMap,
+  DocumentMapMarkerContentPair,
+  HeadingMarkerContentPair,
+} from "./types";
+
+import {
+  CAN_INCLUDE_BLOCK_REFERENCE,
+  TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE,
+} from "./constants";
 
 function getHeadingPositions(
   document: string,
@@ -104,11 +113,74 @@ function getHeadingPositions(
   return positions;
 }
 
+function getBlockPositions(
+  document: string,
+  tokens: marked.TokensList
+): Record<string, DocumentMapMarkerContentPair> {
+  const positions: Record<string, DocumentMapMarkerContentPair> = {};
+
+  let lastBlockDetails:
+    | {
+        token: Token;
+        start: number;
+        end: number;
+      }
+    | undefined = undefined;
+  let startContent = 0;
+  let endContent = 0;
+  marked.walkTokens(tokens, (token) => {
+    const blockReferenceRegex = /\^([a-zA-Z0-9_-]+)\s*$/gm;
+    startContent = document.indexOf(token.raw.trim(), startContent);
+    const match = blockReferenceRegex.exec(token.raw);
+    endContent = startContent + (match ? match.index : token.raw.length);
+    if (CAN_INCLUDE_BLOCK_REFERENCE.includes(token.type) && match) {
+      const name = match[1];
+      if (!name || match.index === undefined) {
+        return;
+      }
+
+      const finalStartContent = {
+        start: startContent,
+        end: endContent,
+      };
+      if (token.type === "list_item") {
+        finalStartContent.start += 2; // To skip the list markers
+      }
+      if (
+        finalStartContent.start === finalStartContent.end &&
+        lastBlockDetails
+      ) {
+        finalStartContent.start = lastBlockDetails.start;
+        finalStartContent.end = lastBlockDetails.end;
+      }
+
+      positions[name] = {
+        content: finalStartContent,
+        marker: {
+          start: startContent + match.index + 1, // To skip the ^
+          end: startContent + token.raw.length - 1,
+        },
+      };
+    }
+
+    if (TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE.includes(token.type)) {
+      lastBlockDetails = {
+        token: token,
+        start: startContent,
+        end: endContent,
+      };
+    }
+  });
+
+  return positions;
+}
+
 export const getDocumentMap = (document: string): DocumentMap => {
   const lexer = new marked.Lexer();
   const tokens = lexer.lex(document);
 
   return {
     heading: getHeadingPositions(document, tokens),
+    block: getBlockPositions(document, tokens),
   };
 };

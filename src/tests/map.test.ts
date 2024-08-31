@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { getDocumentMap } from "../map";
+import { DocumentMapMarkerContentPair } from "../types";
 
 describe("map", () => {
   const sample = fs.readFileSync(path.join(__dirname, "sample.md"), "utf-8");
@@ -75,5 +76,62 @@ describe("map", () => {
     //console.log(JSON.stringify(actualHeadings, undefined, 4));
 
     expect(actualHeadings).toEqual(expectedHeadings);
+  });
+
+  test("block", () => {
+    const actualBlocks = getDocumentMap(sample).block;
+    const expectedBlocks: Record<string, DocumentMapMarkerContentPair> = {
+      "2c67a6": {
+        content: {
+          start: 1478,
+          end: 3173,
+        },
+        marker: {
+          start: 3174,
+          end: 3179,
+        },
+      },
+      "1d6271": {
+        content: {
+          start: 3192,
+          end: 4273,
+        },
+        marker: {
+          start: 4274,
+          end: 4279,
+        },
+      },
+      bfec1f: {
+        content: {
+          start: 4310,
+          end: 4607,
+        },
+        marker: {
+          start: 4608,
+          end: 4613,
+        },
+      },
+      "259a73": {
+        content: {
+          start: 6572,
+          end: 6634,
+        },
+        marker: {
+          start: 6635,
+          end: 6641,
+        },
+      },
+      e6068e: {
+        content: {
+          start: 6644,
+          end: 6682,
+        },
+        marker: {
+          start: 6683,
+          end: 6688,
+        },
+      },
+    };
+    expect(actualBlocks).toEqual(expectedBlocks);
   });
 });
