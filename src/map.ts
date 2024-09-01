@@ -143,9 +143,6 @@ function getBlockPositions(
         start: startContent,
         end: endContent,
       };
-      if (token.type === "list_item") {
-        finalStartContent.start += 2; // To skip the list markers
-      }
       if (
         finalStartContent.start === finalStartContent.end &&
         lastBlockDetails

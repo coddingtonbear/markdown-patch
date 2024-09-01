@@ -15,7 +15,6 @@ I came up with this project for supporting [[Obsidian Local Rest API]] (and via 
 - Should we allow partial matches?  The pros are that it would make the usual, garden path of just wanting to push content into a section very easy.  The cons are that it makes it kind of unclear what's going to happen when you do an `upsert` or `insert` for a particular value.  (See [[#^bfec1f]] for more).
 
 # Actions
-Beep Boop
 | Name      | Description                                                                                                                                                                       | Heading? | Frontmatter? | Block               |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------ | ------------------- |
 | `update`  | Find the referenced `target` and replace the content at that region.                                                                                                              | ✅        | ✅            | ✅                   |
