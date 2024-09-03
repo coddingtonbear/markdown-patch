@@ -1,10 +1,10 @@
-import { getDocumentMap } from "./map";
+import { getDocumentMap } from "./map.ts";
 import {
   DocumentMap,
   DocumentMapMarkerContentPair,
   ExtendingPatchInstruction,
   PatchInstruction,
-} from "./types";
+} from "./types.ts";
 
 enum PatchFailureReason {
   InvalidTarget = "invalid-target",
@@ -39,9 +39,9 @@ const replace = (
   target: DocumentMapMarkerContentPair
 ): string => {
   return [
-    document.slice(0, target.content.start + 1),
+    document.slice(0, target.content.start),
     instruction.content,
-    document.slice(target.content.end + 1),
+    document.slice(target.content.end),
   ].join("");
 };
 
@@ -51,11 +51,11 @@ const prepend = (
   target: DocumentMapMarkerContentPair
 ): string => {
   return [
-    document.slice(0, target.content.start + 1),
+    document.slice(0, target.content.start),
     instruction.content,
     instruction.trimTargetWhitespace
-      ? document.slice(target.content.start + 1).trimStart()
-      : document.slice(target.content.start + 1),
+      ? document.slice(target.content.start).trimStart()
+      : document.slice(target.content.start),
   ].join("");
 };
 
@@ -66,10 +66,10 @@ const append = (
 ): string => {
   return [
     instruction.trimTargetWhitespace
-      ? document.slice(0, target.content.end + 1).trimEnd()
-      : document.slice(0, target.content.end + 1),
+      ? document.slice(0, target.content.end).trimEnd()
+      : document.slice(0, target.content.end),
     instruction.content,
-    document.slice(target.content.end + 1),
+    document.slice(target.content.end),
   ].join("");
 };
 

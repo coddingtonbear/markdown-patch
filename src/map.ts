@@ -1,15 +1,15 @@
-import marked, { Token } from "marked";
+import * as marked from "marked";
 
 import {
   DocumentMap,
   DocumentMapMarkerContentPair,
   HeadingMarkerContentPair,
-} from "./types";
+} from "./types.ts";
 
 import {
   CAN_INCLUDE_BLOCK_REFERENCE,
   TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE,
-} from "./constants";
+} from "./constants.ts";
 
 function getHeadingPositions(
   document: string,
@@ -20,7 +20,7 @@ function getHeadingPositions(
   // document begins
   let documentStart = 0;
   if (tokens[0].type === "hr") {
-    documentStart = tokens[0].raw.length;
+    documentStart = tokens[0].raw.length + 1;
     for (const token of tokens.slice(1)) {
       documentStart += token.raw.length;
       if (token.type === "hr") {
@@ -55,7 +55,7 @@ function getHeadingPositions(
         headingToken.raw.trim(),
         currentPosition
       );
-      const endHeading = startHeading + headingToken.raw.trim().length;
+      const endHeading = startHeading + headingToken.raw.trim().length + 1;
       const headingLevel = headingToken.depth;
 
       // Determine the start of the content after this heading
@@ -68,7 +68,7 @@ function getHeadingPositions(
           tokens[i].type === "heading" &&
           (tokens[i] as marked.Tokens.Heading).depth <= headingLevel
         ) {
-          endContent = document.indexOf(tokens[i].raw.trim(), startContent) - 1;
+          endContent = document.indexOf(tokens[i].raw.trim(), startContent);
           break;
         }
       }
@@ -121,18 +121,35 @@ function getBlockPositions(
 
   let lastBlockDetails:
     | {
-        token: Token;
+        token: marked.Token;
         start: number;
         end: number;
       }
     | undefined = undefined;
   let startContent = 0;
   let endContent = 0;
+  let endMarker = 0;
   marked.walkTokens(tokens, (token) => {
-    const blockReferenceRegex = /\^([a-zA-Z0-9_-]+)\s*$/gm;
-    startContent = document.indexOf(token.raw.trim(), startContent);
+    const blockReferenceRegex = /(?:\s+|^)\^([a-zA-Z0-9_-]+)\s*$/;
+    startContent = document.indexOf(token.raw, startContent);
     const match = blockReferenceRegex.exec(token.raw);
     endContent = startContent + (match ? match.index : token.raw.length);
+    const startMarker = match ? startContent + match.index : -1;
+    endMarker = startContent + token.raw.length;
+    // The end of a list item token sometimes doesn't include the trailing
+    // newline -- i'm honestly not sure why, but treating it as
+    // included here would simplify my implementation
+    if (
+      document.slice(endMarker - 1, endMarker) !== "\n" &&
+      document.slice(endMarker, endMarker + 1) === "\n"
+    ) {
+      endMarker += 1;
+    } else if (
+      document.slice(endMarker - 2, endMarker) !== "\r\n" &&
+      document.slice(endMarker, endMarker + 2) === "\r\n"
+    ) {
+      endMarker += 2;
+    }
     if (CAN_INCLUDE_BLOCK_REFERENCE.includes(token.type) && match) {
       const name = match[1];
       if (!name || match.index === undefined) {
@@ -154,8 +171,8 @@ function getBlockPositions(
       positions[name] = {
         content: finalStartContent,
         marker: {
-          start: startContent + match.index + 1, // To skip the ^
-          end: startContent + token.raw.length - 1,
+          start: startMarker,
+          end: endMarker,
         },
       };
     }
@@ -164,7 +181,7 @@ function getBlockPositions(
       lastBlockDetails = {
         token: token,
         start: startContent,
-        end: endContent,
+        end: endContent - 1,
       };
     }
   });
