@@ -76,42 +76,65 @@ const appendText = (
   ].join("");
 };
 
+export class TablePartsNotFound extends Error {}
+
+const _getTableData = (
+  document: string,
+  target: DocumentMapMarkerContentPair
+): {
+  token: marked.Tokens.Table;
+  lineEnding: string;
+  headerParts: string;
+  contentParts: string;
+} => {
+  const targetTable = document.slice(target.content.start, target.content.end);
+  const tableToken = marked.lexer(targetTable)[0];
+  const match = /^(.*?)(?:\r?\n)(.*?)(\r?\n)/.exec(targetTable);
+  if (!(tableToken.type === "table") || !match) {
+    throw new TablePartsNotFound();
+  }
+
+  const lineEnding = match[3];
+  return {
+    token: tableToken as marked.Tokens.Table,
+    lineEnding: match[3],
+    headerParts: match[1] + lineEnding + match[2] + lineEnding,
+    contentParts: targetTable.slice(match[0].length),
+  };
+};
+
 const replaceTable = (
   document: string,
   instruction: PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const targetTable = document.slice(target.content.start, target.content.end);
-  const tableToken = marked.lexer(targetTable)[0];
-  const match = /^(.*?)(?:\r?\n)(.*?)(\r?\n)/.exec(targetTable);
-  if (!(tableToken.type === "table") || !match) {
+  try {
+    const table = _getTableData(document, target);
+    const tableRows: string[] = [table.headerParts];
+    for (const row of instruction.content) {
+      if (row.length !== table.token.header.length || typeof row === "string") {
+        throw new PatchFailed(
+          PatchFailureReason.TableContentIncorrectColumnCount,
+          instruction,
+          target
+        );
+      }
+
+      tableRows.push("| " + row.join(" | ") + " |" + table.lineEnding);
+    }
+
+    return [
+      document.slice(0, target.content.start),
+      tableRows.join(""),
+      document.slice(target.content.end),
+    ].join("");
+  } catch (TablePartsNotFound) {
     throw new PatchFailed(
       PatchFailureReason.RequestedBlockTypeBehaviorUnavailable,
       instruction,
       target
     );
   }
-
-  const lineEnding = match[3];
-  const tableRows: string[] = [match[1] + lineEnding, match[2] + lineEnding];
-
-  for (const row of instruction.content) {
-    if (row.length !== tableToken.header.length || typeof row === "string") {
-      throw new PatchFailed(
-        PatchFailureReason.TableContentIncorrectColumnCount,
-        instruction,
-        target
-      );
-    }
-
-    tableRows.push("| " + row.join(" | ") + " |" + lineEnding);
-  }
-
-  return [
-    document.slice(0, target.content.start),
-    tableRows.join(""),
-    document.slice(target.content.end),
-  ].join("");
 };
 
 const prependTable = (
@@ -119,39 +142,35 @@ const prependTable = (
   instruction: PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const targetTable = document.slice(target.content.start, target.content.end);
-  const tableToken = marked.lexer(targetTable)[0];
-  const match = /^(.*?)(?:\r?\n)(.*?)(\r?\n)/.exec(targetTable);
-  if (!(tableToken.type === "table") || !match) {
+  try {
+    const table = _getTableData(document, target);
+    const tableRows: string[] = [table.headerParts];
+    for (const row of instruction.content) {
+      if (row.length !== table.token.header.length || typeof row === "string") {
+        throw new PatchFailed(
+          PatchFailureReason.TableContentIncorrectColumnCount,
+          instruction,
+          target
+        );
+      }
+
+      tableRows.push("| " + row.join(" | ") + " |" + table.lineEnding);
+    }
+
+    tableRows.push(table.contentParts);
+
+    return [
+      document.slice(0, target.content.start),
+      tableRows.join(""),
+      document.slice(target.content.end),
+    ].join("");
+  } catch (TablePartsNotFound) {
     throw new PatchFailed(
       PatchFailureReason.RequestedBlockTypeBehaviorUnavailable,
       instruction,
       target
     );
   }
-
-  const lineEnding = match[3];
-  const tableRows: string[] = [match[1] + lineEnding, match[2] + lineEnding];
-
-  for (const row of instruction.content) {
-    if (row.length !== tableToken.header.length || typeof row === "string") {
-      throw new PatchFailed(
-        PatchFailureReason.TableContentIncorrectColumnCount,
-        instruction,
-        target
-      );
-    }
-
-    tableRows.push("| " + row.join(" | ") + " |" + lineEnding);
-  }
-
-  tableRows.push(targetTable.slice(match[0].length));
-
-  return [
-    document.slice(0, target.content.start),
-    tableRows.join(""),
-    document.slice(target.content.end),
-  ].join("");
 };
 
 const appendTable = (
@@ -159,41 +178,33 @@ const appendTable = (
   instruction: PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const targetTable = document.slice(target.content.start, target.content.end);
-  const tableToken = marked.lexer(targetTable)[0];
-  const match = /^(.*?)(?:\r?\n)(.*?)(\r?\n)/.exec(targetTable);
-  if (!(tableToken.type === "table") || !match) {
+  try {
+    const table = _getTableData(document, target);
+    const tableRows: string[] = [table.headerParts, table.contentParts];
+    for (const row of instruction.content) {
+      if (row.length !== table.token.header.length || typeof row === "string") {
+        throw new PatchFailed(
+          PatchFailureReason.TableContentIncorrectColumnCount,
+          instruction,
+          target
+        );
+      }
+
+      tableRows.push("| " + row.join(" | ") + " |" + table.lineEnding);
+    }
+
+    return [
+      document.slice(0, target.content.start),
+      tableRows.join(""),
+      document.slice(target.content.end),
+    ].join("");
+  } catch (TablePartsNotFound) {
     throw new PatchFailed(
       PatchFailureReason.RequestedBlockTypeBehaviorUnavailable,
       instruction,
       target
     );
   }
-
-  const lineEnding = match[3];
-  const tableRows: string[] = [
-    match[1] + lineEnding,
-    match[2] + lineEnding,
-    targetTable.slice(match[0].length),
-  ];
-
-  for (const row of instruction.content) {
-    if (row.length !== tableToken.header.length || typeof row === "string") {
-      throw new PatchFailed(
-        PatchFailureReason.TableContentIncorrectColumnCount,
-        instruction,
-        target
-      );
-    }
-
-    tableRows.push("| " + row.join(" | ") + " |" + lineEnding);
-  }
-
-  return [
-    document.slice(0, target.content.start),
-    tableRows.join(""),
-    document.slice(target.content.end),
-  ].join("");
 };
 
 const replace = (
