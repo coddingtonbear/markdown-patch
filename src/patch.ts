@@ -83,7 +83,7 @@ const getTarget = (
         instruction.target ? instruction.target.join("\u001f") : ""
       ];
     case "block":
-      return undefined;
+      return map.block[instruction.target];
   }
 };
 
@@ -97,18 +97,6 @@ export const applyPatch = (
   if (!target) {
     throw new PatchFailed(PatchFailureReason.InvalidTarget, instruction, null);
   }
-
-  /*
-  console.log(
-    "Marker",
-    "<START>" + document.slice(target.marker.start, target.marker.end) + "<END>"
-  );
-  console.log(
-    "Content",
-    "<START>" +
-      document.slice(target.content.start, target.content.end) +
-      "<END>"
-  );*/
 
   if (
     (!("applyIfContentPreexists" in instruction) ||

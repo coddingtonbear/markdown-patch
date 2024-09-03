@@ -75,7 +75,8 @@ A "Block" in Obsidian can be any *block*-type element.  This might mean a paragr
 ### Use Cases
 - ✅: ...appending content to an existing frontmatter field.
 - ✅: ...replacing the content of an existing frontmatter field. ^259a73
-- ✅: ...adding a new frontmatter field. ^e6068e
+- ✅: ...adding a new frontmatter field.
+- OK ^e6068e
 ## Document Properties (Exploratory)
 
 [^block-ambiguity]: There is currently no obvious place to plop a block were we to create a new one.  So, I might implement this such that these actions *work*, but will just add the block to the end of a file.  This isn't great, but it's at least consistent?

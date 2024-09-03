@@ -74,7 +74,7 @@ A "Block" in Obsidian can be any *block*-type element.  This might mean a paragr
 | End      | Last character of content referenced by a particular frontmatter field.  |
 ### Use Cases
 - ✅: ...appending content to an existing frontmatter field.
-- ✅: ...replacing the content of an existing frontmatter field. ^259a73
+- OK ^259a73
 - ✅: ...adding a new frontmatter field. ^e6068e
 ## Document Properties (Exploratory)
 
