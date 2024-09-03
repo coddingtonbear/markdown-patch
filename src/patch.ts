@@ -1,10 +1,14 @@
 import { getDocumentMap } from "./map.ts";
 import * as marked from "marked";
 import {
+  AppendTableRowsBlockPatchInstruction,
+  PrependTableRowsBlockPatchInstruction,
   DocumentMap,
   DocumentMapMarkerContentPair,
   ExtendingPatchInstruction,
   PatchInstruction,
+  ReplaceTableRowsBlockPatchInstruction,
+  TableRowsContent,
 } from "./types.ts";
 
 enum PatchFailureReason {
@@ -105,7 +109,7 @@ const _getTableData = (
 
 const replaceTable = (
   document: string,
-  instruction: PatchInstruction,
+  instruction: ReplaceTableRowsBlockPatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
   try {
@@ -139,7 +143,7 @@ const replaceTable = (
 
 const prependTable = (
   document: string,
-  instruction: PatchInstruction,
+  instruction: PrependTableRowsBlockPatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
   try {
@@ -175,7 +179,7 @@ const prependTable = (
 
 const appendTable = (
   document: string,
-  instruction: PatchInstruction,
+  instruction: AppendTableRowsBlockPatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
   try {
@@ -221,7 +225,11 @@ const replace = (
     case "text":
       return replaceText(document, instruction, target);
     case "table":
-      return replaceTable(document, instruction, target);
+      return replaceTable(
+        document,
+        instruction as ReplaceTableRowsBlockPatchInstruction,
+        target
+      );
   }
 };
 
@@ -239,7 +247,11 @@ const prepend = (
     case "text":
       return prependText(document, instruction, target);
     case "table":
-      return prependTable(document, instruction, target);
+      return prependTable(
+        document,
+        instruction as PrependTableRowsBlockPatchInstruction,
+        target
+      );
   }
 };
 
@@ -257,7 +269,11 @@ const append = (
     case "text":
       return appendText(document, instruction, target);
     case "table":
-      return appendTable(document, instruction, target);
+      return appendTable(
+        document,
+        instruction as AppendTableRowsBlockPatchInstruction,
+        target
+      );
   }
 };
 
