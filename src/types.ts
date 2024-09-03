@@ -24,7 +24,6 @@ export type PatchOperation = "replace" | "prepend" | "append";
 export interface BasePatchInstructionTarget {
   targetType: PatchTargetType;
   target: any;
-  content: string;
 }
 
 export interface BasePatchInstructionOperation {
@@ -43,9 +42,7 @@ export interface BaseBlockPatchInstruction extends BasePatchInstructionTarget {
 }
 
 export interface NonExtendingPatchInstruction
-  extends BasePatchInstructionOperation {
-  operation: "replace";
-}
+  extends BasePatchInstructionOperation {}
 
 export interface ExtendingPatchInstruction
   extends BasePatchInstructionOperation {
@@ -70,39 +67,75 @@ export interface ExtendingPatchInstruction
   applyIfContentPreexists?: boolean;
 }
 
+export interface StringContent {
+  content: string;
+}
+
+export interface TableRowsContent {
+  targetBlockTypeBehavior: "table";
+  content: string[][];
+}
+
 export interface PrependHeadingPatchInstruction
   extends ExtendingPatchInstruction,
-    BaseHeadingPatchInstruction {
+    BaseHeadingPatchInstruction,
+    StringContent {
   operation: "prepend";
 }
 
 export interface AppendHeadingPatchInstruction
   extends ExtendingPatchInstruction,
-    BaseHeadingPatchInstruction {
+    BaseHeadingPatchInstruction,
+    StringContent {
   operation: "append";
 }
 
 export interface ReplaceHeadingPatchInstruction
   extends NonExtendingPatchInstruction,
-    BaseHeadingPatchInstruction {
+    BaseHeadingPatchInstruction,
+    StringContent {
   operation: "replace";
 }
 
 export interface PrependBlockPatchInstruction
   extends ExtendingPatchInstruction,
-    BaseBlockPatchInstruction {
+    BaseBlockPatchInstruction,
+    StringContent {
   operation: "prepend";
 }
 
 export interface AppendBlockPatchInstruction
   extends ExtendingPatchInstruction,
-    BaseBlockPatchInstruction {
+    BaseBlockPatchInstruction,
+    StringContent {
   operation: "append";
 }
 
 export interface ReplaceBlockPatchInstruction
   extends NonExtendingPatchInstruction,
-    BaseBlockPatchInstruction {
+    BaseBlockPatchInstruction,
+    StringContent {
+  operation: "replace";
+}
+
+export interface PrependTableRowsBlockPatchInstruction
+  extends ExtendingPatchInstruction,
+    BaseBlockPatchInstruction,
+    TableRowsContent {
+  operation: "prepend";
+}
+
+export interface AppendTableRowsBlockPatchInstruction
+  extends ExtendingPatchInstruction,
+    BaseBlockPatchInstruction,
+    TableRowsContent {
+  operation: "append";
+}
+
+export interface ReplaceTableRowsBlockPatchInstruction
+  extends NonExtendingPatchInstruction,
+    BaseBlockPatchInstruction,
+    TableRowsContent {
   operation: "replace";
 }
 
@@ -114,6 +147,9 @@ export type HeadingPatchInstruction =
 export type BlockPatchInstruction =
   | PrependBlockPatchInstruction
   | AppendBlockPatchInstruction
-  | ReplaceBlockPatchInstruction;
+  | ReplaceBlockPatchInstruction
+  | PrependTableRowsBlockPatchInstruction
+  | AppendTableRowsBlockPatchInstruction
+  | ReplaceTableRowsBlockPatchInstruction;
 
 export type PatchInstruction = HeadingPatchInstruction | BlockPatchInstruction;

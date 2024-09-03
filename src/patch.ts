@@ -1,4 +1,5 @@
 import { getDocumentMap } from "./map.ts";
+import * as marked from "marked";
 import {
   DocumentMap,
   DocumentMapMarkerContentPair,
@@ -9,6 +10,8 @@ import {
 enum PatchFailureReason {
   InvalidTarget = "invalid-target",
   ContentAlreadyPreexistsInTarget = "content-already-preexists-in-target",
+  TableContentIncorrectColumnCount = "table-content-incorrect-column-count",
+  RequestedBlockTypeBehaviorUnavailable = "requested-block-type-behavior-unavailable",
 }
 
 export class PatchFailed extends Error {
@@ -33,7 +36,7 @@ export class PatchFailed extends Error {
 
 export class PatchError extends Error {}
 
-const replace = (
+const replaceText = (
   document: string,
   instruction: PatchInstruction,
   target: DocumentMapMarkerContentPair
@@ -45,7 +48,7 @@ const replace = (
   ].join("");
 };
 
-const prepend = (
+const prependText = (
   document: string,
   instruction: ExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
@@ -59,7 +62,7 @@ const prepend = (
   ].join("");
 };
 
-const append = (
+const appendText = (
   document: string,
   instruction: ExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
@@ -71,6 +74,180 @@ const append = (
     instruction.content,
     document.slice(target.content.end),
   ].join("");
+};
+
+const replaceTable = (
+  document: string,
+  instruction: PatchInstruction,
+  target: DocumentMapMarkerContentPair
+): string => {
+  const targetTable = document.slice(target.content.start, target.content.end);
+  const tableToken = marked.lexer(targetTable)[0];
+  const match = /^(.*?)(?:\r?\n)(.*?)(\r?\n)/.exec(targetTable);
+  if (!(tableToken.type === "table") || !match) {
+    throw new PatchFailed(
+      PatchFailureReason.RequestedBlockTypeBehaviorUnavailable,
+      instruction,
+      target
+    );
+  }
+
+  const lineEnding = match[3];
+  const tableRows: string[] = [match[1] + lineEnding, match[2] + lineEnding];
+
+  for (const row of instruction.content) {
+    if (row.length !== tableToken.header.length || typeof row === "string") {
+      throw new PatchFailed(
+        PatchFailureReason.TableContentIncorrectColumnCount,
+        instruction,
+        target
+      );
+    }
+
+    tableRows.push("| " + row.join(" | ") + " |" + lineEnding);
+  }
+
+  return [
+    document.slice(0, target.content.start),
+    tableRows.join(""),
+    document.slice(target.content.end),
+  ].join("");
+};
+
+const prependTable = (
+  document: string,
+  instruction: PatchInstruction,
+  target: DocumentMapMarkerContentPair
+): string => {
+  const targetTable = document.slice(target.content.start, target.content.end);
+  const tableToken = marked.lexer(targetTable)[0];
+  const match = /^(.*?)(?:\r?\n)(.*?)(\r?\n)/.exec(targetTable);
+  if (!(tableToken.type === "table") || !match) {
+    throw new PatchFailed(
+      PatchFailureReason.RequestedBlockTypeBehaviorUnavailable,
+      instruction,
+      target
+    );
+  }
+
+  const lineEnding = match[3];
+  const tableRows: string[] = [match[1] + lineEnding, match[2] + lineEnding];
+
+  for (const row of instruction.content) {
+    if (row.length !== tableToken.header.length || typeof row === "string") {
+      throw new PatchFailed(
+        PatchFailureReason.TableContentIncorrectColumnCount,
+        instruction,
+        target
+      );
+    }
+
+    tableRows.push("| " + row.join(" | ") + " |" + lineEnding);
+  }
+
+  tableRows.push(targetTable.slice(match[0].length));
+
+  return [
+    document.slice(0, target.content.start),
+    tableRows.join(""),
+    document.slice(target.content.end),
+  ].join("");
+};
+
+const appendTable = (
+  document: string,
+  instruction: PatchInstruction,
+  target: DocumentMapMarkerContentPair
+): string => {
+  const targetTable = document.slice(target.content.start, target.content.end);
+  const tableToken = marked.lexer(targetTable)[0];
+  const match = /^(.*?)(?:\r?\n)(.*?)(\r?\n)/.exec(targetTable);
+  if (!(tableToken.type === "table") || !match) {
+    throw new PatchFailed(
+      PatchFailureReason.RequestedBlockTypeBehaviorUnavailable,
+      instruction,
+      target
+    );
+  }
+
+  const lineEnding = match[3];
+  const tableRows: string[] = [
+    match[1] + lineEnding,
+    match[2] + lineEnding,
+    targetTable.slice(match[0].length),
+  ];
+
+  for (const row of instruction.content) {
+    if (row.length !== tableToken.header.length || typeof row === "string") {
+      throw new PatchFailed(
+        PatchFailureReason.TableContentIncorrectColumnCount,
+        instruction,
+        target
+      );
+    }
+
+    tableRows.push("| " + row.join(" | ") + " |" + lineEnding);
+  }
+
+  return [
+    document.slice(0, target.content.start),
+    tableRows.join(""),
+    document.slice(target.content.end),
+  ].join("");
+};
+
+const replace = (
+  document: string,
+  instruction: PatchInstruction,
+  target: DocumentMapMarkerContentPair
+): string => {
+  const targetBlockTypeBehavior =
+    "targetBlockTypeBehavior" in instruction
+      ? instruction.targetBlockTypeBehavior
+      : "text";
+
+  switch (targetBlockTypeBehavior) {
+    case "text":
+      return replaceText(document, instruction, target);
+    case "table":
+      return replaceTable(document, instruction, target);
+  }
+};
+
+const prepend = (
+  document: string,
+  instruction: ExtendingPatchInstruction & PatchInstruction,
+  target: DocumentMapMarkerContentPair
+): string => {
+  const targetBlockTypeBehavior =
+    "targetBlockTypeBehavior" in instruction
+      ? instruction.targetBlockTypeBehavior
+      : "text";
+
+  switch (targetBlockTypeBehavior) {
+    case "text":
+      return prependText(document, instruction, target);
+    case "table":
+      return prependTable(document, instruction, target);
+  }
+};
+
+const append = (
+  document: string,
+  instruction: ExtendingPatchInstruction & PatchInstruction,
+  target: DocumentMapMarkerContentPair
+): string => {
+  const targetBlockTypeBehavior =
+    "targetBlockTypeBehavior" in instruction
+      ? instruction.targetBlockTypeBehavior
+      : "text";
+
+  switch (targetBlockTypeBehavior) {
+    case "text":
+      return appendText(document, instruction, target);
+    case "table":
+      return appendTable(document, instruction, target);
+  }
 };
 
 const getTarget = (
@@ -101,6 +278,7 @@ export const applyPatch = (
   if (
     (!("applyIfContentPreexists" in instruction) ||
       !instruction.applyIfContentPreexists) &&
+    typeof instruction.content === "string" &&
     document
       .slice(target.content.start, target.content.end)
       .includes(instruction.content.trim())

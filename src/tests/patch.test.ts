@@ -226,5 +226,72 @@ describe("patch", () => {
       const actualResult = applyPatch(sample, instruction);
       expect(actualResult).toEqual(expected);
     });
+    describe("tagetBlockTypeBehavior", () => {
+      describe("table", () => {
+        test("prepend", () => {
+          const expected = fs.readFileSync(
+            path.join(
+              __dirname,
+              "sample.patch.block.targetBlockTypeBehavior.table.prepend.md"
+            ),
+            "utf-8"
+          );
+          const instruction: PatchInstruction = {
+            targetType: "block",
+            targetBlockTypeBehavior: "table",
+            target: "2c67a6",
+            operation: "prepend",
+            content: [
+              ["`something else`", "Some other application", "✅", "✅", "✅"],
+            ],
+          };
+
+          const actualResult = applyPatch(sample, instruction);
+          expect(actualResult).toEqual(expected);
+        });
+        test("append", () => {
+          const expected = fs.readFileSync(
+            path.join(
+              __dirname,
+              "sample.patch.block.targetBlockTypeBehavior.table.append.md"
+            ),
+            "utf-8"
+          );
+          const instruction: PatchInstruction = {
+            targetType: "block",
+            targetBlockTypeBehavior: "table",
+            target: "2c67a6",
+            operation: "append",
+            content: [
+              ["`something else`", "Some other application", "✅", "✅", "✅"],
+            ],
+          };
+
+          const actualResult = applyPatch(sample, instruction);
+          expect(actualResult).toEqual(expected);
+        });
+        test("replace", () => {
+          const expected = fs.readFileSync(
+            path.join(
+              __dirname,
+              "sample.patch.block.targetBlockTypeBehavior.table.replace.md"
+            ),
+            "utf-8"
+          );
+          const instruction: PatchInstruction = {
+            targetType: "block",
+            targetBlockTypeBehavior: "table",
+            target: "2c67a6",
+            operation: "replace",
+            content: [
+              ["`something else`", "Some other application", "✅", "✅", "✅"],
+            ],
+          };
+
+          const actualResult = applyPatch(sample, instruction);
+          expect(actualResult).toEqual(expected);
+        });
+      });
+    });
   });
 });
