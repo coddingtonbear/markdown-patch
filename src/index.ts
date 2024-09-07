@@ -5,6 +5,7 @@ import { getDocumentMap } from "./map.js";
 import { printMap } from "./debug.js";
 import { PatchInstruction } from "./types.js";
 import { applyPatch } from "./patch.js";
+import packageJson from "../package.json" assert { type: "json" };
 
 async function readStdin(): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -19,11 +20,9 @@ const program = new Command();
 
 // Configure the CLI
 program
-  .name("mdpatch")
-  .description(
-    "Make predicatble changes to markdown documents, even if you don't quite know exactly what they look like."
-  )
-  .version("1.0.0");
+  .name(Object.keys(packageJson.bin)[0])
+  .description(packageJson.description)
+  .version(packageJson.version);
 
 program
   .command("print-map")

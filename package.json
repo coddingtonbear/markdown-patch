@@ -15,7 +15,7 @@
     "typescript": "^5.5.4"
   },
   "name": "markdown-patch",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "main": "index.js",
   "scripts": {
     "test": "node node_modules/.bin/jest"
@@ -26,6 +26,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Change markdown documents by inserting or changing content relative to headings or other parts of a document's structure.",
   "type": "module"
 }
