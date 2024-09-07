@@ -72,7 +72,7 @@ export interface StringContent {
 }
 
 export interface TableRowsContent {
-  targetBlockTypeBehavior: "table";
+  targetBlockTypeBehavior?: "table";
   content: string[][];
 }
 

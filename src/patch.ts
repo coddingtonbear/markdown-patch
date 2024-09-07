@@ -216,7 +216,8 @@ const replace = (
   target: DocumentMapMarkerContentPair
 ): string => {
   const targetBlockTypeBehavior =
-    "targetBlockTypeBehavior" in instruction
+    "targetBlockTypeBehavior" in instruction &&
+    instruction.targetBlockTypeBehavior
       ? instruction.targetBlockTypeBehavior
       : "text";
 
@@ -238,7 +239,8 @@ const prepend = (
   target: DocumentMapMarkerContentPair
 ): string => {
   const targetBlockTypeBehavior =
-    "targetBlockTypeBehavior" in instruction
+    "targetBlockTypeBehavior" in instruction &&
+    instruction.targetBlockTypeBehavior
       ? instruction.targetBlockTypeBehavior
       : "text";
 
@@ -260,7 +262,8 @@ const append = (
   target: DocumentMapMarkerContentPair
 ): string => {
   const targetBlockTypeBehavior =
-    "targetBlockTypeBehavior" in instruction
+    "targetBlockTypeBehavior" in instruction &&
+    instruction.targetBlockTypeBehavior
       ? instruction.targetBlockTypeBehavior
       : "text";
 
