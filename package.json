@@ -18,6 +18,7 @@
   "version": "0.1.1",
   "main": "./dist/index.js",
   "scripts": {
+    "build": "npx tsc",
     "test": "node node_modules/.bin/jest"
   },
   "bin": {
@@ -27,5 +28,9 @@
   "author": "",
   "license": "ISC",
   "description": "Change markdown documents by inserting or changing content relative to headings or other parts of a document's structure.",
-  "type": "module"
+  "type": "module",
+  "files": [
+    "dist/",
+    "README.md"
+  ]
 }

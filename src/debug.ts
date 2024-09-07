@@ -11,14 +11,14 @@ export const printMap = (
       const position =
         documentMap[type as keyof typeof documentMap][positionName];
 
-      const blockName = `${type} :: ${positionName.replaceAll(
-        "\u001f",
-        " :: "
-      )}`;
+      const blockName = `[${chalk.magenta(type)}] ${positionName
+        .split("\u001f")
+        .map((pos) => chalk.blueBright(pos))
+        .join(",")}`;
       if (regex && !blockName.match(regex)) {
         continue;
       }
-      console.log("\n" + chalk.blue(blockName));
+      console.log("\n" + blockName + "\n");
       if (position.content.start < position.marker.start) {
         console.log(
           content
