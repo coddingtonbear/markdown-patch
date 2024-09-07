@@ -4,12 +4,12 @@ import {
   DocumentMap,
   DocumentMapMarkerContentPair,
   HeadingMarkerContentPair,
-} from "./types.ts";
+} from "./types.js";
 
 import {
   CAN_INCLUDE_BLOCK_REFERENCE,
   TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE,
-} from "./constants.ts";
+} from "./constants.js";
 
 function getHeadingPositions(
   document: string,

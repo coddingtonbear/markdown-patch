@@ -18,8 +18,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "node node_modules/.bin/jest",
-    "debug": "node --loader=ts-node/esm src/debug.ts"
+    "test": "node node_modules/.bin/jest"
+  },
+  "bin": {
+    "mdpatch": "./dist/index.js"
   },
   "keywords": [],
   "author": "",

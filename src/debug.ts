@@ -1,8 +1,5 @@
-import { Command } from "commander";
 import chalk from "chalk";
-import fs from "fs";
-import { DocumentMap } from "./types.ts";
-import { getDocumentMap } from "./map.ts";
+import { DocumentMap } from "./types.js";
 
 export const printMap = (
   content: string,
@@ -76,15 +73,3 @@ export const printMap = (
     }
   }
 };
-
-const program = new Command();
-program
-  .command("print-map <path> [regex]")
-  .action((path: string, regex: string | undefined) => {
-    const document = fs.readFileSync(path, "utf-8");
-    const documentMap = getDocumentMap(document);
-
-    printMap(document, documentMap, regex ? new RegExp(regex) : undefined);
-  });
-
-program.parse(process.argv);

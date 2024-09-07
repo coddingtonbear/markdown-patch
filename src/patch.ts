@@ -1,4 +1,4 @@
-import { getDocumentMap } from "./map.ts";
+import { getDocumentMap } from "./map.js";
 import * as marked from "marked";
 import {
   AppendTableRowsBlockPatchInstruction,
@@ -8,8 +8,7 @@ import {
   ExtendingPatchInstruction,
   PatchInstruction,
   ReplaceTableRowsBlockPatchInstruction,
-  TableRowsContent,
-} from "./types.ts";
+} from "./types.js";
 
 enum PatchFailureReason {
   InvalidTarget = "invalid-target",
