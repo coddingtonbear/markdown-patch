@@ -10,7 +10,7 @@ import {
   ReplaceTableRowsBlockPatchInstruction,
 } from "./types.js";
 
-enum PatchFailureReason {
+export enum PatchFailureReason {
   InvalidTarget = "invalid-target",
   ContentAlreadyPreexistsInTarget = "content-already-preexists-in-target",
   TableContentIncorrectColumnCount = "table-content-incorrect-column-count",

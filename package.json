@@ -15,13 +15,13 @@
     "typescript": "^5.5.4"
   },
   "name": "markdown-patch",
-  "version": "0.1.0",
-  "main": "index.js",
+  "version": "0.1.1",
+  "main": "./dist/index.js",
   "scripts": {
     "test": "node node_modules/.bin/jest"
   },
   "bin": {
-    "mdpatch": "./dist/index.js"
+    "mdpatch": "./dist/cli.js"
   },
   "keywords": [],
   "author": "",
