@@ -68,11 +68,12 @@ export interface ExtendingPatchInstruction
 }
 
 export interface StringContent {
+  contentType?: "text";
   content: string;
 }
 
 export interface TableRowsContent {
-  targetBlockTypeBehavior?: "table";
+  contentType: "table-rows";
   content: string[][];
 }
 

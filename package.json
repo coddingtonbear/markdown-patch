@@ -19,7 +19,7 @@
   "main": "./dist/index.js",
   "scripts": {
     "build": "npx tsc",
-    "test": "node node_modules/.bin/jest"
+    "test": "npx jest"
   },
   "bin": {
     "mdpatch": "./dist/cli.js"
@@ -32,5 +32,20 @@
   "files": [
     "dist/",
     "README.md"
-  ]
+  ],
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/"
+    ],
+    "transform": {
+      "^.+\\.ts$": ["ts-jest", {"useESM": true}]
+    },
+    "extensionsToTreatAsEsm": [".ts"],
+    "moduleNameMapper": {
+    	"^(\\.{1,2}/.*)\\.js$": "$1"
+  	}
+  }
 }

@@ -215,16 +215,15 @@ const replace = (
   instruction: PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const targetBlockTypeBehavior =
-    "targetBlockTypeBehavior" in instruction &&
-    instruction.targetBlockTypeBehavior
-      ? instruction.targetBlockTypeBehavior
+  const contentType =
+    "contentType" in instruction && instruction.contentType
+      ? instruction.contentType
       : "text";
 
-  switch (targetBlockTypeBehavior) {
+  switch (contentType) {
     case "text":
       return replaceText(document, instruction, target);
-    case "table":
+    case "table-rows":
       return replaceTable(
         document,
         instruction as ReplaceTableRowsBlockPatchInstruction,
@@ -238,16 +237,15 @@ const prepend = (
   instruction: ExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const targetBlockTypeBehavior =
-    "targetBlockTypeBehavior" in instruction &&
-    instruction.targetBlockTypeBehavior
-      ? instruction.targetBlockTypeBehavior
+  const contentType =
+    "contentType" in instruction && instruction.contentType
+      ? instruction.contentType
       : "text";
 
-  switch (targetBlockTypeBehavior) {
+  switch (contentType) {
     case "text":
       return prependText(document, instruction, target);
-    case "table":
+    case "table-rows":
       return prependTable(
         document,
         instruction as PrependTableRowsBlockPatchInstruction,
@@ -261,16 +259,15 @@ const append = (
   instruction: ExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const targetBlockTypeBehavior =
-    "targetBlockTypeBehavior" in instruction &&
-    instruction.targetBlockTypeBehavior
-      ? instruction.targetBlockTypeBehavior
+  const contentType =
+    "contentType" in instruction && instruction.contentType
+      ? instruction.contentType
       : "text";
 
-  switch (targetBlockTypeBehavior) {
+  switch (contentType) {
     case "text":
       return appendText(document, instruction, target);
-    case "table":
+    case "table-rows":
       return appendTable(
         document,
         instruction as AppendTableRowsBlockPatchInstruction,

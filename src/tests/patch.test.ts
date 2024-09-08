@@ -238,9 +238,9 @@ describe("patch", () => {
           );
           const instruction: PatchInstruction = {
             targetType: "block",
-            targetBlockTypeBehavior: "table",
             target: "2c67a6",
             operation: "prepend",
+            contentType: "table-rows",
             content: [
               ["`something else`", "Some other application", "✅", "✅", "✅"],
             ],
@@ -259,9 +259,9 @@ describe("patch", () => {
           );
           const instruction: PatchInstruction = {
             targetType: "block",
-            targetBlockTypeBehavior: "table",
             target: "2c67a6",
             operation: "append",
+            contentType: "table-rows",
             content: [
               ["`something else`", "Some other application", "✅", "✅", "✅"],
             ],
@@ -280,9 +280,9 @@ describe("patch", () => {
           );
           const instruction: PatchInstruction = {
             targetType: "block",
-            targetBlockTypeBehavior: "table",
             target: "2c67a6",
             operation: "replace",
+            contentType: "table-rows",
             content: [
               ["`something else`", "Some other application", "✅", "✅", "✅"],
             ],
