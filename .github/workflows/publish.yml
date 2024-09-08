@@ -1,0 +1,50 @@
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Verify if tag is annotated
+        id: tag_annotation
+        run: |
+          if [ "$(git tag -l --format='%(contents)' $GITHUB_REF)" == "" ]; then
+            echo "This is not an annotated tag, aborting."
+            exit 1
+          fi
+
+      - name: Get tag annotation for release message
+        id: get_annotation
+        run: |
+          export ANNOTATION="$(git for-each-ref --format='%(contents)' $(git rev-parse $GITHUB_REF))"
+          echo "::set-output name=ANNOTATION::$ANNOTATION"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          body: ${{ steps.get_annotation.outputs.ANNOTATION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
