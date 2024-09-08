@@ -1,4 +1,4 @@
-import {
+export {
   PatchFailureReason,
   PatchFailed,
   PatchError,
