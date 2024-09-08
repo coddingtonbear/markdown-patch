@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { PatchInstruction } from "../types";
 import { applyPatch, PatchFailed } from "../patch";
+import { ContentType } from "../constants";
 
 describe("patch", () => {
   const sample = fs.readFileSync(path.join(__dirname, "sample.md"), "utf-8");
@@ -240,7 +241,7 @@ describe("patch", () => {
             targetType: "block",
             target: "2c67a6",
             operation: "prepend",
-            contentType: "table-rows",
+            contentType: ContentType.tableRows,
             content: [
               ["`something else`", "Some other application", "✅", "✅", "✅"],
             ],
@@ -261,7 +262,7 @@ describe("patch", () => {
             targetType: "block",
             target: "2c67a6",
             operation: "append",
-            contentType: "table-rows",
+            contentType: ContentType.tableRows,
             content: [
               ["`something else`", "Some other application", "✅", "✅", "✅"],
             ],
@@ -282,7 +283,7 @@ describe("patch", () => {
             targetType: "block",
             target: "2c67a6",
             operation: "replace",
-            contentType: "table-rows",
+            contentType: ContentType.tableRows,
             content: [
               ["`something else`", "Some other application", "✅", "✅", "✅"],
             ],

@@ -1,3 +1,5 @@
+import { ContentType } from "./constants";
+
 export interface DocumentRange {
   start: number;
   end: number;
@@ -68,12 +70,12 @@ export interface ExtendingPatchInstruction
 }
 
 export interface StringContent {
-  contentType?: "text";
+  contentType?: ContentType.text;
   content: string;
 }
 
 export interface TableRowsContent {
-  contentType: "table-rows";
+  contentType: ContentType.tableRows;
   content: string[][];
 }
 

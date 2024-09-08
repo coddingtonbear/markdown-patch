@@ -9,6 +9,7 @@ import {
   PatchInstruction,
   ReplaceTableRowsBlockPatchInstruction,
 } from "./types.js";
+import { ContentType } from "./constants.js";
 
 export enum PatchFailureReason {
   InvalidTarget = "invalid-target",
@@ -218,12 +219,12 @@ const replace = (
   const contentType =
     "contentType" in instruction && instruction.contentType
       ? instruction.contentType
-      : "text";
+      : ContentType.text;
 
   switch (contentType) {
-    case "text":
+    case ContentType.text:
       return replaceText(document, instruction, target);
-    case "table-rows":
+    case ContentType.tableRows:
       return replaceTable(
         document,
         instruction as ReplaceTableRowsBlockPatchInstruction,
@@ -240,12 +241,12 @@ const prepend = (
   const contentType =
     "contentType" in instruction && instruction.contentType
       ? instruction.contentType
-      : "text";
+      : ContentType.text;
 
   switch (contentType) {
-    case "text":
+    case ContentType.text:
       return prependText(document, instruction, target);
-    case "table-rows":
+    case ContentType.tableRows:
       return prependTable(
         document,
         instruction as PrependTableRowsBlockPatchInstruction,
@@ -262,12 +263,12 @@ const append = (
   const contentType =
     "contentType" in instruction && instruction.contentType
       ? instruction.contentType
-      : "text";
+      : ContentType.text;
 
   switch (contentType) {
-    case "text":
+    case ContentType.text:
       return appendText(document, instruction, target);
-    case "table-rows":
+    case ContentType.tableRows:
       return appendTable(
         document,
         instruction as AppendTableRowsBlockPatchInstruction,
