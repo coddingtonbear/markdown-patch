@@ -15,7 +15,7 @@ export enum PatchFailureReason {
   InvalidTarget = "invalid-target",
   ContentAlreadyPreexistsInTarget = "content-already-preexists-in-target",
   TableContentIncorrectColumnCount = "table-content-incorrect-column-count",
-  RequestedBlockTypeBehaviorUnavailable = "requested-block-type-behavior-unavailable",
+  ContentTypeInvalidForTarget = "content-type-invalid-for-target",
 }
 
 export class PatchFailed extends Error {
@@ -134,7 +134,7 @@ const replaceTable = (
     ].join("");
   } catch (TablePartsNotFound) {
     throw new PatchFailed(
-      PatchFailureReason.RequestedBlockTypeBehaviorUnavailable,
+      PatchFailureReason.ContentTypeInvalidForTarget,
       instruction,
       target
     );
@@ -170,7 +170,7 @@ const prependTable = (
     ].join("");
   } catch (TablePartsNotFound) {
     throw new PatchFailed(
-      PatchFailureReason.RequestedBlockTypeBehaviorUnavailable,
+      PatchFailureReason.ContentTypeInvalidForTarget,
       instruction,
       target
     );
@@ -204,7 +204,7 @@ const appendTable = (
     ].join("");
   } catch (TablePartsNotFound) {
     throw new PatchFailed(
-      PatchFailureReason.RequestedBlockTypeBehaviorUnavailable,
+      PatchFailureReason.ContentTypeInvalidForTarget,
       instruction,
       target
     );
