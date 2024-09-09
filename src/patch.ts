@@ -9,7 +9,7 @@ import {
   PatchInstruction,
   ReplaceTableRowsBlockPatchInstruction,
 } from "./types.js";
-import { ContentType } from "./constants.js";
+import { ContentType } from "./types.js";
 
 export enum PatchFailureReason {
   InvalidTarget = "invalid-target",
@@ -291,6 +291,13 @@ const getTarget = (
   }
 };
 
+/**
+ * Applies a patch to the specified document.
+ *
+ * @param document The document to apply the patch to.
+ * @param instruction The patch to apply.
+ * @returns The patched document
+ */
 export const applyPatch = (
   document: string,
   instruction: PatchInstruction

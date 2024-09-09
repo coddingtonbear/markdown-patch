@@ -1,0 +1,19 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs/",
+  "includeVersion": true,
+  "highlightLanguages": [
+    "bash",
+    "console",
+    "css",
+    "html",
+    "javascript",
+    "json",
+    "jsonc",
+    "json5",
+    "markdown",
+    "tsx",
+    "typescript"
+  ],
+  "projectDocuments": ["pages/*.md"]
+}

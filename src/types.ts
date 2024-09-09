@@ -1,5 +1,3 @@
-import { ContentType } from "./constants";
-
 export interface DocumentRange {
   start: number;
   end: number;
@@ -79,6 +77,11 @@ export interface TableRowsContent {
   content: string[][];
 }
 
+/**
+ * Prepend content to content existing under a heading
+ *
+ * @category Patch Instructions
+ */
 export interface PrependHeadingPatchInstruction
   extends ExtendingPatchInstruction,
     BaseHeadingPatchInstruction,
@@ -86,6 +89,11 @@ export interface PrependHeadingPatchInstruction
   operation: "prepend";
 }
 
+/**
+ * Append content to content existing under a heading
+ *
+ * @category Patch Instructions
+ */
 export interface AppendHeadingPatchInstruction
   extends ExtendingPatchInstruction,
     BaseHeadingPatchInstruction,
@@ -93,6 +101,11 @@ export interface AppendHeadingPatchInstruction
   operation: "append";
 }
 
+/**
+ * Replace content under a heading
+ *
+ * @category Patch Instructions
+ */
 export interface ReplaceHeadingPatchInstruction
   extends NonExtendingPatchInstruction,
     BaseHeadingPatchInstruction,
@@ -100,6 +113,11 @@ export interface ReplaceHeadingPatchInstruction
   operation: "replace";
 }
 
+/**
+ * Prepend content to a block referenced by a block reference
+ *
+ * @category Patch Instructions
+ */
 export interface PrependBlockPatchInstruction
   extends ExtendingPatchInstruction,
     BaseBlockPatchInstruction,
@@ -107,6 +125,11 @@ export interface PrependBlockPatchInstruction
   operation: "prepend";
 }
 
+/**
+ * Append content to a block referenced by a block reference
+ *
+ * @category Patch Instructions
+ */
 export interface AppendBlockPatchInstruction
   extends ExtendingPatchInstruction,
     BaseBlockPatchInstruction,
@@ -114,6 +137,11 @@ export interface AppendBlockPatchInstruction
   operation: "append";
 }
 
+/**
+ * Replace content of block referenced by a block reference.
+ *
+ * @category Patch Instructions
+ */
 export interface ReplaceBlockPatchInstruction
   extends NonExtendingPatchInstruction,
     BaseBlockPatchInstruction,
@@ -121,6 +149,11 @@ export interface ReplaceBlockPatchInstruction
   operation: "replace";
 }
 
+/**
+ * Prepend rows to a table referenced by a block reference.
+ *
+ * @category Patch Instructions
+ */
 export interface PrependTableRowsBlockPatchInstruction
   extends ExtendingPatchInstruction,
     BaseBlockPatchInstruction,
@@ -128,6 +161,12 @@ export interface PrependTableRowsBlockPatchInstruction
   operation: "prepend";
 }
 
+/**
+ * Patch Instruction for appending rows to a table
+ * referenced by a block reference.
+ *
+ * @category Patch Instructions
+ */
 export interface AppendTableRowsBlockPatchInstruction
   extends ExtendingPatchInstruction,
     BaseBlockPatchInstruction,
@@ -135,6 +174,12 @@ export interface AppendTableRowsBlockPatchInstruction
   operation: "append";
 }
 
+/**
+ * Patch Instruction for replacing all rows of a table
+ * referenced by a block reference.
+ *
+ * @category Patch Instructions
+ */
 export interface ReplaceTableRowsBlockPatchInstruction
   extends NonExtendingPatchInstruction,
     BaseBlockPatchInstruction,
@@ -142,11 +187,17 @@ export interface ReplaceTableRowsBlockPatchInstruction
   operation: "replace";
 }
 
+/**
+ * Patch Instruction for Headings
+ */
 export type HeadingPatchInstruction =
   | PrependHeadingPatchInstruction
   | AppendHeadingPatchInstruction
   | ReplaceHeadingPatchInstruction;
 
+/**
+ * Patch Instruction for Block References
+ */
 export type BlockPatchInstruction =
   | PrependBlockPatchInstruction
   | AppendBlockPatchInstruction
@@ -155,4 +206,19 @@ export type BlockPatchInstruction =
   | AppendTableRowsBlockPatchInstruction
   | ReplaceTableRowsBlockPatchInstruction;
 
+/**
+ * Patch Instruction
+ */
 export type PatchInstruction = HeadingPatchInstruction | BlockPatchInstruction;
+
+export enum ContentType {
+  /**
+   * Content is simple text.
+   */
+  text = "text/plain",
+  /**
+   * Content is an array of arrays in which the inner array is
+   * composed of the values to insert for each column of a table.
+   */
+  tableRows = "application/vnd.markdown-patch.table-rows+json",
+}

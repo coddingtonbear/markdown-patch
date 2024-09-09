@@ -1,3 +1,7 @@
+/**
+ * @module Reference
+ */
+
 export {
   PatchFailureReason,
   PatchFailed,

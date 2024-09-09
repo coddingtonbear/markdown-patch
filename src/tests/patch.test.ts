@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { PatchInstruction } from "../types";
 import { applyPatch, PatchFailed } from "../patch";
-import { ContentType } from "../constants";
+import { ContentType } from "../types";
 
 describe("patch", () => {
   const sample = fs.readFileSync(path.join(__dirname, "sample.md"), "utf-8");

@@ -1,9 +1,5 @@
 # Markdown Patch
 
-Have you ever needed to set up a script for modifying a markdown document and found yourself using arcane tools like `sed` before giving up entirely?
-
-Markdown Patch (`mdpatch`) is aware of the structure of your markdown document and makes it possible for you to easily inserting content relative to parts of that structure like headings and block references.
-
 ## Quickstart
 
 You can install the package via `npm`:
