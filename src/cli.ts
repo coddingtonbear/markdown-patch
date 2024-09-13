@@ -144,4 +144,48 @@ program
     }
   });
 
+program
+  .command("query")
+  .option(
+    "-o, --output <output>",
+    "Path to write output to; use '-' for stdout.  Defaults to patching in-place."
+  )
+  .option(
+    "-d, --delimiter <delimiter>",
+    "Heading delimiter to use in place of '::'.",
+    "::"
+  )
+  .argument("<targetType>", "Target type ('heading', 'block', etc.)")
+  .argument(
+    "<target>",
+    "Target ('::'-delimited by default for Headings); see `mdpatch print-map <path to document>` for options)"
+  )
+  .argument("<documentPath>", "Path to document to query from.")
+  .action(
+    async (
+      targetType: PatchTargetType,
+      target: string,
+      documentPath: string,
+      options
+    ) => {
+      const document = await fs.readFile(documentPath, "utf-8");
+      const documentMap = getDocumentMap(document);
+      const actualTarget =
+        targetType !== "heading"
+          ? target
+          : target.split(options.delimiter).join("\u001f");
+
+      const value = document.slice(
+        documentMap[targetType][actualTarget].content.start,
+        documentMap[targetType][actualTarget].content.end
+      );
+
+      if (options.output) {
+        await fs.writeFile(options.output, value);
+      } else {
+        process.stdout.write(value);
+      }
+    }
+  );
+
 program.parse(process.argv);
