@@ -131,6 +131,46 @@ describe("patch", () => {
       });
     });
 
+    describe("createTargetIfMissing", () => {
+      test("nested", () => {
+        const expected = fs.readFileSync(
+          path.join(
+            __dirname,
+            "sample.patch.heading.createIfMissing.nested.md"
+          ),
+          "utf-8"
+        );
+
+        const instruction: PatchInstruction = {
+          targetType: "heading",
+          target: ["Page Targets", "Block", "Test"],
+          operation: "replace",
+          content: "Beep Boop\n",
+          createTargetIfMissing: true,
+        };
+
+        const actualResult = applyPatch(sample, instruction);
+        expect(actualResult).toEqual(expected);
+      });
+
+      test("root", () => {
+        const expected = fs.readFileSync(
+          path.join(__dirname, "sample.patch.heading.createIfMissing.root.md"),
+          "utf-8"
+        );
+        const instruction: PatchInstruction = {
+          targetType: "heading",
+          target: ["Alpha", "Beta", "Test"],
+          operation: "replace",
+          content: "Beep Boop\n",
+          createTargetIfMissing: true,
+        };
+
+        const actualResult = applyPatch(sample, instruction);
+        expect(actualResult).toEqual(expected);
+      });
+    });
+
     describe("applyIfContentPreexists", () => {
       describe("disabled (default)", () => {
         describe("heading", () => {

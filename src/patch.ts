@@ -8,6 +8,8 @@ import {
   ExtendingPatchInstruction,
   PatchInstruction,
   ReplaceTableRowsBlockPatchInstruction,
+  BaseHeadingPatchInstruction,
+  BaseBlockPatchInstruction,
 } from "./types.js";
 import { ContentType } from "./types.js";
 
@@ -277,6 +279,73 @@ const append = (
   }
 };
 
+const addTargetHeading = (
+  document: string,
+  instruction: ExtendingPatchInstruction &
+    PatchInstruction &
+    BaseHeadingPatchInstruction,
+  map: DocumentMap
+): string => {
+  const elements: string[] = [];
+  let bestTarget = map.heading[""];
+  for (const element of instruction.target ?? []) {
+    const possibleMatch = map.heading[[...elements, element].join("\u001f")];
+    if (possibleMatch) {
+      elements.push(element);
+      bestTarget = possibleMatch;
+    } else {
+      break;
+    }
+  }
+  let finalContent = "";
+  let existingLevels = elements.length;
+  const lineEnding = document.indexOf("\r\n") !== -1 ? "\r\n" : "\n";
+  if (
+    document.slice(
+      bestTarget.content.end - lineEnding.length,
+      bestTarget.content.end
+    ) !== lineEnding
+  ) {
+    finalContent += lineEnding;
+  }
+  for (const headingPart of (instruction.target ?? []).slice(existingLevels)) {
+    existingLevels += 1;
+    finalContent += `${"#".repeat(existingLevels)} ${headingPart}${lineEnding}`;
+  }
+  finalContent += instruction.content;
+
+  return [
+    document.slice(0, bestTarget.content.end),
+    finalContent,
+    document.slice(bestTarget.content.end),
+  ].join("");
+};
+
+const addTargetBlock = (
+  document: string,
+  instruction: ExtendingPatchInstruction &
+    PatchInstruction &
+    BaseBlockPatchInstruction,
+  map: DocumentMap
+): string => {
+  return (
+    document + "\n" + instruction.content + "\n\n" + "^" + instruction.target
+  );
+};
+
+const addTarget = (
+  document: string,
+  instruction: ExtendingPatchInstruction & PatchInstruction,
+  map: DocumentMap
+): string => {
+  switch (instruction.targetType) {
+    case "heading":
+      return addTargetHeading(document, instruction, map);
+    case "block":
+      return addTargetBlock(document, instruction, map);
+  }
+};
+
 const getTarget = (
   map: DocumentMap,
   instruction: PatchInstruction
@@ -306,7 +375,15 @@ export const applyPatch = (
   const target = getTarget(map, instruction);
 
   if (!target) {
-    throw new PatchFailed(PatchFailureReason.InvalidTarget, instruction, null);
+    if (instruction.createTargetIfMissing) {
+      return addTarget(document, instruction, map);
+    } else {
+      throw new PatchFailed(
+        PatchFailureReason.InvalidTarget,
+        instruction,
+        null
+      );
+    }
   }
 
   if (

@@ -24,6 +24,7 @@ export type PatchOperation = "replace" | "prepend" | "append";
 export interface BasePatchInstructionTarget {
   targetType: PatchTargetType;
   target: any;
+  createTargetIfMissing?: boolean;
 }
 
 export interface BasePatchInstructionOperation {

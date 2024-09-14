@@ -88,7 +88,7 @@ function getHeadingPositions(
         level: headingLevel,
       };
 
-      // Build the full heading path with parent headings separated by '\t'
+      // Build the full heading path with parent headings separated by \u001f
       let fullHeadingPath = headingToken.text.trim();
       while (
         stack.length &&
