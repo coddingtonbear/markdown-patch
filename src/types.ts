@@ -15,6 +15,7 @@ export interface HeadingMarkerContentPair extends DocumentMapMarkerContentPair {
 export interface DocumentMap {
   heading: Record<string, HeadingMarkerContentPair>;
   block: Record<string, DocumentMapMarkerContentPair>;
+  frontmatter: Record<string, YamlType>;
 }
 
 export type PatchTargetType = "heading" | "block";
@@ -222,4 +223,14 @@ export enum ContentType {
    * composed of the values to insert for each column of a table.
    */
   tableRows = "application/vnd.markdown-patch.table-rows+json",
+}
+
+export enum YamlType {
+  string = "string",
+  number = "number",
+  boolean = "boolean",
+  null = "null",
+  list = "list",
+  map = "map",
+  unknown = "unknown",
 }

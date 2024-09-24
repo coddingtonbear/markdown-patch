@@ -209,4 +209,42 @@ describe("map", () => {
 
     expect(actualBlocks).toEqual(expectedBlocks);
   });
+
+  describe("frontmatter", () => {
+    test("exists", () => {
+      const actualFrontmatter = getDocumentMap(sample).frontmatter;
+
+      const expectedFrontmatter = {
+        aliases: "list",
+        "project-type": "string",
+        repository: "string",
+      };
+
+      expect(expectedFrontmatter).toEqual(actualFrontmatter);
+    });
+
+    test("does not exist", () => {
+      const sample = fs.readFileSync(
+        path.join(__dirname, "sample.frontmatter.none.md"),
+        "utf-8"
+      );
+
+      const actualFrontmatter = getDocumentMap(sample).frontmatter;
+      const expectedFrontmatter = {};
+
+      expect(expectedFrontmatter).toEqual(actualFrontmatter);
+    });
+
+    test("does not exist, but starts with hr", () => {
+      const sample = fs.readFileSync(
+        path.join(__dirname, "sample.frontmatter.nonfrontmatter-hr.md"),
+        "utf-8"
+      );
+
+      const actualFrontmatter = getDocumentMap(sample).frontmatter;
+      const expectedFrontmatter = {};
+
+      expect(expectedFrontmatter).toEqual(actualFrontmatter);
+    });
+  });
 });

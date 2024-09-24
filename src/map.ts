@@ -1,9 +1,11 @@
 import * as marked from "marked";
+import { parse as parseYaml } from "yaml";
 
 import {
   DocumentMap,
   DocumentMapMarkerContentPair,
   HeadingMarkerContentPair,
+  YamlType,
 } from "./types.js";
 
 import {
@@ -189,6 +191,69 @@ function getBlockPositions(
   return positions;
 }
 
+function getYamlType(value: any): YamlType {
+  if (value === null) {
+    return YamlType.null;
+  }
+  if (Array.isArray(value)) {
+    return YamlType.list;
+  }
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return YamlType.map;
+  }
+  switch (typeof value) {
+    case "string":
+      return YamlType.string;
+    case "number":
+      return YamlType.number;
+    case "boolean":
+      return YamlType.boolean;
+    default:
+      return YamlType.unknown;
+  }
+}
+
+function getFrontmatterFields(
+  document: string,
+  tokens: marked.TokensList
+): Record<string, YamlType> {
+  let frontmatterStart = 0;
+  let frontmatterEnd = 0;
+  if (tokens[0].type === "hr") {
+    frontmatterStart = tokens[0].raw.length;
+    frontmatterEnd = frontmatterStart;
+    for (const token of tokens.slice(1)) {
+      if (token.type === "hr") {
+        break;
+      }
+      frontmatterEnd += token.raw.length;
+    }
+  }
+  if (frontmatterStart === 0 || frontmatterEnd === 0) {
+    return {};
+  }
+
+  const value = parseYaml(document.slice(frontmatterStart, frontmatterEnd));
+  if (
+    !(
+      typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value) &&
+      Object.keys(value).every((key) => typeof key === "string")
+    )
+  ) {
+    return {};
+  }
+
+  const result: Record<string, YamlType> = {};
+  for (const key in value) {
+    if (value.hasOwnProperty(key)) {
+      result[key] = getYamlType(value[key]);
+    }
+  }
+  return result;
+}
+
 export const getDocumentMap = (document: string): DocumentMap => {
   const lexer = new marked.Lexer();
   const tokens = lexer.lex(document);
@@ -196,5 +261,6 @@ export const getDocumentMap = (document: string): DocumentMap => {
   return {
     heading: getHeadingPositions(document, tokens),
     block: getBlockPositions(document, tokens),
+    frontmatter: getFrontmatterFields(document, tokens),
   };
 };
