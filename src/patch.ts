@@ -226,7 +226,7 @@ const replace = (
   switch (contentType) {
     case ContentType.text:
       return replaceText(document, instruction, target);
-    case ContentType.tableRows:
+    case ContentType.json:
       return replaceTable(
         document,
         instruction as ReplaceTableRowsBlockPatchInstruction,
@@ -248,7 +248,7 @@ const prepend = (
   switch (contentType) {
     case ContentType.text:
       return prependText(document, instruction, target);
-    case ContentType.tableRows:
+    case ContentType.json:
       return prependTable(
         document,
         instruction as PrependTableRowsBlockPatchInstruction,
@@ -270,7 +270,7 @@ const append = (
   switch (contentType) {
     case ContentType.text:
       return appendText(document, instruction, target);
-    case ContentType.tableRows:
+    case ContentType.json:
       return appendTable(
         document,
         instruction as AppendTableRowsBlockPatchInstruction,

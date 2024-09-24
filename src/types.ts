@@ -75,7 +75,7 @@ export interface StringContent {
 }
 
 export interface TableRowsContent {
-  contentType: ContentType.tableRows;
+  contentType: ContentType.json;
   content: string[][];
 }
 
@@ -219,10 +219,9 @@ export enum ContentType {
    */
   text = "text/plain",
   /**
-   * Content is an array of arrays in which the inner array is
-   * composed of the values to insert for each column of a table.
+   * Content is a JSON document
    */
-  tableRows = "application/vnd.markdown-patch.table-rows+json",
+  json = "application/json",
 }
 
 export enum YamlType {

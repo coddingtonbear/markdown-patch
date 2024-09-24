@@ -281,7 +281,7 @@ describe("patch", () => {
             targetType: "block",
             target: "2c67a6",
             operation: "prepend",
-            contentType: ContentType.tableRows,
+            contentType: ContentType.json,
             content: [
               ["`something else`", "Some other application", "✅", "✅", "✅"],
             ],
@@ -302,7 +302,7 @@ describe("patch", () => {
             targetType: "block",
             target: "2c67a6",
             operation: "append",
-            contentType: ContentType.tableRows,
+            contentType: ContentType.json,
             content: [
               ["`something else`", "Some other application", "✅", "✅", "✅"],
             ],
@@ -323,7 +323,7 @@ describe("patch", () => {
             targetType: "block",
             target: "2c67a6",
             operation: "replace",
-            contentType: ContentType.tableRows,
+            contentType: ContentType.json,
             content: [
               ["`something else`", "Some other application", "✅", "✅", "✅"],
             ],
