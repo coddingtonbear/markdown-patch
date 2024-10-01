@@ -76,7 +76,7 @@ export interface StringContent {
 
 export interface JsonContent {
   contentType: ContentType.json;
-  content: any;
+  content: unknown;
 }
 
 /**

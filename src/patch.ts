@@ -12,11 +12,13 @@ import {
   BaseBlockPatchInstruction,
 } from "./types.js";
 import { ContentType } from "./types.js";
+import { isStringArrayArray } from "./typeGuards.js";
 
 export enum PatchFailureReason {
   InvalidTarget = "invalid-target",
   ContentAlreadyPreexistsInTarget = "content-already-preexists-in-target",
   TableContentIncorrectColumnCount = "table-content-incorrect-column-count",
+  ContentTypeInvalid = "content-type-invalid",
   ContentTypeInvalidForTarget = "content-type-invalid-for-target",
 }
 
@@ -117,16 +119,27 @@ const replaceTable = (
   try {
     const table = _getTableData(document, target);
     const tableRows: string[] = [table.headerParts];
-    for (const row of instruction.content) {
-      if (row.length !== table.token.header.length || typeof row === "string") {
-        throw new PatchFailed(
-          PatchFailureReason.TableContentIncorrectColumnCount,
-          instruction,
-          target
-        );
-      }
+    if (isStringArrayArray(instruction.content)) {
+      for (const row of instruction.content) {
+        if (
+          row.length !== table.token.header.length ||
+          typeof row === "string"
+        ) {
+          throw new PatchFailed(
+            PatchFailureReason.TableContentIncorrectColumnCount,
+            instruction,
+            target
+          );
+        }
 
-      tableRows.push("| " + row.join(" | ") + " |" + table.lineEnding);
+        tableRows.push("| " + row.join(" | ") + " |" + table.lineEnding);
+      }
+    } else {
+      throw new PatchFailed(
+        PatchFailureReason.ContentTypeInvalid,
+        instruction,
+        target
+      );
     }
 
     return [
@@ -151,16 +164,27 @@ const prependTable = (
   try {
     const table = _getTableData(document, target);
     const tableRows: string[] = [table.headerParts];
-    for (const row of instruction.content) {
-      if (row.length !== table.token.header.length || typeof row === "string") {
-        throw new PatchFailed(
-          PatchFailureReason.TableContentIncorrectColumnCount,
-          instruction,
-          target
-        );
-      }
+    if (isStringArrayArray(instruction.content)) {
+      for (const row of instruction.content) {
+        if (
+          row.length !== table.token.header.length ||
+          typeof row === "string"
+        ) {
+          throw new PatchFailed(
+            PatchFailureReason.TableContentIncorrectColumnCount,
+            instruction,
+            target
+          );
+        }
 
-      tableRows.push("| " + row.join(" | ") + " |" + table.lineEnding);
+        tableRows.push("| " + row.join(" | ") + " |" + table.lineEnding);
+      }
+    } else {
+      throw new PatchFailed(
+        PatchFailureReason.ContentTypeInvalid,
+        instruction,
+        target
+      );
     }
 
     tableRows.push(table.contentParts);
@@ -187,16 +211,27 @@ const appendTable = (
   try {
     const table = _getTableData(document, target);
     const tableRows: string[] = [table.headerParts, table.contentParts];
-    for (const row of instruction.content) {
-      if (row.length !== table.token.header.length || typeof row === "string") {
-        throw new PatchFailed(
-          PatchFailureReason.TableContentIncorrectColumnCount,
-          instruction,
-          target
-        );
-      }
+    if (isStringArrayArray(instruction.content)) {
+      for (const row of instruction.content) {
+        if (
+          row.length !== table.token.header.length ||
+          typeof row === "string"
+        ) {
+          throw new PatchFailed(
+            PatchFailureReason.TableContentIncorrectColumnCount,
+            instruction,
+            target
+          );
+        }
 
-      tableRows.push("| " + row.join(" | ") + " |" + table.lineEnding);
+        tableRows.push("| " + row.join(" | ") + " |" + table.lineEnding);
+      }
+    } else {
+      throw new PatchFailed(
+        PatchFailureReason.ContentTypeInvalid,
+        instruction,
+        target
+      );
     }
 
     return [

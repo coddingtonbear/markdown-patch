@@ -7,6 +7,9 @@ export const printMap = (
   regex: RegExp | undefined
 ): void => {
   for (const type in documentMap) {
+    if (!["block", "heading"].includes(type)) {
+      continue;
+    }
     for (const positionName in documentMap[type as keyof typeof documentMap]) {
       const position =
         documentMap[type as keyof typeof documentMap][positionName];
