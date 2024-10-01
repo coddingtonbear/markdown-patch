@@ -215,9 +215,9 @@ describe("map", () => {
       const actualFrontmatter = getDocumentMap(sample).frontmatter;
 
       const expectedFrontmatter = {
-        aliases: "list",
-        "project-type": "string",
-        repository: "string",
+        aliases: ["Structured Markdown Patch"],
+        "project-type": "Technical",
+        repository: "https://github.com/coddingtonbear/markdown-patch",
       };
 
       expect(expectedFrontmatter).toEqual(actualFrontmatter);

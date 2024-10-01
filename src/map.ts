@@ -5,7 +5,7 @@ import {
   DocumentMap,
   DocumentMapMarkerContentPair,
   HeadingMarkerContentPair,
-  YamlType,
+  PreprocessedDocument,
 } from "./types.js";
 
 import {
@@ -15,27 +15,14 @@ import {
 
 function getHeadingPositions(
   document: string,
-  tokens: marked.TokensList
+  tokens: marked.TokensList,
+  contentOffset: number
 ): Record<string, HeadingMarkerContentPair> {
-  // If the document starts with frontmatter, figure out where
-  // the frontmatter ends so we can know where the text of the
-  // document begins
-  let documentStart = 0;
-  if (tokens[0].type === "hr") {
-    documentStart = tokens[0].raw.length + 1;
-    for (const token of tokens.slice(1)) {
-      documentStart += token.raw.length;
-      if (token.type === "hr") {
-        break;
-      }
-    }
-  }
-
   const positions: Record<string, HeadingMarkerContentPair> = {
     "": {
       content: {
-        start: documentStart,
-        end: document.length,
+        start: contentOffset,
+        end: document.length + contentOffset,
       },
       marker: {
         start: 0,
@@ -80,12 +67,12 @@ function getHeadingPositions(
 
       const currentHeading: HeadingMarkerContentPair = {
         content: {
-          start: startContent,
-          end: endContent,
+          start: startContent + contentOffset,
+          end: endContent + contentOffset,
         },
         marker: {
-          start: startHeading,
-          end: endHeading,
+          start: startHeading + contentOffset,
+          end: endHeading + contentOffset,
         },
         level: headingLevel,
       };
@@ -101,7 +88,7 @@ function getHeadingPositions(
 
       if (stack.length) {
         const parent = stack[stack.length - 1];
-        parent.position.content.end = endContent;
+        parent.position.content.end = endContent + contentOffset;
         fullHeadingPath = `${parent.heading}\u001f${fullHeadingPath}`;
       }
 
@@ -117,7 +104,8 @@ function getHeadingPositions(
 
 function getBlockPositions(
   document: string,
-  tokens: marked.TokensList
+  tokens: marked.TokensList,
+  contentOffset: number
 ): Record<string, DocumentMapMarkerContentPair> {
   const positions: Record<string, DocumentMapMarkerContentPair> = {};
 
@@ -171,10 +159,13 @@ function getBlockPositions(
       }
 
       positions[name] = {
-        content: finalStartContent,
+        content: {
+          start: finalStartContent.start + contentOffset,
+          end: finalStartContent.end + contentOffset,
+        },
         marker: {
-          start: startMarker,
-          end: endMarker,
+          start: startMarker + contentOffset,
+          end: endMarker + contentOffset,
         },
       };
     }
@@ -191,76 +182,42 @@ function getBlockPositions(
   return positions;
 }
 
-function getYamlType(value: any): YamlType {
-  if (value === null) {
-    return YamlType.null;
-  }
-  if (Array.isArray(value)) {
-    return YamlType.list;
-  }
-  if (typeof value === "object" && !Array.isArray(value)) {
-    return YamlType.map;
-  }
-  switch (typeof value) {
-    case "string":
-      return YamlType.string;
-    case "number":
-      return YamlType.number;
-    case "boolean":
-      return YamlType.boolean;
-    default:
-      return YamlType.unknown;
-  }
-}
+function preProcess(document: string): PreprocessedDocument {
+  const frontmatterRegex =
+    /^---(?:\r\n|\r|\n)([\s\S]*?)(?:\r\n|\r|\n)---(?:\r\n|\r|\n|$)/;
 
-function getFrontmatterFields(
-  document: string,
-  tokens: marked.TokensList
-): Record<string, YamlType> {
-  let frontmatterStart = 0;
-  let frontmatterEnd = 0;
-  if (tokens[0].type === "hr") {
-    frontmatterStart = tokens[0].raw.length;
-    frontmatterEnd = frontmatterStart;
-    for (const token of tokens.slice(1)) {
-      if (token.type === "hr") {
-        break;
-      }
-      frontmatterEnd += token.raw.length;
-    }
-  }
-  if (frontmatterStart === 0 || frontmatterEnd === 0) {
-    return {};
+  let content: string;
+  let contentOffset = 0;
+  let frontmatter: Record<string, any>;
+
+  const match = frontmatterRegex.exec(document);
+  if (match) {
+    const frontmatterText = match[1].trim(); // Captured frontmatter content
+    contentOffset = match[0].length; // Length of the entire frontmatter section including delimiters
+
+    frontmatter = parseYaml(frontmatterText);
+    content = document.slice(contentOffset);
+  } else {
+    content = document;
+    frontmatter = {};
   }
 
-  const value = parseYaml(document.slice(frontmatterStart, frontmatterEnd));
-  if (
-    !(
-      typeof value === "object" &&
-      value !== null &&
-      !Array.isArray(value) &&
-      Object.keys(value).every((key) => typeof key === "string")
-    )
-  ) {
-    return {};
-  }
-
-  const result: Record<string, YamlType> = {};
-  for (const key in value) {
-    if (value.hasOwnProperty(key)) {
-      result[key] = getYamlType(value[key]);
-    }
-  }
-  return result;
+  return {
+    content,
+    contentOffset,
+    frontmatter,
+  };
 }
 
 export const getDocumentMap = (document: string): DocumentMap => {
+  const { frontmatter, contentOffset, content } = preProcess(document);
+
   const lexer = new marked.Lexer();
-  const tokens = lexer.lex(document);
+  const tokens = lexer.lex(content);
 
   return {
-    heading: getHeadingPositions(document, tokens),
-    block: getBlockPositions(document, tokens),
-    frontmatter: getFrontmatterFields(document, tokens),
+    heading: getHeadingPositions(content, tokens, contentOffset),
+    block: getBlockPositions(content, tokens, contentOffset),
+    frontmatter: frontmatter,
   };
 };

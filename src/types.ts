@@ -15,7 +15,7 @@ export interface HeadingMarkerContentPair extends DocumentMapMarkerContentPair {
 export interface DocumentMap {
   heading: Record<string, HeadingMarkerContentPair>;
   block: Record<string, DocumentMapMarkerContentPair>;
-  frontmatter: Record<string, YamlType>;
+  frontmatter: Record<string, any>;
 }
 
 export type PatchTargetType = "heading" | "block";
@@ -224,12 +224,8 @@ export enum ContentType {
   json = "application/json",
 }
 
-export enum YamlType {
-  string = "string",
-  number = "number",
-  boolean = "boolean",
-  null = "null",
-  list = "list",
-  map = "map",
-  unknown = "unknown",
+export interface PreprocessedDocument {
+  frontmatter: Record<string, any>;
+  contentOffset: number;
+  content: string;
 }
