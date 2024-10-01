@@ -74,9 +74,9 @@ export interface StringContent {
   content: string;
 }
 
-export interface TableRowsContent {
+export interface JsonContent {
   contentType: ContentType.json;
-  content: string[][];
+  content: any;
 }
 
 /**
@@ -159,7 +159,7 @@ export interface ReplaceBlockPatchInstruction
 export interface PrependTableRowsBlockPatchInstruction
   extends ExtendingPatchInstruction,
     BaseBlockPatchInstruction,
-    TableRowsContent {
+    JsonContent {
   operation: "prepend";
 }
 
@@ -172,7 +172,7 @@ export interface PrependTableRowsBlockPatchInstruction
 export interface AppendTableRowsBlockPatchInstruction
   extends ExtendingPatchInstruction,
     BaseBlockPatchInstruction,
-    TableRowsContent {
+    JsonContent {
   operation: "append";
 }
 
@@ -185,7 +185,7 @@ export interface AppendTableRowsBlockPatchInstruction
 export interface ReplaceTableRowsBlockPatchInstruction
   extends NonExtendingPatchInstruction,
     BaseBlockPatchInstruction,
-    TableRowsContent {
+    JsonContent {
   operation: "replace";
 }
 
