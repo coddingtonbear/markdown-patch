@@ -345,18 +345,17 @@ const addTargetHeading = (
   }
   let finalContent = "";
   let existingLevels = elements.length;
-  const lineEnding = document.indexOf("\r\n") !== -1 ? "\r\n" : "\n";
   if (
     document.slice(
-      bestTarget.content.end - lineEnding.length,
+      bestTarget.content.end - map.lineEnding.length,
       bestTarget.content.end
-    ) !== lineEnding
+    ) !== map.lineEnding
   ) {
-    finalContent += lineEnding;
+    finalContent += map.lineEnding;
   }
   for (const headingPart of (instruction.target ?? []).slice(existingLevels)) {
     existingLevels += 1;
-    finalContent += `${"#".repeat(existingLevels)} ${headingPart}${lineEnding}`;
+    finalContent += `${"#".repeat(existingLevels)} ${headingPart}${map.lineEnding}`;
   }
   finalContent += instruction.content;
 
@@ -375,7 +374,13 @@ const addTargetBlock = (
   map: DocumentMap
 ): string => {
   return (
-    document + "\n" + instruction.content + "\n\n" + "^" + instruction.target
+    document +
+    map.lineEnding +
+    instruction.content +
+    map.lineEnding +
+    map.lineEnding +
+    "^" +
+    instruction.target
   );
 };
 
