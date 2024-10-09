@@ -16,9 +16,11 @@ export interface DocumentMap {
   heading: Record<string, HeadingMarkerContentPair>;
   block: Record<string, DocumentMapMarkerContentPair>;
   frontmatter: Record<string, any>;
+  contentOffset: number;
+  lineEnding: string;
 }
 
-export type PatchTargetType = "heading" | "block";
+export type PatchTargetType = "heading" | "block" | "frontmatter";
 
 export type PatchOperation = "replace" | "prepend" | "append";
 
@@ -38,6 +40,12 @@ export interface BaseHeadingPatchInstruction
   target: string[] | null;
 }
 
+export interface BaseFrontmatterPatchInstruction
+  extends BasePatchInstructionTarget {
+  targetType: "frontmatter";
+  target: string;
+}
+
 export interface BaseBlockPatchInstruction extends BasePatchInstructionTarget {
   targetType: "block";
   target: string;
@@ -46,7 +54,7 @@ export interface BaseBlockPatchInstruction extends BasePatchInstructionTarget {
 export interface NonExtendingPatchInstruction
   extends BasePatchInstructionOperation {}
 
-export interface ExtendingPatchInstruction
+export interface TextExtendingPatchInstruction
   extends BasePatchInstructionOperation {
   /** Trim whitepsace from target before joining with content
    *
@@ -85,7 +93,7 @@ export interface JsonContent {
  * @category Patch Instructions
  */
 export interface PrependHeadingPatchInstruction
-  extends ExtendingPatchInstruction,
+  extends TextExtendingPatchInstruction,
     BaseHeadingPatchInstruction,
     StringContent {
   operation: "prepend";
@@ -97,7 +105,7 @@ export interface PrependHeadingPatchInstruction
  * @category Patch Instructions
  */
 export interface AppendHeadingPatchInstruction
-  extends ExtendingPatchInstruction,
+  extends TextExtendingPatchInstruction,
     BaseHeadingPatchInstruction,
     StringContent {
   operation: "append";
@@ -121,7 +129,7 @@ export interface ReplaceHeadingPatchInstruction
  * @category Patch Instructions
  */
 export interface PrependBlockPatchInstruction
-  extends ExtendingPatchInstruction,
+  extends TextExtendingPatchInstruction,
     BaseBlockPatchInstruction,
     StringContent {
   operation: "prepend";
@@ -133,7 +141,7 @@ export interface PrependBlockPatchInstruction
  * @category Patch Instructions
  */
 export interface AppendBlockPatchInstruction
-  extends ExtendingPatchInstruction,
+  extends TextExtendingPatchInstruction,
     BaseBlockPatchInstruction,
     StringContent {
   operation: "append";
@@ -157,7 +165,7 @@ export interface ReplaceBlockPatchInstruction
  * @category Patch Instructions
  */
 export interface PrependTableRowsBlockPatchInstruction
-  extends ExtendingPatchInstruction,
+  extends TextExtendingPatchInstruction,
     BaseBlockPatchInstruction,
     JsonContent {
   operation: "prepend";
@@ -170,7 +178,7 @@ export interface PrependTableRowsBlockPatchInstruction
  * @category Patch Instructions
  */
 export interface AppendTableRowsBlockPatchInstruction
-  extends ExtendingPatchInstruction,
+  extends TextExtendingPatchInstruction,
     BaseBlockPatchInstruction,
     JsonContent {
   operation: "append";
@@ -185,6 +193,42 @@ export interface AppendTableRowsBlockPatchInstruction
 export interface ReplaceTableRowsBlockPatchInstruction
   extends NonExtendingPatchInstruction,
     BaseBlockPatchInstruction,
+    JsonContent {
+  operation: "replace";
+}
+
+/**
+ * Prepend content to a frontmatter field
+ *
+ * @category Patch Instructions
+ */
+export interface PrependFrontmatterPatchInstruction
+  extends NonExtendingPatchInstruction,
+    BaseFrontmatterPatchInstruction,
+    JsonContent {
+  operation: "prepend";
+}
+
+/**
+ * Append content to a frontmatter field
+ *
+ * @category Patch Instructions
+ */
+export interface AppendFrontmatterPatchInstruction
+  extends NonExtendingPatchInstruction,
+    BaseFrontmatterPatchInstruction,
+    JsonContent {
+  operation: "append";
+}
+
+/**
+ * Replace content of frontmatter field
+ *
+ * @category Patch Instructions
+ */
+export interface ReplaceFrontmatterPatchInstruction
+  extends NonExtendingPatchInstruction,
+    BaseFrontmatterPatchInstruction,
     JsonContent {
   operation: "replace";
 }
@@ -208,10 +252,18 @@ export type BlockPatchInstruction =
   | AppendTableRowsBlockPatchInstruction
   | ReplaceTableRowsBlockPatchInstruction;
 
+export type FrontmatterPatchInstruction =
+  | PrependFrontmatterPatchInstruction
+  | AppendFrontmatterPatchInstruction
+  | ReplaceFrontmatterPatchInstruction;
+
 /**
  * Patch Instruction
  */
-export type PatchInstruction = HeadingPatchInstruction | BlockPatchInstruction;
+export type PatchInstruction =
+  | HeadingPatchInstruction
+  | BlockPatchInstruction
+  | FrontmatterPatchInstruction;
 
 export enum ContentType {
   /**
@@ -229,3 +281,8 @@ export interface PreprocessedDocument {
   contentOffset: number;
   content: string;
 }
+
+export type AppendableFrontmatterType =
+  | string
+  | Array<unknown>
+  | Record<string, unknown>;

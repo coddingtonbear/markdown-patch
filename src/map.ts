@@ -215,9 +215,13 @@ export const getDocumentMap = (document: string): DocumentMap => {
   const lexer = new marked.Lexer();
   const tokens = lexer.lex(content);
 
+  const lineEnding = document.indexOf("\r\n") > -1 ? "\r\n" : "\n";
+
   return {
     heading: getHeadingPositions(content, tokens, contentOffset),
     block: getBlockPositions(content, tokens, contentOffset),
     frontmatter: frontmatter,
+    contentOffset: contentOffset,
+    lineEnding,
   };
 };

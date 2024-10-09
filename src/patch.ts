@@ -1,18 +1,26 @@
 import { getDocumentMap } from "./map.js";
 import * as marked from "marked";
+import * as yaml from "yaml";
 import {
   AppendTableRowsBlockPatchInstruction,
   PrependTableRowsBlockPatchInstruction,
   DocumentMap,
   DocumentMapMarkerContentPair,
-  ExtendingPatchInstruction,
+  TextExtendingPatchInstruction,
   PatchInstruction,
   ReplaceTableRowsBlockPatchInstruction,
   BaseHeadingPatchInstruction,
   BaseBlockPatchInstruction,
+  AppendableFrontmatterType,
 } from "./types.js";
 import { ContentType } from "./types.js";
-import { isStringArrayArray } from "./typeGuards.js";
+import {
+  isAppendableFrontmatterType,
+  isDictionary,
+  isList,
+  isString,
+  isStringArrayArray,
+} from "./typeGuards.js";
 
 export enum PatchFailureReason {
   InvalidTarget = "invalid-target",
@@ -20,6 +28,7 @@ export enum PatchFailureReason {
   TableContentIncorrectColumnCount = "table-content-incorrect-column-count",
   ContentTypeInvalid = "content-type-invalid",
   ContentTypeInvalidForTarget = "content-type-invalid-for-target",
+  ContentNotMergeable = "content-not-mergeable",
 }
 
 export class PatchFailed extends Error {
@@ -44,6 +53,8 @@ export class PatchFailed extends Error {
 
 export class PatchError extends Error {}
 
+export class MergeNotPossible extends Error {}
+
 const replaceText = (
   document: string,
   instruction: PatchInstruction,
@@ -58,7 +69,7 @@ const replaceText = (
 
 const prependText = (
   document: string,
-  instruction: ExtendingPatchInstruction & PatchInstruction,
+  instruction: TextExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
   return [
@@ -72,7 +83,7 @@ const prependText = (
 
 const appendText = (
   document: string,
-  instruction: ExtendingPatchInstruction & PatchInstruction,
+  instruction: TextExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
   return [
@@ -272,7 +283,7 @@ const replace = (
 
 const prepend = (
   document: string,
-  instruction: ExtendingPatchInstruction & PatchInstruction,
+  instruction: TextExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
   const contentType =
@@ -294,7 +305,7 @@ const prepend = (
 
 const append = (
   document: string,
-  instruction: ExtendingPatchInstruction & PatchInstruction,
+  instruction: TextExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
   const contentType =
@@ -316,7 +327,7 @@ const append = (
 
 const addTargetHeading = (
   document: string,
-  instruction: ExtendingPatchInstruction &
+  instruction: TextExtendingPatchInstruction &
     PatchInstruction &
     BaseHeadingPatchInstruction,
   map: DocumentMap
@@ -358,7 +369,7 @@ const addTargetHeading = (
 
 const addTargetBlock = (
   document: string,
-  instruction: ExtendingPatchInstruction &
+  instruction: TextExtendingPatchInstruction &
     PatchInstruction &
     BaseBlockPatchInstruction,
   map: DocumentMap
@@ -370,7 +381,9 @@ const addTargetBlock = (
 
 const addTarget = (
   document: string,
-  instruction: ExtendingPatchInstruction & PatchInstruction,
+  instruction: TextExtendingPatchInstruction &
+    PatchInstruction &
+    (BaseBlockPatchInstruction | BaseHeadingPatchInstruction),
   map: DocumentMap
 ): string => {
   switch (instruction.targetType) {
@@ -392,8 +405,47 @@ const getTarget = (
       ];
     case "block":
       return map.block[instruction.target];
+    case "frontmatter":
+      return map.frontmatter[instruction.target];
   }
 };
+
+function mergeFrontmatterValue(
+  obj1: AppendableFrontmatterType,
+  obj2: AppendableFrontmatterType
+): AppendableFrontmatterType {
+  if (isList(obj1) && isList(obj2)) {
+    return [...obj1, ...obj2];
+  } else if (isDictionary(obj1) && isDictionary(obj2)) {
+    return { ...obj1, ...obj2 };
+  } else if (isString(obj1) && isString(obj2)) {
+    return obj1 + obj2;
+  }
+
+  throw new Error(
+    `Cannot merge objects of different types or unsupported types: ${typeof obj1} and ${typeof obj2}`
+  );
+}
+
+function regenerateDocumentWithFrontmatter(
+  frontmatter: Record<string, unknown>,
+  document: string,
+  map: DocumentMap
+): string {
+  const rawFrontmatterText = Object.values(frontmatter).some(
+    (value) => value !== undefined
+  )
+    ? `---\n${yaml.stringify(frontmatter).trimEnd()}\n---\n`
+    : "";
+
+  const frontmatterText =
+    map.lineEnding !== "\n"
+      ? rawFrontmatterText.replaceAll("\n", map.lineEnding)
+      : rawFrontmatterText;
+  const finalDocument = document.slice(map.contentOffset);
+
+  return frontmatterText + finalDocument;
+}
 
 /**
  * Applies a patch to the specified document.
@@ -409,9 +461,55 @@ export const applyPatch = (
   const map = getDocumentMap(document);
   const target = getTarget(map, instruction);
 
-  if (!target) {
+  if (
+    instruction.targetType === "block" ||
+    instruction.targetType === "heading"
+  ) {
+    if (!target) {
+      if (instruction.createTargetIfMissing) {
+        return addTarget(document, instruction, map);
+      } else {
+        throw new PatchFailed(
+          PatchFailureReason.InvalidTarget,
+          instruction,
+          null
+        );
+      }
+    }
+    if (
+      (!("applyIfContentPreexists" in instruction) ||
+        !instruction.applyIfContentPreexists) &&
+      typeof instruction.content === "string" &&
+      document
+        .slice(target.content.start, target.content.end)
+        .includes(instruction.content.trim())
+    ) {
+      throw new PatchFailed(
+        PatchFailureReason.ContentAlreadyPreexistsInTarget,
+        instruction,
+        target
+      );
+    }
+    switch (instruction.operation) {
+      case "append":
+        return append(document, instruction, target);
+      case "prepend":
+        return prepend(document, instruction, target);
+      case "replace":
+        return replace(document, instruction, target);
+    }
+  }
+  const frontmatter = { ...map.frontmatter };
+
+  if (frontmatter[instruction.target] === undefined) {
     if (instruction.createTargetIfMissing) {
-      return addTarget(document, instruction, map);
+      if (isList(instruction.content)) {
+        frontmatter[instruction.target] = [];
+      } else if (isString(instruction.content)) {
+        frontmatter[instruction.target] = "";
+      } else if (isDictionary(instruction.content)) {
+        frontmatter[instruction.target] = {};
+      }
     } else {
       throw new PatchFailed(
         PatchFailureReason.InvalidTarget,
@@ -421,26 +519,40 @@ export const applyPatch = (
     }
   }
 
-  if (
-    (!("applyIfContentPreexists" in instruction) ||
-      !instruction.applyIfContentPreexists) &&
-    typeof instruction.content === "string" &&
-    document
-      .slice(target.content.start, target.content.end)
-      .includes(instruction.content.trim())
-  ) {
-    throw new PatchFailed(
-      PatchFailureReason.ContentAlreadyPreexistsInTarget,
-      instruction,
-      target
-    );
-  }
-  switch (instruction.operation) {
-    case "append":
-      return append(document, instruction, target);
-    case "prepend":
-      return prepend(document, instruction, target);
-    case "replace":
-      return replace(document, instruction, target);
+  try {
+    switch (instruction.operation) {
+      case "append":
+        if (!isAppendableFrontmatterType(instruction.content)) {
+          throw new MergeNotPossible();
+        }
+        frontmatter[instruction.target] = mergeFrontmatterValue(
+          frontmatter[instruction.target],
+          instruction.content
+        );
+        break;
+      case "prepend":
+        if (!isAppendableFrontmatterType(instruction.content)) {
+          throw new MergeNotPossible();
+        }
+        frontmatter[instruction.target] = mergeFrontmatterValue(
+          instruction.content,
+          frontmatter[instruction.target]
+        );
+        break;
+      case "replace":
+        frontmatter[instruction.target] = instruction.content;
+        break;
+    }
+
+    return regenerateDocumentWithFrontmatter(frontmatter, document, map);
+  } catch (error) {
+    if (error instanceof MergeNotPossible) {
+      throw new PatchFailed(
+        PatchFailureReason.ContentNotMergeable,
+        instruction,
+        null
+      );
+    }
+    throw error;
   }
 };

@@ -6,13 +6,24 @@ export const printMap = (
   documentMap: DocumentMap,
   regex: RegExp | undefined
 ): void => {
-  for (const type in documentMap) {
-    if (!["block", "heading"].includes(type)) {
-      continue;
-    }
-    for (const positionName in documentMap[type as keyof typeof documentMap]) {
+  for (const frontmatterField in documentMap.frontmatter) {
+    const blockName = `[${chalk.magenta("frontmatter")}] ${chalk.blueBright(frontmatterField)}`;
+    console.log("\n" + blockName + "\n");
+    console.log(JSON.stringify(documentMap.frontmatter[frontmatterField]));
+  }
+
+  const targetablePositions = {
+    heading: documentMap.heading,
+    block: documentMap.block,
+  };
+  for (const type in targetablePositions) {
+    for (const positionName in targetablePositions[
+      type as keyof typeof targetablePositions
+    ]) {
       const position =
-        documentMap[type as keyof typeof documentMap][positionName];
+        targetablePositions[type as keyof typeof targetablePositions][
+          positionName
+        ];
 
       const blockName = `[${chalk.magenta(type)}] ${positionName
         .split("\u001f")
