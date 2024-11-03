@@ -267,9 +267,9 @@ export type PatchInstruction =
 
 export enum ContentType {
   /**
-   * Content is simple text.
+   * Content is simple markdown text.
    */
-  text = "text/plain",
+  text = "text/markdown",
   /**
    * Content is a JSON document
    */
