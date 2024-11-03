@@ -502,6 +502,8 @@ export const applyPatch = (
         return prepend(document, instruction, target);
       case "replace":
         return replace(document, instruction, target);
+      default:
+        throw new PatchError("Invalid operation");
     }
   }
   const frontmatter = { ...map.frontmatter };
