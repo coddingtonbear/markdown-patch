@@ -5,7 +5,7 @@ import { getDocumentMap } from "./map.js";
 import { printMap } from "./debug.js";
 import { PatchInstruction, PatchOperation, PatchTargetType } from "./types.js";
 import { applyPatch } from "./patch.js";
-import packageJson from "../package.json" assert { type: "json" };
+import packageJson from "../package.json";
 
 async function readStdin(): Promise<string> {
   return new Promise((resolve, reject) => {
