@@ -19,7 +19,7 @@
     "typescript": "^5.5.4"
   },
   "name": "markdown-patch",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -34,7 +34,6 @@
   "author": "",
   "license": "ISC",
   "description": "Change markdown documents by inserting or changing content relative to headings or other parts of a document's structure.",
-  "type": "module",
   "files": [
     "dist/",
     "README.md"
