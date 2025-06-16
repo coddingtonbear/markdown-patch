@@ -53,6 +53,10 @@ program
     "Heading delimiter to use in place of '::'.",
     "::"
   )
+  .option(
+    "--replace-heading",
+    "Replace the heading as well as its content."
+  )
   .argument("<operation>", "Operation to perform ('replace', 'append', etc.)")
   .argument("<targetType>", "Target type ('heading', 'block', etc.)")
   .argument(
@@ -77,13 +81,34 @@ program
 
       const document = await fs.readFile(documentPath, "utf-8");
 
-      const instruction = {
-        operation,
-        targetType,
-        content,
-        target:
-          targetType !== "heading" ? target : target.split(options.delimiter),
-      } as PatchInstruction;
+      let instruction: PatchInstruction;
+
+      // Only create a ReplaceHeadingPatchInstruction when the operation and target are correct
+      if (operation === "replace" && targetType === "heading") {
+        instruction = {
+          operation,
+          targetType,
+          content,
+          target: target.split(options.delimiter),
+          replaceHeading: options.replaceHeading, 
+        };
+      } else {
+        // If the user tries to use the flag incorrectly, exit with an error.
+        if (options.replaceHeading) {
+          console.error(
+            "The --replace-heading flag is only valid for 'replace' operations on 'heading' targets."
+          );
+          process.exit(1);
+        }
+        // Create other instruction types as before
+        instruction = {
+          operation,
+          targetType,
+          content,
+          target:
+            targetType !== "heading" ? target : target.split(options.delimiter),
+        } as PatchInstruction;
+      }
 
       const patchedDocument = applyPatch(document, instruction);
       if (options.output === "-") {

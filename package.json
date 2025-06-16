@@ -24,6 +24,7 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
+    "prepare": "npm run build",
     "docs": "typedoc",
     "docs-serve": "http-server docs"
   },

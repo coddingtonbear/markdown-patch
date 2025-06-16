@@ -1,4 +1,5 @@
-import { AppendableFrontmatterType } from "./types";
+import { AppendableFrontmatterType,PatchInstruction,
+  ReplaceHeadingPatchInstruction, } from "./types";
 
 export function isStringArrayArray(obj: unknown): obj is string[][] {
   // Check if the object is an array
@@ -27,4 +28,12 @@ export function isDictionary(obj: unknown): obj is Record<string, unknown> {
 
 export function isList(obj: unknown): obj is Array<unknown> {
   return Array.isArray(obj);
+}
+
+export function isReplaceHeadingPatchInstruction(
+  instruction: PatchInstruction
+): instruction is ReplaceHeadingPatchInstruction {
+  return (
+    instruction.targetType === "heading" && instruction.operation === "replace"
+  );
 }

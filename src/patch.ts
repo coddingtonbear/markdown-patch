@@ -20,6 +20,7 @@ import {
   isList,
   isString,
   isStringArrayArray,
+  isReplaceHeadingPatchInstruction
 } from "./typeGuards.js";
 
 export enum PatchFailureReason {
@@ -60,8 +61,15 @@ const replaceText = (
   instruction: PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
+  let start = target.content.start;
+  if (
+    isReplaceHeadingPatchInstruction(instruction) &&
+    instruction.replaceHeading
+  ) {
+    start = target.marker.start;
+  }
   return [
-    document.slice(0, target.content.start),
+    document.slice(0, start),
     instruction.content,
     document.slice(target.content.end),
   ].join("");
