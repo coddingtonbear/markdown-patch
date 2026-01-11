@@ -16,6 +16,7 @@
     "sourceMap": true
   },
   "include": ["src/**/*"],
+  "exclude": ["src/tests/**/*", "**/*.test.ts"],
   "ts-node": {
     "transpileOnly": true
   }
