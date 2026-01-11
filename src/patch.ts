@@ -19,6 +19,7 @@ import {
   isDictionary,
   isList,
   isString,
+  isStringArray,
   isStringArrayArray,
 } from "./typeGuards.js";
 
@@ -130,8 +131,14 @@ const replaceTable = (
   try {
     const table = _getTableData(document, target);
     const tableRows: string[] = [table.headerParts];
-    if (isStringArrayArray(instruction.content)) {
-      for (const row of instruction.content) {
+    let content = instruction.content;
+    if (isStringArray(content)) {
+      // For when the request sends in just a single row
+      content = [content];
+    }
+    if (isStringArrayArray(content)) {
+      // For when the incoming request is multiple rows
+      for (const row of content) {
         if (
           row.length !== table.token.header.length ||
           typeof row === "string"
@@ -175,8 +182,14 @@ const prependTable = (
   try {
     const table = _getTableData(document, target);
     const tableRows: string[] = [table.headerParts];
-    if (isStringArrayArray(instruction.content)) {
-      for (const row of instruction.content) {
+    let content = instruction.content;
+    if (isStringArray(content)) {
+      // For when the request sends in just a single row
+      content = [content];
+    }
+    if (isStringArrayArray(content)) {
+      // For when the request sends in just a single row
+      for (const row of content) {
         if (
           row.length !== table.token.header.length ||
           typeof row === "string"
@@ -222,8 +235,14 @@ const appendTable = (
   try {
     const table = _getTableData(document, target);
     const tableRows: string[] = [table.headerParts, table.contentParts];
-    if (isStringArrayArray(instruction.content)) {
-      for (const row of instruction.content) {
+    let content = instruction.content;
+    if (isStringArray(content)) {
+      // For when the request sends in just a single row
+      content = [content];
+    }
+    if (isStringArrayArray(content)) {
+      // For when the incoming request is multiple rows
+      for (const row of content) {
         if (
           row.length !== table.token.header.length ||
           typeof row === "string"

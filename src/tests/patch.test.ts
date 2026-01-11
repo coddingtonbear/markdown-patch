@@ -266,7 +266,7 @@ describe("patch", () => {
       );
     });
     describe("tagetBlockTypeBehavior", () => {
-      describe("table", () => {
+      describe("table (multiple)", () => {
         test("prepend", () => {
           const instruction: PatchInstruction = {
             targetType: "block",
@@ -308,6 +308,70 @@ describe("patch", () => {
             contentType: ContentType.json,
             content: [
               ["`something else`", "Some other application", "✅", "✅", "✅"],
+            ],
+          };
+
+          assertPatchResultsMatch(
+            "sample.md",
+            "sample.patch.block.targetBlockTypeBehavior.table.replace.md",
+            instruction
+          );
+        });
+      });
+      describe("table (single)", () => {
+        test("prepend", () => {
+          const instruction: PatchInstruction = {
+            targetType: "block",
+            target: "2c67a6",
+            operation: "prepend",
+            contentType: ContentType.json,
+            content: [
+              "`something else`",
+              "Some other application",
+              "✅",
+              "✅",
+              "✅",
+            ],
+          };
+
+          assertPatchResultsMatch(
+            "sample.md",
+            "sample.patch.block.targetBlockTypeBehavior.table.prepend.md",
+            instruction
+          );
+        });
+        test("append", () => {
+          const instruction: PatchInstruction = {
+            targetType: "block",
+            target: "2c67a6",
+            operation: "append",
+            contentType: ContentType.json,
+            content: [
+              "`something else`",
+              "Some other application",
+              "✅",
+              "✅",
+              "✅",
+            ],
+          };
+          assertPatchResultsMatch(
+            "sample.md",
+            "sample.patch.block.targetBlockTypeBehavior.table.append.md",
+            instruction
+          );
+        });
+        test("replace", () => {
+          const instruction: PatchInstruction = {
+            targetType: "block",
+            target: "2c67a6",
+            operation: "replace",
+            contentType: ContentType.json,
+            content: [
+              "`something else`",
+              "Some other application",
+              "✅",
+              "✅",
+              "✅",
             ],
           };
 

@@ -1,5 +1,13 @@
 import { AppendableFrontmatterType } from "./types";
 
+export function isStringArray(obj: unknown): obj is string[] {
+  // Check if the object is an array
+  if (!Array.isArray(obj)) return false;
+
+  // Check if every element is a string
+  return obj.every((item) => typeof item === "string");
+}
+
 export function isStringArrayArray(obj: unknown): obj is string[][] {
   // Check if the object is an array
   if (!Array.isArray(obj)) return false;
