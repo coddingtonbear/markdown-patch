@@ -23,7 +23,7 @@
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "jest",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "docs": "typedoc",
     "docs-serve": "http-server docs"
   },
@@ -39,7 +39,7 @@
     "README.md"
   ],
   "jest": {
-    "preset": "ts-jest",
+    "preset": "ts-jest/presets/default-esm",
     "testEnvironment": "node",
     "testPathIgnorePatterns": [
       "/node_modules/",
@@ -49,12 +49,16 @@
       "^.+\\.ts$": [
         "ts-jest",
         {
-          "useESM": true
+          "useESM": true,
+          "tsconfig": "tsconfig.jest.json"
         }
       ]
     },
     "extensionsToTreatAsEsm": [
       ".ts"
+    ],
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(marked)/)"
     ],
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"

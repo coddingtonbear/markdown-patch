@@ -1,8 +1,13 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
 import { FrontmatterPatchInstruction, PatchInstruction } from "../types";
 import { applyPatch, PatchFailed } from "../patch";
 import { ContentType } from "../types";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe("patch", () => {
   const sample = fs.readFileSync(path.join(__dirname, "sample.md"), "utf-8");
