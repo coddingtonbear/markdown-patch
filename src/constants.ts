@@ -8,4 +8,4 @@ export const TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE = [
   "image",
 ];
 
-export const CAN_INCLUDE_BLOCK_REFERENCE = ["paragraph", "list_item"];
+export const CAN_INCLUDE_BLOCK_REFERENCE = ["paragraph", "list_item", "table"];

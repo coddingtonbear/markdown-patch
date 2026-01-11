@@ -12,7 +12,8 @@
     "skipLibCheck": true,                                 /* Skip type checking all .d.ts files. */
     "resolveJsonModule": true,
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "sourceMap": true
   },
   "include": ["src/**/*"],
   "ts-node": {

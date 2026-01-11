@@ -120,7 +120,7 @@ function getBlockPositions(
   let endContent = 0;
   let endMarker = 0;
   marked.walkTokens(tokens, (token) => {
-    const blockReferenceRegex = /(?:\s+|^)\^([a-zA-Z0-9_-]+)\s*$/;
+    const blockReferenceRegex = /[^\S\r\n]*\^([a-zA-Z0-9_-]+)\s*$/;
     startContent = document.indexOf(token.raw, startContent);
     const match = blockReferenceRegex.exec(token.raw);
     endContent = startContent + (match ? match.index : token.raw.length);
