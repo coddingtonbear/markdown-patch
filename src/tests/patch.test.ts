@@ -265,6 +265,41 @@ describe("patch", () => {
         instruction
       );
     });
+    describe("regression: issue #5 - blank line between content and block ID removed (table/list blocks)", () => {
+      test("Bug: Replace table block - blank line should be preserved", () => {
+        const original =
+          "| Col A | Col B |\n| --- | --- |\n| 1 | 2 |\n\n^table1\n";
+        const replacement = "| X | Y |\n| --- | --- |\n| 9 | 8 |";
+
+        const instruction: PatchInstruction = {
+          operation: "replace",
+          targetType: "block",
+          target: "table1",
+          contentType: ContentType.text,
+          content: replacement,
+        };
+
+        const result = applyPatch(original, instruction);
+        const lines = result.split("\n");
+        const blockIdLine = lines.findIndex((line) => line === "^table1");
+        expect(lines[blockIdLine - 1]).toEqual("");
+      });
+      test("Bug: Replace list block - blank line should be preserved", () => {
+        const original = "- Item A\n- Item B\n- Item C\n\n^list1\n";
+        const replacement = "- New 1\n- New 2";
+
+        const instruction: PatchInstruction = {
+          operation: "replace",
+          targetType: "block",
+          target: "list1",
+          contentType: ContentType.text,
+          content: replacement,
+        };
+
+        const result = applyPatch(original, instruction);
+        expect(result).toEqual("- New 1\n- New 2\n\n^list1\n");
+      });
+    });
     describe("regression: issue #4 - trailing bytes from old content leak into replacement (list blocks)", () => {
       test("replace (isolated block ref, shorter replacement - no trailing byte leak)", () => {
         const original = "- Item 1\n- Item 2\n- Item 3\n\n^list1\n";

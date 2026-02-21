@@ -61,10 +61,27 @@ const replaceText = (
   instruction: PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
+  const suffix = document.slice(target.content.end);
+  // Some block tokens (e.g. tables) have their raw include the blank-line
+  // separator, so content.end lands on that separator \n rather than just
+  // after the content's own trailing \n.  The suffix then starts with only
+  // one \n instead of the two that form the blank line.  Restore the missing
+  // newline so the blank line is preserved when the replacement has no
+  // trailing newline of its own.
+  const lineEnding = suffix.startsWith("\r\n") ? "\r\n" : "\n";
+  const hasSingleLeadingNewline =
+    suffix.startsWith(lineEnding) && !suffix.startsWith(lineEnding + lineEnding);
+  const content =
+    hasSingleLeadingNewline &&
+    typeof instruction.content === "string" &&
+    !instruction.content.endsWith("\n") &&
+    !instruction.content.endsWith("\r\n")
+      ? instruction.content + lineEnding
+      : instruction.content;
   return [
     document.slice(0, target.content.start),
-    instruction.content,
-    document.slice(target.content.end),
+    content,
+    suffix,
   ].join("");
 };
 
