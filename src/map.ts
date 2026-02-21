@@ -171,10 +171,20 @@ function getBlockPositions(
     }
 
     if (TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE.includes(token.type)) {
+      // Apply the same trailing-newline adjustment as endMarker: if the raw
+      // doesn't include the trailing newline but the document has one right
+      // after, treat it as included so the -1 correctly strips it.
+      let adjustedEndContent = endContent;
+      if (
+        document.slice(adjustedEndContent - 1, adjustedEndContent) !== "\n" &&
+        document.slice(adjustedEndContent, adjustedEndContent + 1) === "\n"
+      ) {
+        adjustedEndContent += 1;
+      }
       lastBlockDetails = {
         token: token,
         start: startContent,
-        end: endContent - 1,
+        end: adjustedEndContent - 1,
       };
     }
   });

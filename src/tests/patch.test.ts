@@ -265,6 +265,34 @@ describe("patch", () => {
         instruction
       );
     });
+    describe("regression: issue #4 - trailing bytes from old content leak into replacement (list blocks)", () => {
+      test("replace (isolated block ref, shorter replacement - no trailing byte leak)", () => {
+        const original = "- Item 1\n- Item 2\n- Item 3\n\n^list1\n";
+        const instruction: PatchInstruction = {
+          targetType: "block",
+          target: "list1",
+          operation: "replace",
+          contentType: ContentType.text,
+          content: "- New A\n- New B",
+        };
+        expect(applyPatch(original, instruction)).toEqual(
+          "- New A\n- New B\n\n^list1\n"
+        );
+      });
+      test("replace (isolated block ref, multibyte UTF-8 - no trailing byte leak)", () => {
+        const original = "- 項目1\n- 項目2\n- 項目3\n\n^list1\n";
+        const instruction: PatchInstruction = {
+          targetType: "block",
+          target: "list1",
+          operation: "replace",
+          contentType: ContentType.text,
+          content: "- 新項目A\n- 新項目B",
+        };
+        expect(applyPatch(original, instruction)).toEqual(
+          "- 新項目A\n- 新項目B\n\n^list1\n"
+        );
+      });
+    });
     describe("tagetBlockTypeBehavior", () => {
       describe("table (multiple)", () => {
         test("prepend", () => {
