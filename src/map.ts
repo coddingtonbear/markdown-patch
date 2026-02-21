@@ -121,7 +121,16 @@ function getBlockPositions(
   let endMarker = 0;
   marked.walkTokens(tokens, (token) => {
     const blockReferenceRegex = /[^\S\r\n]*\^([a-zA-Z0-9_-]+)\s*$/;
-    startContent = document.indexOf(token.raw, startContent);
+    const found = document.indexOf(token.raw, startContent);
+    if (found === -1) {
+      // Token's raw text is not present in the document starting from the
+      // current position.  This happens for inner tokens of blockquotes,
+      // whose raw omits the leading "> " prefix, so the text never appears
+      // verbatim in the document.  Skip the token entirely to avoid
+      // corrupting the shared position state with -1-based arithmetic.
+      return;
+    }
+    startContent = found;
     const match = blockReferenceRegex.exec(token.raw);
     endContent = startContent + (match ? match.index : token.raw.length);
     const startMarker = match ? startContent + match.index : -1;

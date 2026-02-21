@@ -328,6 +328,36 @@ describe("patch", () => {
         );
       });
     });
+    describe("regression: issue #6 - entire document duplicated at end of file (quote blocks)", () => {
+      test("Bug: Replace quote block - document should not be duplicated", () => {
+        const original =
+          "# Test\n\n" +
+          "Paragraph ^inline1\n\n" +
+          "> Quote line 1\n" +
+          "> Quote line 2\n\n" +
+          "^quote1\n\n" +
+          "[[some link]] paragraph ^wikilink1\n";
+
+        const replacement = "> New quote";
+
+        const instruction: PatchInstruction = {
+          operation: "replace",
+          targetType: "block",
+          target: "quote1",
+          contentType: ContentType.text,
+          content: replacement,
+        };
+
+        const result = applyPatch(original, instruction);
+
+        // Check for duplication
+        const headingCount = (result.match(/# Test/g) || []).length;
+        expect(headingCount).toBe(1);
+
+        const linkCount = (result.match(/\[\[some link\]\]/g) || []).length;
+        expect(linkCount).toBe(1);
+      });
+    });
     describe("tagetBlockTypeBehavior", () => {
       describe("table (multiple)", () => {
         test("prepend", () => {
