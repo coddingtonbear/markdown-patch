@@ -189,6 +189,11 @@ function getBlockPositions(
         document.slice(adjustedEndContent, adjustedEndContent + 1) === "\n"
       ) {
         adjustedEndContent += 1;
+      } else if (
+        document.slice(adjustedEndContent - 2, adjustedEndContent) !== "\r\n" &&
+        document.slice(adjustedEndContent, adjustedEndContent + 2) === "\r\n"
+      ) {
+        adjustedEndContent += 2;
       }
       lastBlockDetails = {
         token: token,
