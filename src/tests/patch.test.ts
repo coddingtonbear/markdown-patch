@@ -144,7 +144,7 @@ describe("patch", () => {
         const instruction: PatchInstruction = {
           targetType: "heading",
           target: ["Page Targets", "Block", "Test"],
-          operation: "replace",
+          operation: "append",
           content: "Beep Boop\n",
           createTargetIfMissing: true,
         };
@@ -160,7 +160,7 @@ describe("patch", () => {
         const instruction: PatchInstruction = {
           targetType: "heading",
           target: ["Alpha", "Beta", "Test"],
-          operation: "replace",
+          operation: "append",
           content: "Beep Boop\n",
           createTargetIfMissing: true,
         };
@@ -356,6 +356,28 @@ describe("patch", () => {
 
         const linkCount = (result.match(/\[\[some link\]\]/g) || []).length;
         expect(linkCount).toBe(1);
+      });
+    });
+    describe("regression: issue #7 - replace with createTargetIfMissing silently corrupts document", () => {
+      test("replace + createTargetIfMissing throws PatchFailed when target not found", () => {
+        const original =
+          "# Patch Test\n\n" +
+          "## Section A\n" +
+          "This is the first section.\n\n" +
+          "## Section B\n" +
+          "This is the middle section.\n\n" +
+          "## Section C\n" +
+          "This is the last section.\n";
+
+        const instruction: PatchInstruction = {
+          operation: "replace",
+          targetType: "heading",
+          target: ["Section B"], // incorrect — should be ["Patch Test", "Section B"]
+          content: "This is the PATCHED middle section.",
+          createTargetIfMissing: true,
+        };
+
+        expect(() => applyPatch(original, instruction)).toThrow(PatchFailed);
       });
     });
     describe("tagetBlockTypeBehavior", () => {

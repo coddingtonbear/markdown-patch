@@ -507,7 +507,10 @@ export const applyPatch = (
     instruction.targetType === "heading"
   ) {
     if (!target) {
-      if (instruction.createTargetIfMissing) {
+      if (
+        instruction.createTargetIfMissing &&
+        instruction.operation !== "replace"
+      ) {
         return addTarget(document, instruction, map);
       } else {
         throw new PatchFailed(
