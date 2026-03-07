@@ -359,6 +359,7 @@ describe("patch", () => {
       });
     });
     describe("regression: issue #7 - heading append/replace consumes trailing blank line, corrupting subsequent heading targets", () => {
+      // Core bug cases
       test("append: blank line before next section is preserved", () => {
         const original =
           "## Section A\n\nContent A.\n\n## Section B\n\nContent B.\n";
@@ -404,6 +405,104 @@ describe("patch", () => {
         const result = applyPatch(original, instruction);
         expect(result).toEqual(
           "## Section A\nNew content\n\n## Section B\n\nContent B.\n"
+        );
+      });
+
+      // No double-adding when content already ends with \n\n
+      test("append: content already ending with \\n\\n does not get extra blank line", () => {
+        const original =
+          "## Section A\n\nContent A.\n\n## Section B\n\nContent B.\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "append",
+          content: "- new item\n\n",
+        });
+        expect(result).toEqual(
+          "## Section A\n\nContent A.\n\n- new item\n\n## Section B\n\nContent B.\n"
+        );
+      });
+      test("append: content ending with exactly \\n gets one more \\n (not two)", () => {
+        const original =
+          "## Section A\n\nContent A.\n\n## Section B\n\nContent B.\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "append",
+          content: "- new item\n",
+        });
+        expect(result).toEqual(
+          "## Section A\n\nContent A.\n\n- new item\n\n## Section B\n\nContent B.\n"
+        );
+      });
+      test("replace: content already ending with \\n\\n does not get extra blank line", () => {
+        const original =
+          "## Section A\n\nContent A.\n\n## Section B\n\nContent B.\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "replace",
+          content: "New content\n\n",
+        });
+        expect(result).toEqual(
+          "## Section A\nNew content\n\n## Section B\n\nContent B.\n"
+        );
+      });
+      test("replace: content ending with \\n gets one more \\n", () => {
+        const original =
+          "## Section A\n\nContent A.\n\n## Section B\n\nContent B.\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "replace",
+          content: "New content\n",
+        });
+        expect(result).toEqual(
+          "## Section A\nNew content\n\n## Section B\n\nContent B.\n"
+        );
+      });
+
+      // Last section — no separator needed
+      test("append: no separator added when section is last in document", () => {
+        const original = "## Section A\n\nContent A.\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "append",
+          content: "- new item",
+        });
+        expect(result).toEqual("## Section A\n\nContent A.\n- new item");
+      });
+
+      // No blank line between headings — fix must not add one
+      test("append: no blank line added when sections are not blank-line separated", () => {
+        const original = "## Section A\nContent A.\n## Section B\nContent B.\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "append",
+          content: "- new item",
+        });
+        expect(result).toEqual(
+          "## Section A\nContent A.\n- new item## Section B\nContent B.\n"
+        );
+      });
+
+      // trimTargetWhitespace suppresses the separator restoration
+      test("append with trimTargetWhitespace: separator not re-added after trimmed content", () => {
+        const original =
+          "## Section A\n\nContent A.\n\n## Section B\n\nContent B.\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "append",
+          content: "- new item",
+          trimTargetWhitespace: true,
+        });
+        // trimTargetWhitespace strips trailing whitespace from the section;
+        // the caller took responsibility for whitespace, so no \n\n is restored.
+        expect(result).toEqual(
+          "## Section A\n\nContent A.- new item## Section B\n\nContent B.\n"
         );
       });
     });

@@ -71,13 +71,31 @@ const replaceText = (
   const lineEnding = suffix.startsWith("\r\n") ? "\r\n" : "\n";
   const hasSingleLeadingNewline =
     suffix.startsWith(lineEnding) && !suffix.startsWith(lineEnding + lineEnding);
-  const content =
-    hasSingleLeadingNewline &&
-    typeof instruction.content === "string" &&
-    !instruction.content.endsWith("\n") &&
-    !instruction.content.endsWith("\r\n")
-      ? instruction.content + lineEnding
-      : instruction.content;
+  const docLineEnding = document.indexOf("\r\n") > -1 ? "\r\n" : "\n";
+  // For heading sections, content.end sits right at the start of the next
+  // heading, so the blank-line separator between sections is inside the
+  // content region (not in the suffix).  If the original document had a
+  // blank line immediately before content.end, preserve it after the
+  // replacement.
+  const hadTrailingBlankLine =
+    suffix.length > 0 &&
+    !suffix.startsWith(docLineEnding) &&
+    target.content.end >= docLineEnding.length * 2 &&
+    document.slice(
+      target.content.end - docLineEnding.length * 2,
+      target.content.end
+    ) === docLineEnding + docLineEnding;
+
+  let content = instruction.content;
+  if (typeof content === "string") {
+    if (hasSingleLeadingNewline && !content.endsWith("\n") && !content.endsWith("\r\n")) {
+      content = content + lineEnding;
+    } else if (hadTrailingBlankLine && !content.endsWith(docLineEnding + docLineEnding)) {
+      content = content.endsWith(docLineEnding)
+        ? content + docLineEnding
+        : content + docLineEnding + docLineEnding;
+    }
+  }
   return [
     document.slice(0, target.content.start),
     content,
@@ -104,12 +122,41 @@ const appendText = (
   instruction: TextExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
+  const suffix = document.slice(target.content.end);
+  const lineEnding = document.indexOf("\r\n") > -1 ? "\r\n" : "\n";
+  // For heading sections, content.end sits right at the start of the next
+  // heading, so the blank-line separator between sections is inside the
+  // content region and ends up *before* the appended content.  Detect this
+  // by checking for a trailing blank line immediately before content.end and,
+  // unless the caller explicitly trimmed target whitespace, restore the
+  // separator *after* the new content instead.
+  const hadTrailingBlankLine =
+    !instruction.trimTargetWhitespace &&
+    suffix.length > 0 &&
+    !suffix.startsWith(lineEnding) &&
+    target.content.end >= lineEnding.length * 2 &&
+    document.slice(
+      target.content.end - lineEnding.length * 2,
+      target.content.end
+    ) === lineEnding + lineEnding;
+
+  let content = instruction.content;
+  if (
+    hadTrailingBlankLine &&
+    typeof content === "string" &&
+    !content.endsWith(lineEnding + lineEnding)
+  ) {
+    content = content.endsWith(lineEnding)
+      ? content + lineEnding
+      : content + lineEnding + lineEnding;
+  }
+
   return [
     instruction.trimTargetWhitespace
       ? document.slice(0, target.content.end).trimEnd()
       : document.slice(0, target.content.end),
-    instruction.content,
-    document.slice(target.content.end),
+    content,
+    suffix,
   ].join("");
 };
 
