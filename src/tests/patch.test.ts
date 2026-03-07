@@ -358,6 +358,55 @@ describe("patch", () => {
         expect(linkCount).toBe(1);
       });
     });
+    describe("regression: issue #7 - heading append/replace consumes trailing blank line, corrupting subsequent heading targets", () => {
+      test("append: blank line before next section is preserved", () => {
+        const original =
+          "## Section A\n\nContent A.\n\n## Section B\n\nContent B.\n";
+        const instruction: PatchInstruction = {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "append",
+          content: "- new item",
+        };
+        const result = applyPatch(original, instruction);
+        expect(result).toEqual(
+          "## Section A\n\nContent A.\n\n- new item\n\n## Section B\n\nContent B.\n"
+        );
+      });
+      test("append: Section B is still targetable after patching Section A", () => {
+        const original =
+          "## Section A\n\nContent A.\n\n## Section B\n\nContent B.\n";
+        const patched = applyPatch(original, {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "append",
+          content: "- new item",
+        });
+        expect(() =>
+          applyPatch(patched, {
+            targetType: "heading",
+            target: ["Section B"],
+            operation: "append",
+            content: "- another item",
+            applyIfContentPreexists: true,
+          })
+        ).not.toThrow();
+      });
+      test("replace: blank line before next section is preserved", () => {
+        const original =
+          "## Section A\n\nContent A.\n\n## Section B\n\nContent B.\n";
+        const instruction: PatchInstruction = {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "replace",
+          content: "New content",
+        };
+        const result = applyPatch(original, instruction);
+        expect(result).toEqual(
+          "## Section A\nNew content\n\n## Section B\n\nContent B.\n"
+        );
+      });
+    });
     describe("tagetBlockTypeBehavior", () => {
       describe("table (multiple)", () => {
         test("prepend", () => {
