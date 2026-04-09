@@ -151,13 +151,31 @@ const appendText = (
       : content + lineEnding + lineEnding;
   }
 
-  return [
-    instruction.trimTargetWhitespace
-      ? document.slice(0, target.content.end).trimEnd()
-      : document.slice(0, target.content.end),
-    content,
-    suffix,
-  ].join("");
+  if (instruction.trimTargetWhitespace) {
+    return [
+      document.slice(0, target.content.end).trimEnd(),
+      content,
+      suffix,
+    ].join("");
+  }
+
+  // When this is the last section (suffix is empty), trailing blank lines in
+  // the content region are just document-level whitespace, not section
+  // separators.  Strip them so the new content follows directly without a
+  // visual gap.
+  let insertionEnd = target.content.end;
+  if (suffix.length === 0) {
+    const doubleEnding = lineEnding + lineEnding;
+    while (
+      insertionEnd >= lineEnding.length * 2 &&
+      document.slice(insertionEnd - lineEnding.length * 2, insertionEnd) ===
+        doubleEnding
+    ) {
+      insertionEnd -= lineEnding.length;
+    }
+  }
+
+  return [document.slice(0, insertionEnd), content, suffix].join("");
 };
 
 export class TablePartsNotFound extends Error {}

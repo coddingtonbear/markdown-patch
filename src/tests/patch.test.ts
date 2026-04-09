@@ -506,6 +506,37 @@ describe("patch", () => {
         );
       });
     });
+    describe("regression: issue #231 - append under nested heading inserts extra blank line before content", () => {
+      test("append to last nested section: no extra blank line when document ends with trailing blank line", () => {
+        // Reproduces the exact report: '# Tasks\n## Stretch\n- item1\n- item2\n\n'
+        // (Obsidian commonly saves files with a trailing blank line.)
+        // Appending '- [ ] new task' should follow immediately after the last
+        // list item — no double-newline gap before it.
+        const original =
+          "# Tasks\n## Stretch\n- Existing task 1\n- Existing task 2\n\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Tasks", "Stretch"],
+          operation: "append",
+          content: "- [ ] new task",
+        });
+        expect(result).not.toContain("\n\n- [ ] new task");
+        expect(result).toEqual(
+          "# Tasks\n## Stretch\n- Existing task 1\n- Existing task 2\n- [ ] new task"
+        );
+      });
+      test("append to flat last section: no extra blank line when document ends with trailing blank line", () => {
+        const original = "## Section A\n\nContent A.\n\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Section A"],
+          operation: "append",
+          content: "- new item",
+        });
+        expect(result).not.toContain("\n\n- new item");
+        expect(result).toEqual("## Section A\n\nContent A.\n- new item");
+      });
+    });
     describe("tagetBlockTypeBehavior", () => {
       describe("table (multiple)", () => {
         test("prepend", () => {
