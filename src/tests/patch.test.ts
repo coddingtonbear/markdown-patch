@@ -588,6 +588,74 @@ describe("patch", () => {
         );
       });
     });
+    describe("regression: issue #10 variants - boundary false-match on heading-like text in section body", () => {
+      // Variant B: code-span heading ref in table cell, nested target path
+      test("replace nested target: code-span in table cell does not corrupt section", () => {
+        const original =
+          "## Root\n\n" +
+          "### Journal\n\n" +
+          "| Date | Event |\n" +
+          "| --- | --- |\n" +
+          "| 2026-01-01 | See the `## Sibling` section. |\n\n" +
+          "## Sibling\n\n" +
+          "- Item\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Root", "Journal"],
+          operation: "replace",
+          content: "REPLACEMENT.\n",
+        });
+        expect(result).toEqual(
+          "## Root\n\n" +
+            "### Journal\n" +
+            "REPLACEMENT.\n\n" +
+            "## Sibling\n\n" +
+            "- Item\n"
+        );
+      });
+
+      // Variant C: bare `## heading` substring in plain prose (no table, no code-span)
+      test("replace: bare heading substring in prose does not become a section boundary", () => {
+        const original =
+          "## Journal\n\n" +
+          "Original content. This refers to ## Heading below.\n\n" +
+          "## Heading\n\n" +
+          "- Item\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Journal"],
+          operation: "replace",
+          content: "REPLACEMENT.\n",
+        });
+        expect(result).toEqual(
+          "## Journal\n" +
+            "REPLACEMENT.\n\n" +
+            "## Heading\n\n" +
+            "- Item\n"
+        );
+      });
+
+      // Variant D: code-span heading ref in plain paragraph (no table)
+      test("replace: code-span heading ref in paragraph does not become a section boundary", () => {
+        const original =
+          "## Journal\n\n" +
+          "Original content. See the `## Heading` section below.\n\n" +
+          "## Heading\n\n" +
+          "- Item\n";
+        const result = applyPatch(original, {
+          targetType: "heading",
+          target: ["Journal"],
+          operation: "replace",
+          content: "REPLACEMENT.\n",
+        });
+        expect(result).toEqual(
+          "## Journal\n" +
+            "REPLACEMENT.\n\n" +
+            "## Heading\n\n" +
+            "- Item\n"
+        );
+      });
+    });
     describe("tagetBlockTypeBehavior", () => {
       describe("table (multiple)", () => {
         test("prepend", () => {
