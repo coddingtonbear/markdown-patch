@@ -537,6 +537,57 @@ describe("patch", () => {
         expect(result).toEqual("## Section A\n\nContent A.\n- new item");
       });
     });
+    describe("regression: issue #10 - heading boundary detection treats code-span heading inside table cell as a section boundary", () => {
+      const original =
+        "---\ntitle: fixture-table-codespan\n---\n\n" +
+        "## Journal\n\n" +
+        "| Date       | Event                                                                                  |\n" +
+        "| ---------- | -------------------------------------------------------------------------------------- |\n" +
+        "| 2026-01-01 | Initial entry. Discusses the `## Links` section below. |\n\n" +
+        "## Links\n\n" +
+        "- Parent\n";
+
+      test("replace: section body is fully replaced without corrupting the table", () => {
+        const instruction: PatchInstruction = {
+          targetType: "heading",
+          target: ["Journal"],
+          operation: "replace",
+          content:
+            "| Date | Event |\n| --- | --- |\n| 2026-01-02 | Updated entry |\n",
+        };
+        const result = applyPatch(original, instruction);
+        expect(result).toEqual(
+          "---\ntitle: fixture-table-codespan\n---\n\n" +
+            "## Journal\n" +
+            "| Date | Event |\n| --- | --- |\n| 2026-01-02 | Updated entry |\n\n" +
+            "## Links\n\n" +
+            "- Parent\n"
+        );
+      });
+
+      test("replace: Links section is still correctly targetable after patching Journal", () => {
+        const first = applyPatch(original, {
+          targetType: "heading",
+          target: ["Journal"],
+          operation: "replace",
+          content:
+            "| Date | Event |\n| --- | --- |\n| 2026-01-02 | Updated entry |\n",
+        });
+        const second = applyPatch(first, {
+          targetType: "heading",
+          target: ["Links"],
+          operation: "replace",
+          content: "- Child\n",
+        });
+        expect(second).toEqual(
+          "---\ntitle: fixture-table-codespan\n---\n\n" +
+            "## Journal\n" +
+            "| Date | Event |\n| --- | --- |\n| 2026-01-02 | Updated entry |\n\n" +
+            "## Links\n" +
+            "- Child\n"
+        );
+      });
+    });
     describe("tagetBlockTypeBehavior", () => {
       describe("table (multiple)", () => {
         test("prepend", () => {
