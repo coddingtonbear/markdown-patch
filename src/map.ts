@@ -34,17 +34,23 @@ function getHeadingPositions(
   const stack: Array<{ heading: string; position: HeadingMarkerContentPair }> =
     [];
 
-  let currentPosition = 0;
+  // Pre-compute the byte offset of every top-level token by accumulating raw
+  // lengths. marked's block tokens concatenate back to the original input, so
+  // this gives exact positions without any indexOf search — avoiding false
+  // matches inside code spans, table cells, fenced code blocks, etc.
+  const tokenOffsets: number[] = [];
+  let runningOffset = 0;
+  for (const token of tokens) {
+    tokenOffsets.push(runningOffset);
+    runningOffset += token.raw.length;
+  }
 
   tokens.forEach((token, index) => {
     if (token.type === "heading") {
       const headingToken = token as marked.Tokens.Heading;
 
-      const startHeading = document.indexOf(
-        headingToken.raw.trim(),
-        currentPosition
-      );
-      const endHeading = startHeading + headingToken.raw.trim().length + 1;
+      const startHeading = tokenOffsets[index];
+      const endHeading = startHeading + headingToken.raw.trimEnd().length + 1;
       const headingLevel = headingToken.depth;
 
       // Determine the start of the content after this heading
@@ -57,7 +63,7 @@ function getHeadingPositions(
           tokens[i].type === "heading" &&
           (tokens[i] as marked.Tokens.Heading).depth <= headingLevel
         ) {
-          endContent = document.indexOf(tokens[i].raw.trim(), startContent);
+          endContent = tokenOffsets[i];
           break;
         }
       }
@@ -94,8 +100,6 @@ function getHeadingPositions(
 
       positions[fullHeadingPath] = currentHeading;
       stack.push({ heading: fullHeadingPath, position: currentHeading });
-
-      currentPosition = endHeading;
     }
   });
 
