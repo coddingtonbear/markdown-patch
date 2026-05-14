@@ -173,7 +173,7 @@ describe("patch", () => {
       });
     });
 
-    describe("applyIfContentPreexists", () => {
+    describe("rejectIfContentPreexists", () => {
       describe("disabled (default)", () => {
         describe("heading", () => {
           test("preexists at target", () => {
@@ -182,12 +182,12 @@ describe("patch", () => {
               target: ["Page Targets"],
               operation: "append",
               content: "## Frontmatter Field",
-              // applyIfContentPreexists: false,  # default
+              // rejectIfContentPreexists: false,  # default
             };
 
             expect(() => {
               applyPatch(sample, instruction);
-            }).toThrow(PatchFailed);
+            }).not.toThrow(PatchFailed);
           });
           test("does not preexist at target", () => {
             const instruction: PatchInstruction = {
@@ -195,7 +195,7 @@ describe("patch", () => {
               target: ["Headers"],
               operation: "append",
               content: "## Frontmatter Field",
-              // applyIfContentPreexists: false,  # default
+              // rejectIfContentPreexists: false,  # default
             };
 
             expect(() => {
@@ -212,7 +212,20 @@ describe("patch", () => {
               target: ["Page Targets"],
               operation: "append",
               content: "## Frontmatter Field",
-              applyIfContentPreexists: true,
+              rejectIfContentPreexists: true,
+            };
+
+            expect(() => {
+              applyPatch(sample, instruction);
+            }).toThrow(PatchFailed);
+          });
+          test("does not preexist at target", () => {
+            const instruction: PatchInstruction = {
+              targetType: "heading",
+              target: ["Headers"],
+              operation: "append",
+              content: "## Frontmatter Field",
+              rejectIfContentPreexists: true,
             };
 
             expect(() => {
@@ -389,7 +402,6 @@ describe("patch", () => {
             target: ["Section B"],
             operation: "append",
             content: "- another item",
-            applyIfContentPreexists: true,
           })
         ).not.toThrow();
       });

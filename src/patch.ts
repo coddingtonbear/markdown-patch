@@ -583,8 +583,8 @@ export const applyPatch = (
       }
     }
     if (
-      (!("applyIfContentPreexists" in instruction) ||
-        !instruction.applyIfContentPreexists) &&
+      "rejectIfContentPreexists" in instruction &&
+      instruction.rejectIfContentPreexists &&
       typeof instruction.content === "string" &&
       document
         .slice(target.content.start, target.content.end)

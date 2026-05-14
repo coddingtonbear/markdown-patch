@@ -66,15 +66,15 @@ export interface TextExtendingPatchInstruction
    *   be the start of its own line
    */
   trimTargetWhitespace?: boolean;
-  /** Apply patch even if content already exists at target
+  /** Reject patch if content already exists at target
    *
-   * By default, we will fail to apply a patch if the supplied
-   * content is found anywhere in your target content.  If you
-   * would instead like the patch to occur, regardless of whether
-   * it appears the content is already there, you can set
-   * `applyIfContentPreexists` to `true`.
+   * By default, a patch is always applied regardless of whether the
+   * supplied content already appears in the target.  Set
+   * `rejectIfContentPreexists` to `true` to instead fail with
+   * `ContentAlreadyPreexistsInTarget` when the content is found —
+   * useful as an idempotency guard so a retry does not duplicate content.
    */
-  applyIfContentPreexists?: boolean;
+  rejectIfContentPreexists?: boolean;
 }
 
 export interface StringContent {
