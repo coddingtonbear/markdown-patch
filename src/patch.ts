@@ -583,6 +583,7 @@ export const applyPatch = (
       }
     }
     if (
+      instruction.operation !== "replace" &&
       "rejectIfContentPreexists" in instruction &&
       instruction.rejectIfContentPreexists &&
       typeof instruction.content === "string" &&

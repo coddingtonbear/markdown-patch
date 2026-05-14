@@ -234,6 +234,18 @@ describe("patch", () => {
           });
         });
       });
+      describe("never applies to replace", () => {
+        test("replace always applies even when incoming content is a subset of existing", () => {
+          const doc = "## Section\n\nfoo bar baz\n\n## Next\n\ncontent\n";
+          const instruction: PatchInstruction = {
+            targetType: "heading",
+            target: ["Section"],
+            operation: "replace",
+            content: "bar baz",
+          };
+          expect(() => applyPatch(doc, instruction)).not.toThrow();
+        });
+      });
     });
   });
   describe("block", () => {
