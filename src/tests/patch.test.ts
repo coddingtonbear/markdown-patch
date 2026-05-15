@@ -799,6 +799,48 @@ describe("patch", () => {
       });
     });
   });
+  describe("targetScope", () => {
+    describe("heading", () => {
+      test("replace: targetScope:markerAndContent replaces heading line along with content", () => {
+        const doc = "# Old Title\nSome content here.\n# Next\nOther.\n";
+        const result = applyPatch(doc, {
+          targetType: "heading",
+          target: ["Old Title"],
+          operation: "replace",
+          targetScope: "markerAndContent",
+          content: "# New Title\nNew content.\n",
+        });
+        expect(result).toEqual("# New Title\nNew content.\n# Next\nOther.\n");
+      });
+
+      test("prepend: targetScope:markerAndContent inserts before heading line", () => {
+        const doc = "# Section\nContent here.\n# Next\nOther.\n";
+        const result = applyPatch(doc, {
+          targetType: "heading",
+          target: ["Section"],
+          operation: "prepend",
+          targetScope: "markerAndContent",
+          content: "---\n",
+        });
+        expect(result).toEqual("---\n# Section\nContent here.\n# Next\nOther.\n");
+      });
+    });
+
+    describe("block", () => {
+      test("replace: targetScope:markerAndContent removes block ID marker", () => {
+        const doc = "Some text. ^my-block\n\nNext.\n";
+        const result = applyPatch(doc, {
+          targetType: "block",
+          target: "my-block",
+          operation: "replace",
+          targetScope: "markerAndContent",
+          content: "New text.",
+        });
+        expect(result).toEqual("New text.\n\nNext.\n");
+      });
+    });
+  });
+
   describe("frontmatter", () => {
     describe("append", () => {
       test("mismatched types", () => {

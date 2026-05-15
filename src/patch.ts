@@ -91,12 +91,27 @@ export class PatchError extends Error {}
 
 export class MergeNotPossible extends Error {}
 
+const getEffectiveRange = (
+  target: DocumentMapMarkerContentPair,
+  targetScope: "content" | "markerAndContent" | undefined
+): { start: number; end: number } => {
+  if (targetScope !== "markerAndContent") {
+    return { start: target.content.start, end: target.content.end };
+  }
+  return {
+    start: Math.min(target.marker.start, target.content.start),
+    end: Math.max(target.marker.end, target.content.end),
+  };
+};
+
 const replaceText = (
   document: string,
   instruction: PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const suffix = document.slice(target.content.end);
+  const targetScope = "targetScope" in instruction ? instruction.targetScope : undefined;
+  const { start, end } = getEffectiveRange(target, targetScope);
+  const suffix = document.slice(end);
   // Some block tokens (e.g. tables) have their raw include the blank-line
   // separator, so content.end lands on that separator \n rather than just
   // after the content's own trailing \n.  The suffix then starts with only
@@ -115,10 +130,10 @@ const replaceText = (
   const hadTrailingBlankLine =
     suffix.length > 0 &&
     !suffix.startsWith(docLineEnding) &&
-    target.content.end >= docLineEnding.length * 2 &&
+    end >= docLineEnding.length * 2 &&
     document.slice(
-      target.content.end - docLineEnding.length * 2,
-      target.content.end
+      end - docLineEnding.length * 2,
+      end
     ) === docLineEnding + docLineEnding;
 
   let content = instruction.content;
@@ -132,7 +147,7 @@ const replaceText = (
     }
   }
   return [
-    document.slice(0, target.content.start),
+    document.slice(0, start),
     content,
     suffix,
   ].join("");
@@ -143,12 +158,14 @@ const prependText = (
   instruction: TextExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
+  const targetScope = "targetScope" in instruction ? instruction.targetScope : undefined;
+  const { start } = getEffectiveRange(target, targetScope);
   return [
-    document.slice(0, target.content.start),
+    document.slice(0, start),
     instruction.content,
     instruction.trimTargetWhitespace
-      ? document.slice(target.content.start).trimStart()
-      : document.slice(target.content.start),
+      ? document.slice(start).trimStart()
+      : document.slice(start),
   ].join("");
 };
 
@@ -157,7 +174,9 @@ const appendText = (
   instruction: TextExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const suffix = document.slice(target.content.end);
+  const targetScope = "targetScope" in instruction ? instruction.targetScope : undefined;
+  const { end } = getEffectiveRange(target, targetScope);
+  const suffix = document.slice(end);
   const lineEnding = document.indexOf("\r\n") > -1 ? "\r\n" : "\n";
   // For heading sections, content.end sits right at the start of the next
   // heading, so the blank-line separator between sections is inside the
@@ -169,10 +188,10 @@ const appendText = (
     !instruction.trimTargetWhitespace &&
     suffix.length > 0 &&
     !suffix.startsWith(lineEnding) &&
-    target.content.end >= lineEnding.length * 2 &&
+    end >= lineEnding.length * 2 &&
     document.slice(
-      target.content.end - lineEnding.length * 2,
-      target.content.end
+      end - lineEnding.length * 2,
+      end
     ) === lineEnding + lineEnding;
 
   let content = instruction.content;
@@ -188,7 +207,7 @@ const appendText = (
 
   if (instruction.trimTargetWhitespace) {
     return [
-      document.slice(0, target.content.end).trimEnd(),
+      document.slice(0, end).trimEnd(),
       content,
       suffix,
     ].join("");
@@ -198,7 +217,7 @@ const appendText = (
   // the content region are just document-level whitespace, not section
   // separators.  Strip them so the new content follows directly without a
   // visual gap.
-  let insertionEnd = target.content.end;
+  let insertionEnd = end;
   if (suffix.length === 0) {
     const doubleEnding = lineEnding + lineEnding;
     while (
@@ -622,9 +641,13 @@ export const applyPatch = (
       "rejectIfContentPreexists" in instruction &&
       instruction.rejectIfContentPreexists &&
       typeof instruction.content === "string" &&
-      document
-        .slice(target.content.start, target.content.end)
-        .includes(instruction.content.trim())
+      (() => {
+        const { start, end } = getEffectiveRange(
+          target,
+          "targetScope" in instruction ? instruction.targetScope : undefined
+        );
+        return document.slice(start, end).includes(instruction.content.trim());
+      })()
     ) {
       throw new PatchFailed(
         PatchFailureReason.ContentAlreadyPreexistsInTarget,
