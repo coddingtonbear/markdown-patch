@@ -32,6 +32,41 @@ export enum PatchFailureReason {
   ContentNotMergeable = "content-not-mergeable",
 }
 
+const describeInstructionTarget = (instruction: PatchInstruction): string => {
+  if (instruction.targetType === "heading") {
+    const path = instruction.target;
+    return path === null || path.length === 0
+      ? "document root"
+      : `heading "${path.join(" > ")}"`;
+  }
+  if (instruction.targetType === "block") {
+    return `block "^${instruction.target}"`;
+  }
+  return `frontmatter field "${instruction.target}"`;
+};
+
+const buildPatchFailedMessage = (
+  reason: PatchFailureReason,
+  instruction: PatchInstruction
+): string => {
+  const op = instruction.operation;
+  const target = describeInstructionTarget(instruction);
+  switch (reason) {
+    case PatchFailureReason.InvalidTarget:
+      return `Cannot ${op} ${target}: target not found in document`;
+    case PatchFailureReason.ContentAlreadyPreexistsInTarget:
+      return `Cannot ${op} ${target}: content already exists at target`;
+    case PatchFailureReason.TableContentIncorrectColumnCount:
+      return `Cannot ${op} ${target}: row column count does not match table`;
+    case PatchFailureReason.ContentTypeInvalid:
+      return `Cannot ${op} ${target}: content is not valid for this operation`;
+    case PatchFailureReason.ContentTypeInvalidForTarget:
+      return `Cannot ${op} ${target}: target block is not a table`;
+    case PatchFailureReason.ContentNotMergeable:
+      return `Cannot ${op} ${target}: content type is not compatible with merge`;
+  }
+};
+
 export class PatchFailed extends Error {
   public reason: PatchFailureReason;
   public instruction: PatchInstruction;
@@ -42,7 +77,7 @@ export class PatchFailed extends Error {
     instruction: PatchInstruction,
     targetMap: DocumentMapMarkerContentPair | null
   ) {
-    super();
+    super(buildPatchFailedMessage(reason, instruction));
     this.reason = reason;
     this.instruction = instruction;
     this.targetMap = targetMap;
