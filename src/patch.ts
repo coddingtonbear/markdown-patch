@@ -12,6 +12,7 @@ import {
   BaseHeadingPatchInstruction,
   BaseBlockPatchInstruction,
   AppendableFrontmatterType,
+  PatchTargetScope,
 } from "./types.js";
 import { ContentType } from "./types.js";
 import {
@@ -22,6 +23,7 @@ import {
   isStringArray,
   isStringArrayArray,
 } from "./typeGuards.js";
+import { DEFAULT_TARGET_SCOPE } from "./constants.js";
 
 export enum PatchFailureReason {
   InvalidTarget = "invalid-target",
@@ -93,7 +95,7 @@ export class MergeNotPossible extends Error {}
 
 const getEffectiveRange = (
   target: DocumentMapMarkerContentPair,
-  targetScope: "content" | "marker" | "markerAndContent" | undefined
+  targetScope: PatchTargetScope = DEFAULT_TARGET_SCOPE
 ): { start: number; end: number } => {
   if (targetScope === "marker") {
     return { start: target.marker.start, end: target.marker.end };
@@ -112,7 +114,7 @@ const replaceText = (
   instruction: PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const targetScope = "targetScope" in instruction ? instruction.targetScope : undefined;
+  const targetScope = "targetScope" in instruction ? instruction.targetScope : DEFAULT_TARGET_SCOPE;
   const { start, end } = getEffectiveRange(target, targetScope);
   const suffix = document.slice(end);
   // Some block tokens (e.g. tables) have their raw include the blank-line
@@ -161,7 +163,7 @@ const prependText = (
   instruction: TextExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const targetScope = "targetScope" in instruction ? instruction.targetScope : undefined;
+  const targetScope = "targetScope" in instruction ? instruction.targetScope : DEFAULT_TARGET_SCOPE;
   const { start } = getEffectiveRange(target, targetScope);
   return [
     document.slice(0, start),
@@ -177,7 +179,7 @@ const appendText = (
   instruction: TextExtendingPatchInstruction & PatchInstruction,
   target: DocumentMapMarkerContentPair
 ): string => {
-  const targetScope = "targetScope" in instruction ? instruction.targetScope : undefined;
+  const targetScope = "targetScope" in instruction ? instruction.targetScope : DEFAULT_TARGET_SCOPE;
   const { end } = getEffectiveRange(target, targetScope);
   const suffix = document.slice(end);
   const lineEnding = document.indexOf("\r\n") > -1 ? "\r\n" : "\n";
@@ -647,7 +649,7 @@ export const applyPatch = (
       (() => {
         const { start, end } = getEffectiveRange(
           target,
-          "targetScope" in instruction ? instruction.targetScope : undefined
+          "targetScope" in instruction ? instruction.targetScope : DEFAULT_TARGET_SCOPE
         );
         return document.slice(start, end).includes(instruction.content.trim());
       })()

@@ -9,3 +9,5 @@ export const TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE = [
 ];
 
 export const CAN_INCLUDE_BLOCK_REFERENCE = ["paragraph", "list_item", "table"];
+
+export const DEFAULT_TARGET_SCOPE = "content";

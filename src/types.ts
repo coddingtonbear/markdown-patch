@@ -34,6 +34,8 @@ export interface BasePatchInstructionOperation {
   operation: string;
 }
 
+export type PatchTargetScope = "content" | "marker" | "markerAndContent";
+
 export interface BaseMarkerContentPatchInstruction
   extends BasePatchInstructionTarget {
   /** Controls the range of the document the patch operates on.
@@ -43,7 +45,7 @@ export interface BaseMarkerContentPatchInstruction
    * - `"markerAndContent"`: patch applies to the full range covering both the marker and content,
    *   allowing the heading line or block ID to be replaced or repositioned alongside the content.
    */
-  targetScope?: "content" | "marker" | "markerAndContent";
+  targetScope?: PatchTargetScope;
 }
 
 export interface BaseHeadingPatchInstruction
