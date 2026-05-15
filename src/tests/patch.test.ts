@@ -839,6 +839,32 @@ describe("patch", () => {
         expect(result).toEqual("New text.\n\nNext.\n");
       });
     });
+
+    describe("targetScope:marker", () => {
+      test("heading replace: renames heading line without touching content", () => {
+        const doc = "# Old Title\nSome content here.\n# Next\nOther.\n";
+        const result = applyPatch(doc, {
+          targetType: "heading",
+          target: ["Old Title"],
+          operation: "replace",
+          targetScope: "marker",
+          content: "# New Title\n",
+        });
+        expect(result).toEqual("# New Title\nSome content here.\n# Next\nOther.\n");
+      });
+
+      test("block replace: renames block ID without touching content", () => {
+        const doc = "Some text. ^old-id\n\nNext.\n";
+        const result = applyPatch(doc, {
+          targetType: "block",
+          target: "old-id",
+          operation: "replace",
+          targetScope: "marker",
+          content: " ^new-id",
+        });
+        expect(result).toEqual("Some text. ^new-id\n\nNext.\n");
+      });
+    });
   });
 
   describe("frontmatter", () => {

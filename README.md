@@ -161,7 +161,7 @@ const patched = applyPatch(document, {
 | `target` | `string \| string[]` | Target address (array for heading paths) |
 | `content` | `string` | Content to apply |
 | `contentType` | `"text/markdown" \| "application/json"` | Defaults to `text/markdown` |
-| `targetScope` | `"content" \| "markerAndContent"` | Heading and block only. Defaults to `"content"`. Set to `"markerAndContent"` to include the heading line or block ID marker in the patched range, allowing it to be replaced or repositioned. |
+| `targetScope` | `"content" \| "marker" \| "markerAndContent"` | Heading and block only. Defaults to `"content"`. `"marker"` targets only the heading line or block ID (useful for renaming). `"markerAndContent"` targets the full range covering both. |
 | `createTargetIfMissing` | `boolean` | Create the heading or block if it doesn't exist |
 | `rejectIfContentPreexists` | `boolean` | Reject the patch (with `ContentAlreadyPreexistsInTarget`) if the supplied content is already present in the target. Ignored for `replace` operations. |
 | `trimTargetWhitespace` | `boolean` | Trim whitespace from the target boundary before joining |

@@ -93,15 +93,18 @@ export class MergeNotPossible extends Error {}
 
 const getEffectiveRange = (
   target: DocumentMapMarkerContentPair,
-  targetScope: "content" | "markerAndContent" | undefined
+  targetScope: "content" | "marker" | "markerAndContent" | undefined
 ): { start: number; end: number } => {
-  if (targetScope !== "markerAndContent") {
-    return { start: target.content.start, end: target.content.end };
+  if (targetScope === "marker") {
+    return { start: target.marker.start, end: target.marker.end };
   }
-  return {
-    start: Math.min(target.marker.start, target.content.start),
-    end: Math.max(target.marker.end, target.content.end),
-  };
+  if (targetScope === "markerAndContent") {
+    return {
+      start: Math.min(target.marker.start, target.content.start),
+      end: Math.max(target.marker.end, target.content.end),
+    };
+  }
+  return { start: target.content.start, end: target.content.end };
 };
 
 const replaceText = (

@@ -36,13 +36,14 @@ export interface BasePatchInstructionOperation {
 
 export interface BaseMarkerContentPatchInstruction
   extends BasePatchInstructionTarget {
-  /** Controls whether the patch range includes the marker (heading line or block ID) in addition to the content.
+  /** Controls the range of the document the patch operates on.
    *
    * - `"content"` (default): patch applies only to the content region, leaving the marker unchanged.
+   * - `"marker"`: patch applies only to the marker (heading line or block ID), leaving the content unchanged.
    * - `"markerAndContent"`: patch applies to the full range covering both the marker and content,
-   *   allowing the heading line or block ID to be replaced or repositioned.
+   *   allowing the heading line or block ID to be replaced or repositioned alongside the content.
    */
-  targetScope?: "content" | "markerAndContent";
+  targetScope?: "content" | "marker" | "markerAndContent";
 }
 
 export interface BaseHeadingPatchInstruction
