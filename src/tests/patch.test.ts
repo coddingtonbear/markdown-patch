@@ -1082,6 +1082,22 @@ describe("patch", () => {
         );
       });
       describe("createTargetIfMissing", () => {
+
+        test("works when the existing frontmatter block is empty", () => {
+          const instruction: FrontmatterPatchInstruction = {
+            targetType: "frontmatter",
+            target: "title",
+            operation: "replace",
+            contentType: ContentType.json,
+            content: "T",
+            createTargetIfMissing: true,
+          };
+
+          expect(applyPatch("---\n---\n# H\nbody\n", instruction)).toEqual(
+            "---\ntitle: T\n---\n# H\nbody\n"
+          );
+        });
+
         test("list", () => {
           const instruction: FrontmatterPatchInstruction = {
             targetType: "frontmatter",

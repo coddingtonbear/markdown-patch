@@ -212,7 +212,7 @@ function getBlockPositions(
 
 function preProcess(document: string): PreprocessedDocument {
   const frontmatterRegex =
-    /^---(?:\r\n|\r|\n)([\s\S]*?)(?:\r\n|\r|\n)---(?:\r\n|\r|\n|$)/;
+    /^---(?:\r\n|\r|\n)([\s\S]*?)^---(?:\r\n|\r|\n|$)/m;
 
   let content: string;
   let contentOffset = 0;
@@ -223,7 +223,7 @@ function preProcess(document: string): PreprocessedDocument {
     const frontmatterText = match[1].trim(); // Captured frontmatter content
     contentOffset = match[0].length; // Length of the entire frontmatter section including delimiters
 
-    frontmatter = parseYaml(frontmatterText);
+    frontmatter = parseYaml(frontmatterText) ?? {};
     content = document.slice(contentOffset);
   } else {
     content = document;
