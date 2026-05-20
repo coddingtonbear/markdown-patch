@@ -244,6 +244,14 @@ describe("map", () => {
       expect(actual.heading.H.marker.start).toBe(10);
     });
 
+    test("does not treat later thematic breaks as frontmatter", () => {
+      const actual = getDocumentMap("# H\n\n---\nbody\n---\n");
+
+      expect(actual.frontmatter).toEqual({});
+      expect(actual.contentOffset).toBe(0);
+      expect(actual.heading.H.marker.start).toBe(0);
+    });
+
     test("does not exist", () => {
       const sample = fs.readFileSync(
         path.join(__dirname, "sample.frontmatter.none.md"),
