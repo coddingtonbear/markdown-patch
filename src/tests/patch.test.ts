@@ -1098,6 +1098,51 @@ describe("patch", () => {
           );
         });
 
+        test("works when the existing frontmatter block is empty with CRLF line endings", () => {
+          const instruction: FrontmatterPatchInstruction = {
+            targetType: "frontmatter",
+            target: "title",
+            operation: "replace",
+            contentType: ContentType.json,
+            content: "T",
+            createTargetIfMissing: true,
+          };
+
+          expect(applyPatch("---\r\n---\r\n# H\r\nbody\r\n", instruction)).toEqual(
+            "---\r\ntitle: T\r\n---\r\n# H\r\nbody\r\n"
+          );
+        });
+
+        test("appends to empty frontmatter block", () => {
+          const instruction: FrontmatterPatchInstruction = {
+            targetType: "frontmatter",
+            target: "tags",
+            operation: "append",
+            contentType: ContentType.json,
+            content: ["work"],
+            createTargetIfMissing: true,
+          };
+
+          expect(applyPatch("---\n---\n# H\nbody\n", instruction)).toEqual(
+            "---\ntags:\n  - work\n---\n# H\nbody\n"
+          );
+        });
+
+        test("prepends to empty frontmatter block", () => {
+          const instruction: FrontmatterPatchInstruction = {
+            targetType: "frontmatter",
+            target: "tags",
+            operation: "prepend",
+            contentType: ContentType.json,
+            content: ["work"],
+            createTargetIfMissing: true,
+          };
+
+          expect(applyPatch("---\n---\n# H\nbody\n", instruction)).toEqual(
+            "---\ntags:\n  - work\n---\n# H\nbody\n"
+          );
+        });
+
         test("list", () => {
           const instruction: FrontmatterPatchInstruction = {
             targetType: "frontmatter",

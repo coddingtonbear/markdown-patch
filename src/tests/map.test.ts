@@ -244,6 +244,13 @@ describe("map", () => {
       expect(actual.heading.H.marker.start).toBe(10);
     });
 
+    test("exists but is empty with no trailing newline", () => {
+      const actual = getDocumentMap("---\n---");
+
+      expect(actual.frontmatter).toEqual({});
+      expect(actual.contentOffset).toBe(7);
+    });
+
     test("does not treat later thematic breaks as frontmatter", () => {
       const actual = getDocumentMap("# H\n\n---\nbody\n---\n");
 
