@@ -631,9 +631,7 @@ function mergeFrontmatterValue(
     return obj1 + obj2;
   }
 
-  throw new Error(
-    `Cannot merge objects of different types or unsupported types: ${typeof obj1} and ${typeof obj2}`
-  );
+  throw new MergeNotPossible();
 }
 
 function regenerateDocumentWithFrontmatter(

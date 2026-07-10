@@ -11,6 +11,10 @@ const __dirname = path.dirname(__filename);
 
 describe("patch", () => {
   const sample = fs.readFileSync(path.join(__dirname, "sample.md"), "utf-8");
+  const sampleFrontmatter = fs.readFileSync(
+    path.join(__dirname, "sample.frontmatter.md"),
+    "utf-8"
+  );
 
   const assertPatchResultsMatch = (
     inputDocumentPath: string,
@@ -1010,6 +1014,19 @@ describe("patch", () => {
           applyPatch(sample, instruction);
         }).toThrow(PatchFailed);
       });
+      test("type mismatch in existing field throws PatchFailed", () => {
+        const instruction: FrontmatterPatchInstruction = {
+          targetType: "frontmatter",
+          target: "array-value",
+          operation: "append",
+          contentType: ContentType.json,
+          content: "OK",
+        };
+
+        expect(() => {
+          applyPatch(sampleFrontmatter, instruction);
+        }).toThrow(PatchFailed);
+      });
       test("list", () => {
         const instruction: FrontmatterPatchInstruction = {
           targetType: "frontmatter",
@@ -1078,6 +1095,19 @@ describe("patch", () => {
 
         expect(() => {
           applyPatch(sample, instruction);
+        }).toThrow(PatchFailed);
+      });
+      test("type mismatch in existing field throws PatchFailed", () => {
+        const instruction: FrontmatterPatchInstruction = {
+          targetType: "frontmatter",
+          target: "array-value",
+          operation: "prepend",
+          contentType: ContentType.json,
+          content: "OK",
+        };
+
+        expect(() => {
+          applyPatch(sampleFrontmatter, instruction);
         }).toThrow(PatchFailed);
       });
       test("list", () => {
