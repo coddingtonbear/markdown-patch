@@ -330,6 +330,25 @@ const prependTable = (
     }
     if (isStringArrayArray(content)) {
       // For when the request sends in just a single row
+      if (instruction.rejectIfContentPreexists) {
+        const existingRows = table.token.rows.map((row) =>
+          row.map((cell) => cell.text)
+        );
+        const allPreexist = content.every((incomingRow) =>
+          existingRows.some(
+            (existingRow) =>
+              existingRow.length === incomingRow.length &&
+              existingRow.every((cell, i) => cell === incomingRow[i])
+          )
+        );
+        if (allPreexist) {
+          throw new PatchFailed(
+            PatchFailureReason.ContentAlreadyPreexistsInTarget,
+            instruction,
+            target
+          );
+        }
+      }
       for (const row of content) {
         if (
           row.length !== table.token.header.length ||
@@ -383,6 +402,25 @@ const appendTable = (
     }
     if (isStringArrayArray(content)) {
       // For when the incoming request is multiple rows
+      if (instruction.rejectIfContentPreexists) {
+        const existingRows = table.token.rows.map((row) =>
+          row.map((cell) => cell.text)
+        );
+        const allPreexist = content.every((incomingRow) =>
+          existingRows.some(
+            (existingRow) =>
+              existingRow.length === incomingRow.length &&
+              existingRow.every((cell, i) => cell === incomingRow[i])
+          )
+        );
+        if (allPreexist) {
+          throw new PatchFailed(
+            PatchFailureReason.ContentAlreadyPreexistsInTarget,
+            instruction,
+            target
+          );
+        }
+      }
       for (const row of content) {
         if (
           row.length !== table.token.header.length ||

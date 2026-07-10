@@ -203,6 +203,36 @@ describe("patch", () => {
             }).not.toThrow(PatchFailed);
           });
         });
+        describe("block (table)", () => {
+          const tableDoc =
+            "| A | B |\n| --- | --- |\n| x | y |\n| p | q |\n\n^tbl1\n";
+          test("append: all rows preexist — still proceeds", () => {
+            const instruction: PatchInstruction = {
+              targetType: "block",
+              target: "tbl1",
+              operation: "append",
+              contentType: ContentType.json,
+              content: [["x", "y"]],
+              // rejectIfContentPreexists: false,  # default
+            };
+            expect(() => applyPatch(tableDoc, instruction)).not.toThrow(
+              PatchFailed
+            );
+          });
+          test("prepend: all rows preexist — still proceeds", () => {
+            const instruction: PatchInstruction = {
+              targetType: "block",
+              target: "tbl1",
+              operation: "prepend",
+              contentType: ContentType.json,
+              content: [["x", "y"]],
+              // rejectIfContentPreexists: false,  # default
+            };
+            expect(() => applyPatch(tableDoc, instruction)).not.toThrow(
+              PatchFailed
+            );
+          });
+        });
       });
       describe("enabled", () => {
         describe("heading", () => {
@@ -231,6 +261,91 @@ describe("patch", () => {
             expect(() => {
               applyPatch(sample, instruction);
             }).not.toThrow(PatchFailed);
+          });
+        });
+        describe("block (table)", () => {
+          const tableDoc =
+            "| A | B |\n| --- | --- |\n| x | y |\n| p | q |\n\n^tbl1\n";
+          test("append: all rows preexist — throws", () => {
+            const instruction: PatchInstruction = {
+              targetType: "block",
+              target: "tbl1",
+              operation: "append",
+              contentType: ContentType.json,
+              content: [["x", "y"]],
+              rejectIfContentPreexists: true,
+            };
+            expect(() => applyPatch(tableDoc, instruction)).toThrow(PatchFailed);
+          });
+          test("append: multiple rows all preexist — throws", () => {
+            const instruction: PatchInstruction = {
+              targetType: "block",
+              target: "tbl1",
+              operation: "append",
+              contentType: ContentType.json,
+              content: [
+                ["x", "y"],
+                ["p", "q"],
+              ],
+              rejectIfContentPreexists: true,
+            };
+            expect(() => applyPatch(tableDoc, instruction)).toThrow(PatchFailed);
+          });
+          test("append: at least one new row — proceeds", () => {
+            const instruction: PatchInstruction = {
+              targetType: "block",
+              target: "tbl1",
+              operation: "append",
+              contentType: ContentType.json,
+              content: [
+                ["x", "y"],
+                ["z", "w"],
+              ],
+              rejectIfContentPreexists: true,
+            };
+            expect(() => applyPatch(tableDoc, instruction)).not.toThrow(
+              PatchFailed
+            );
+          });
+          test("append: no rows preexist — proceeds", () => {
+            const instruction: PatchInstruction = {
+              targetType: "block",
+              target: "tbl1",
+              operation: "append",
+              contentType: ContentType.json,
+              content: [["z", "w"]],
+              rejectIfContentPreexists: true,
+            };
+            expect(() => applyPatch(tableDoc, instruction)).not.toThrow(
+              PatchFailed
+            );
+          });
+          test("prepend: all rows preexist — throws", () => {
+            const instruction: PatchInstruction = {
+              targetType: "block",
+              target: "tbl1",
+              operation: "prepend",
+              contentType: ContentType.json,
+              content: [["p", "q"]],
+              rejectIfContentPreexists: true,
+            };
+            expect(() => applyPatch(tableDoc, instruction)).toThrow(PatchFailed);
+          });
+          test("prepend: at least one new row — proceeds", () => {
+            const instruction: PatchInstruction = {
+              targetType: "block",
+              target: "tbl1",
+              operation: "prepend",
+              contentType: ContentType.json,
+              content: [
+                ["p", "q"],
+                ["z", "w"],
+              ],
+              rejectIfContentPreexists: true,
+            };
+            expect(() => applyPatch(tableDoc, instruction)).not.toThrow(
+              PatchFailed
+            );
           });
         });
       });
