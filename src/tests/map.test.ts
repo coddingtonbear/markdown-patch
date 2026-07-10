@@ -227,6 +227,31 @@ describe("map", () => {
       expect(expectedFrontmatter).toEqual(actualFrontmatter);
     });
 
+
+    test("exists but is empty", () => {
+      const actual = getDocumentMap("---\n---\n# H\n");
+
+      expect(actual.frontmatter).toEqual({});
+      expect(actual.contentOffset).toBe(8);
+      expect(actual.heading.H.marker.start).toBe(8);
+    });
+
+    test("exists but is empty with CRLF line endings", () => {
+      const actual = getDocumentMap("---\r\n---\r\n# H\r\n");
+
+      expect(actual.frontmatter).toEqual({});
+      expect(actual.contentOffset).toBe(10);
+      expect(actual.heading.H.marker.start).toBe(10);
+    });
+
+    test("does not treat later thematic breaks as frontmatter", () => {
+      const actual = getDocumentMap("# H\n\n---\nbody\n---\n");
+
+      expect(actual.frontmatter).toEqual({});
+      expect(actual.contentOffset).toBe(0);
+      expect(actual.heading.H.marker.start).toBe(0);
+    });
+
     test("does not exist", () => {
       const sample = fs.readFileSync(
         path.join(__dirname, "sample.frontmatter.none.md"),
