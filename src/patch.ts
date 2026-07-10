@@ -476,6 +476,8 @@ const replace = (
         instruction as ReplaceTableRowsBlockPatchInstruction,
         target
       );
+    default:
+      throw new PatchError(`Unsupported contentType: ${contentType}`);
   }
 };
 
@@ -498,6 +500,8 @@ const prepend = (
         instruction as PrependTableRowsBlockPatchInstruction,
         target
       );
+    default:
+      throw new PatchError(`Unsupported contentType: ${contentType}`);
   }
 };
 
@@ -520,6 +524,8 @@ const append = (
         instruction as AppendTableRowsBlockPatchInstruction,
         target
       );
+    default:
+      throw new PatchError(`Unsupported contentType: ${contentType}`);
   }
 };
 

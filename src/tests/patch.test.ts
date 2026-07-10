@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import { FrontmatterPatchInstruction, PatchInstruction } from "../types";
-import { applyPatch, PatchFailed } from "../patch";
+import { applyPatch, PatchError, PatchFailed } from "../patch";
 import { ContentType } from "../types";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1275,6 +1275,47 @@ describe("patch", () => {
           );
         });
       });
+    });
+  });
+
+  describe("unknown contentType", () => {
+    const doc = "## Overview\n\nSome content.\n";
+    const unknownContentType = "text/xml" as unknown as ContentType;
+
+    test("replace throws for unrecognised contentType", () => {
+      const instruction = {
+        targetType: "heading",
+        target: ["Overview"],
+        operation: "replace",
+        content: "New content\n",
+        contentType: unknownContentType,
+      } as unknown as PatchInstruction;
+
+      expect(() => applyPatch(doc, instruction)).toThrow(PatchError);
+    });
+
+    test("prepend throws for unrecognised contentType", () => {
+      const instruction = {
+        targetType: "heading",
+        target: ["Overview"],
+        operation: "prepend",
+        content: "New content\n",
+        contentType: unknownContentType,
+      } as unknown as PatchInstruction;
+
+      expect(() => applyPatch(doc, instruction)).toThrow(PatchError);
+    });
+
+    test("append throws for unrecognised contentType", () => {
+      const instruction = {
+        targetType: "heading",
+        target: ["Overview"],
+        operation: "append",
+        content: "New content\n",
+        contentType: unknownContentType,
+      } as unknown as PatchInstruction;
+
+      expect(() => applyPatch(doc, instruction)).toThrow(PatchError);
     });
   });
 });
