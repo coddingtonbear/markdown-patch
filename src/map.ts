@@ -13,6 +13,14 @@ import {
   TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE,
 } from "./constants.js";
 
+export class FrontmatterParseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "FrontmatterParseError";
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
 function getHeadingPositions(
   document: string,
   tokens: marked.TokensList,
@@ -223,7 +231,13 @@ function preProcess(document: string): PreprocessedDocument {
     const frontmatterText = (match[1] ?? "").trim(); // Captured frontmatter content
     contentOffset = match[0].length; // Length of the entire frontmatter section including delimiters
 
-    frontmatter = parseYaml(frontmatterText) ?? {};
+    try {
+      frontmatter = parseYaml(frontmatterText) ?? {};
+    } catch (e) {
+      throw new FrontmatterParseError(
+        `Could not parse document frontmatter: ${(e as Error).message}`
+      );
+    }
     content = document.slice(contentOffset);
   } else {
     content = document;

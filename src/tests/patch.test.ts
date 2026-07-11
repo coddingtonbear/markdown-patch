@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 
 import { FrontmatterPatchInstruction, PatchInstruction } from "../types";
 import { applyPatch, PatchError, PatchFailed } from "../patch";
+import { FrontmatterParseError } from "../map";
 import { ContentType } from "../types";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -983,6 +984,33 @@ describe("patch", () => {
         });
         expect(result).toEqual("Some text. ^new-id\n\nNext.\n");
       });
+    });
+  });
+
+  describe("regression: issue #11 - strict YAML parse failure in frontmatter blocks body-only patches", () => {
+    const colonInFrontmatter = fs.readFileSync(
+      path.join(__dirname, "sample.frontmatter.colon-in-value.md"),
+      "utf-8"
+    );
+
+    test("block replace throws FrontmatterParseError when frontmatter contains an unescaped colon in a scalar value", () => {
+      const instruction: PatchInstruction = {
+        targetType: "block",
+        target: "block-1",
+        operation: "replace",
+        content: "New content.",
+      };
+      expect(() => applyPatch(colonInFrontmatter, instruction)).toThrow(FrontmatterParseError);
+    });
+
+    test("heading replace throws FrontmatterParseError when frontmatter contains an unescaped colon in a scalar value", () => {
+      const instruction: PatchInstruction = {
+        targetType: "heading",
+        target: ["Body"],
+        operation: "replace",
+        content: "New content.\n",
+      };
+      expect(() => applyPatch(colonInFrontmatter, instruction)).toThrow(FrontmatterParseError);
     });
   });
 

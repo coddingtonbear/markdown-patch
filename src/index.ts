@@ -10,7 +10,8 @@ export {
   applyPatch,
 } from "./patch.js";
 export {
-  getDocumentMap
+  getDocumentMap,
+  FrontmatterParseError,
 } from "./map.js";
 
 export * from "./types.js";
