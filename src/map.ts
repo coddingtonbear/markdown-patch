@@ -251,6 +251,12 @@ function preProcess(document: string): PreprocessedDocument {
   };
 }
 
+/**
+ * @deprecated Use {@link buildModel} with {@link projectMap} instead. This is
+ * the 1.x map: heading paths come back as `::`-joined strings, block ids carry
+ * a leading `^`, and there is no `version` token for optimistic concurrency. It
+ * will be removed in a future major release.
+ */
 export const getDocumentMap = (document: string): DocumentMap => {
   const { frontmatter, contentOffset, content } = preProcess(document);
 

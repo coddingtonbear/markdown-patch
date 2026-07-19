@@ -19,7 +19,9 @@ You can install the package via `npm`:
 npm install markdown-patch
 ```
 
-And if you were to create a document named `document.md` with the following content:
+Every edit is one **operation** (`replace`, `prepend`, `append`, `delete`) applied to a **scope** (`content`, `marker`, `markerAndContent`, `parent`) of a **target** node — a heading, a block reference, or a frontmatter field.
+
+Given a document named `document.md`:
 
 ```markdown
 # Noise Floor
@@ -32,21 +34,22 @@ And if you were to create a document named `document.md` with the following cont
 
 - Checked out of my hotel
 - Caught the flight home
-
 ```
 
-Then you can use the `patch` or `apply` subcommands to alter the document.  For example, the following will add a new heading below the heading "Discoveries":
+You can add a subsection below "Discoveries" like so:
 
-```bash
-mdpatch patch append heading Discoveries ./document.md
+```typescript
+import { patch } from "markdown-patch";
 
-## My discovery
-I discovered a thing
-
-<Ctrl+D>
+const { document: patched } = patch(document, {
+  targetType: "heading",
+  target: ["Discoveries"],
+  operation: "append",
+  content: "\n# My discovery\n\nI discovered a thing\n",
+});
 ```
 
-Your final document will then look like:
+Note that the content says `#`, not `##`. Heading levels inside a `content` string are *relative* to the span being edited, so a single `#` becomes a direct child of the target and you never have to count `#`s to match the surrounding document. The result:
 
 ```markdown
 # Noise Floor
@@ -56,13 +59,17 @@ Your final document will then look like:
 # Discoveries
 
 ## My discovery
+
 I discovered a thing
 
 # Events
 
 - Checked out of my hotel
 - Caught the flight home
-
 ```
 
-See `--help` for more insight into what commands are available.
+The leading `\n` in the content above is deliberate: a blank-line separator at the target boundary is preserved only if one was already there, and is never synthesized for you.
+
+See {@link Reference.patch} for the full instruction shape, {@link Reference.readTarget} for the read-side mirror of the same addressing, and {@link Reference.projectMap} for discovering what a document has to target.
+
+> **Note:** {@link Reference.applyPatch} and {@link Reference.getDocumentMap} are the deprecated 1.x API. They still work, but new code should use {@link Reference.patch}; see the README for the migration table.

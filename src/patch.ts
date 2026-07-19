@@ -657,6 +657,11 @@ function regenerateDocumentWithFrontmatter(
 /**
  * Applies a patch to the specified document.
  *
+ * @deprecated Use {@link patch} instead. This is the 1.x engine, kept for
+ * backwards compatibility; it takes a {@link PatchInstruction} with a
+ * `::`-joined heading target and no scope algebra, and it will be removed in a
+ * future major release. See the README's migration table for the field mapping.
+ *
  * @param document The document to apply the patch to.
  * @param instruction The patch to apply.
  * @returns The patched document
