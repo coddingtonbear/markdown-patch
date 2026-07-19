@@ -26,7 +26,7 @@ Every edit is one **operation** applied to a **scope** of a **target** node.
 - **`scope`** (optional, defaults to `content`):
   - `content` — the node's body. For a heading, that's its whole subtree *below* the heading line.
   - `marker` — the label only: a heading line, a block `^id`, or a frontmatter key. `replace` renames it.
-  - `markerAndContent` — the whole node/subtree. `prepend`/`append` insert a *sibling* before/after it.
+  - `markerAndContent` — the marker *and* the body together: for a heading, its heading line plus everything beneath it. Unlike `content`, the heading line is inside the edited span, so a `replace` here rewrites the heading itself. `prepend`/`append` insert a *sibling* before/after it.
   - `parent` — a heading's place in the tree. Valid only with `replace`, and carries a `destination` (a **move**).
 
 The payload rides in exactly one field, chosen by what it is:
@@ -78,7 +78,9 @@ patch(document, {
 });
 ```
 
-Under `markerAndContent` (or a sibling insert) the same content lands at the target's own level instead. A level rebased past `######` (h6) is still written, but `warnings` will contain a `heading-depth-overflow` entry.
+Under `markerAndContent` (or a sibling insert) the same content lands at the target's own level instead. Nesting inside your content is preserved as you wrote it, so replacing a `##` section with `# New\n\n## Child` yields `## New` and `### Child`. A level rebased past `######` (h6) is still written, but `warnings` will contain a `heading-depth-overflow` entry.
+
+Because the heading line is part of the `markerAndContent` span, a `replace` whose content has *no* heading removes it — the section is dissolved into a plain paragraph. Include a leading `#` (at any depth; it is rebased for you) to keep it a heading.
 
 ### Blank lines are not synthesized
 
