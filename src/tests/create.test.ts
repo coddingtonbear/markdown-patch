@@ -98,7 +98,7 @@ describe("createTargetIfMissing — frontmatter", () => {
       target: "author",
       operation: "replace",
       scope: "content",
-      content: "me",
+      value: "me",
       createTargetIfMissing: true,
     });
     expect(result.document).toBe(
@@ -112,7 +112,7 @@ describe("createTargetIfMissing — frontmatter", () => {
       target: "title",
       operation: "replace",
       scope: "content",
-      content: "New",
+      value: "New",
       createTargetIfMissing: true,
     });
     expect(result.document).toBe("---\ntitle: New\n---\nbody only\n");
@@ -124,7 +124,7 @@ describe("createTargetIfMissing — frontmatter", () => {
       target: "tags",
       operation: "append",
       scope: "content",
-      content: ["a"],
+      value: ["a"],
       createTargetIfMissing: true,
     });
     expect(result.document).toBe(
@@ -139,7 +139,7 @@ describe("createTargetIfMissing — frontmatter", () => {
         target: "author",
         operation: "replace",
         scope: "content",
-        content: "me",
+        value: "me",
       })
     ).toThrow(TargetNotFoundError);
   });

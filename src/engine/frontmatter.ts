@@ -81,10 +81,10 @@ export const patchFrontmatter = (
     if (!creatable) {
       throw new TargetNotFoundError(`frontmatter key "${key}" was not found`);
     }
-    // Seed an empty value of the content's kind so a merge has something to
+    // Seed an empty value of the payload's kind so a merge has something to
     // merge onto; a replace overwrites it regardless.  `creatable` guarantees a
-    // value instruction here, so `content` is present.
-    const content = "content" in instruction ? instruction.content : "";
+    // value instruction here, so `value` is present.
+    const content = "value" in instruction ? instruction.value : "";
     const seed = isList(content) ? [] : isDictionary(content) ? {} : "";
     pairs.push([key, seed]);
     index = pairs.length - 1;
@@ -101,7 +101,7 @@ export const patchFrontmatter = (
     }
   } else {
     // Value instruction: replace / prepend / append at content or markerAndContent.
-    const content = instruction.content;
+    const content = instruction.value;
     if (instruction.scope === "content") {
       if (instruction.operation === "replace") {
         pairs[index] = [key, content];

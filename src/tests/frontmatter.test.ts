@@ -10,7 +10,7 @@ describe("patch — frontmatter content cells", () => {
       target: "title",
       operation: "replace",
       scope: "content",
-      content: "Goodbye",
+      value: "Goodbye",
     });
     expect(result.document).toBe(
       "---\ntitle: Goodbye\ntags:\n  - a\n  - b\n---\nbody text\n"
@@ -23,7 +23,7 @@ describe("patch — frontmatter content cells", () => {
       target: "tags",
       operation: "append",
       scope: "content",
-      content: ["c"],
+      value: ["c"],
     });
     expect(result.document).toBe(
       "---\ntitle: Hello\ntags:\n  - a\n  - b\n  - c\n---\nbody text\n"
@@ -36,7 +36,7 @@ describe("patch — frontmatter content cells", () => {
       target: "tags",
       operation: "prepend",
       scope: "content",
-      content: ["z"],
+      value: ["z"],
     });
     expect(result.document).toBe(
       "---\ntitle: Hello\ntags:\n  - z\n  - a\n  - b\n---\nbody text\n"
@@ -49,7 +49,7 @@ describe("patch — frontmatter content cells", () => {
       target: "title",
       operation: "append",
       scope: "content",
-      content: " World",
+      value: " World",
     });
     expect(result.document).toBe(
       "---\ntitle: Hello World\ntags:\n  - a\n  - b\n---\nbody text\n"
@@ -75,7 +75,7 @@ describe("patch — frontmatter content cells", () => {
         target: "title",
         operation: "append",
         scope: "content",
-        content: 5,
+        value: 5,
       })
     ).toThrow(MergeError);
   });
@@ -123,7 +123,7 @@ describe("patch — frontmatter markerAndContent cells", () => {
       target: "title",
       operation: "replace",
       scope: "markerAndContent",
-      content: 42,
+      value: 42,
     });
     expect(result.document).toBe(
       "---\ntitle: 42\ntags:\n  - a\n  - b\n---\nbody text\n"
@@ -136,7 +136,7 @@ describe("patch — frontmatter markerAndContent cells", () => {
       target: "title",
       operation: "append",
       scope: "markerAndContent",
-      content: { author: "me" },
+      value: { author: "me" },
     });
     expect(result.document).toBe(
       "---\ntitle: Hello\nauthor: me\ntags:\n  - a\n  - b\n---\nbody text\n"
@@ -149,7 +149,7 @@ describe("patch — frontmatter markerAndContent cells", () => {
       target: "tags",
       operation: "prepend",
       scope: "markerAndContent",
-      content: { author: "me" },
+      value: { author: "me" },
     });
     expect(result.document).toBe(
       "---\ntitle: Hello\nauthor: me\ntags:\n  - a\n  - b\n---\nbody text\n"

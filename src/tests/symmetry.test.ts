@@ -118,7 +118,7 @@ describe("map/patch symmetry — written targets are addressable in the next map
         target: "author",
         operation: "replace",
         scope: "content",
-        content: "me",
+        value: "me",
         createTargetIfMissing: true,
       },
       check: (r) =>

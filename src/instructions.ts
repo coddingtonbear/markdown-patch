@@ -2,11 +2,17 @@
  * Instruction shapes for the 2.0 patch engine.
  *
  * The engine is one algebra: an {@link Operation} applied to a {@link Scope} of
- * a target node.  The scope names the *value* being edited (`content` = the
- * body, `marker` = the label, `markerAndContent` = the whole node/subtree,
- * `parent` = the node's place in the tree); the operation says what happens to
- * that value.  Every scope value is a plain string except `parent`, whose value
- * is a structured {@link ParentSpec}.
+ * a target node.  The scope names what is edited (`content` = the body, `marker`
+ * = the label, `markerAndContent` = the whole node/subtree, `parent` = the
+ * node's place in the tree); the operation says what happens to it.
+ *
+ * An instruction carries its payload in exactly one of three mutually-exclusive
+ * fields, chosen by what the payload *is*, not by scope:
+ * - `content: string` — literal text: heading body/label, block text/id, and a
+ *   frontmatter key rename.  Heading-bearing content carries `#`-levels relative
+ *   to the edited span's container (see `levels.ts`).
+ * - `value: unknown` — arbitrary structured JSON: frontmatter values.
+ * - `destination: ParentSpec` — where a moved section lands.
  *
  * These are plain TypeScript discriminated unions.  A published Zod schema
  * (from which obsidian-local-rest-api will derive its MCP and OpenAPI docs) is
@@ -133,14 +139,16 @@ export type BlockInstruction =
 // --- Frontmatter instructions --------------------------------------------
 
 /**
- * `replace`/`prepend`/`append` a frontmatter value (`content`) or whole entry
- * (`markerAndContent`).  `prepend`/`append` merge (list concat, dict merge,
- * string concat).  Values are JSON, never relative markdown.
+ * `replace`/`prepend`/`append` a frontmatter value (`content` scope) or whole
+ * entry (`markerAndContent`).  `prepend`/`append` merge (list concat, dict
+ * merge, string concat).  The payload is arbitrary JSON, never markdown, so it
+ * rides in the structured `value` carrier rather than the string `content` one
+ * used by heading and block writes.
  */
 export interface FrontmatterValueInstruction extends FrontmatterTargeted {
   operation: "replace" | "prepend" | "append";
   scope: "content" | "markerAndContent";
-  content: unknown;
+  value: unknown;
 }
 /** `replace @ marker`: rename the frontmatter key. */
 export interface FrontmatterRenameInstruction extends FrontmatterTargeted {

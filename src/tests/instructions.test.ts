@@ -141,7 +141,7 @@ describe("Instruction typing (compile-time)", () => {
         operation: "append",
         scope: "content",
         target: "reviewers",
-        content: ["alice"],
+        value: ["alice"],
       },
       {
         targetType: "frontmatter",
