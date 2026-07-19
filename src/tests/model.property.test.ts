@@ -18,7 +18,7 @@ const CONFORMANCE_DIR = path.join(__dirname, "conformance");
 const readConformanceFixtures = (): Array<{ name: string; text: string }> =>
   fs
     .readdirSync(CONFORMANCE_DIR)
-    .filter((f) => f.endsWith(".md"))
+    .filter((f) => f.endsWith(".md") && f !== "README.md")
     .map((f) => ({
       name: f,
       text: fs.readFileSync(path.join(CONFORMANCE_DIR, f), "utf-8"),
