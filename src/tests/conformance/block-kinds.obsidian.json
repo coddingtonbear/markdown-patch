@@ -1,0 +1,65 @@
+{
+  "headings": [
+    {
+      "level": 1,
+      "text": "Blocks",
+      "start": 0,
+      "end": 8
+    }
+  ],
+  "sections": [
+    {
+      "type": "heading",
+      "start": 0,
+      "end": 8
+    },
+    {
+      "type": "paragraph",
+      "start": 10,
+      "end": 60
+    },
+    {
+      "type": "list",
+      "start": 62,
+      "end": 93
+    },
+    {
+      "type": "table",
+      "start": 103,
+      "end": 156
+    },
+    {
+      "type": "blockquote",
+      "start": 167,
+      "end": 216
+    }
+  ],
+  "blocks": {
+    "para1": {
+      "start": 10,
+      "end": 60
+    },
+    "list1": {
+      "start": 62,
+      "end": 93
+    },
+    "table1": {
+      "start": 103,
+      "end": 156
+    },
+    "quote1": {
+      "start": 167,
+      "end": 216
+    }
+  },
+  "listItems": [
+    {
+      "start": 62,
+      "end": 77
+    },
+    {
+      "start": 78,
+      "end": 93
+    }
+  ]
+}

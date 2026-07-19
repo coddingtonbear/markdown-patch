@@ -1,0 +1,65 @@
+{
+  "headings": [
+    {
+      "level": 1,
+      "text": "Tasks",
+      "start": 0,
+      "end": 7
+    },
+    {
+      "level": 2,
+      "text": "Done",
+      "start": 106,
+      "end": 113
+    }
+  ],
+  "sections": [
+    {
+      "type": "heading",
+      "start": 0,
+      "end": 7
+    },
+    {
+      "type": "list",
+      "start": 9,
+      "end": 104
+    },
+    {
+      "type": "heading",
+      "start": 106,
+      "end": 113
+    },
+    {
+      "type": "list",
+      "start": 115,
+      "end": 130
+    }
+  ],
+  "blocks": {},
+  "listItems": [
+    {
+      "start": 9,
+      "end": 19
+    },
+    {
+      "start": 20,
+      "end": 66
+    },
+    {
+      "start": 68,
+      "end": 80
+    },
+    {
+      "start": 82,
+      "end": 92
+    },
+    {
+      "start": 94,
+      "end": 104
+    },
+    {
+      "start": 115,
+      "end": 130
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "headings": [
+    {
+      "level": 1,
+      "text": "Title",
+      "start": 0,
+      "end": 7
+    },
+    {
+      "level": 2,
+      "text": "Sub",
+      "start": 41,
+      "end": 47
+    }
+  ],
+  "sections": [
+    {
+      "type": "heading",
+      "start": 0,
+      "end": 7
+    },
+    {
+      "type": "paragraph",
+      "start": 11,
+      "end": 37
+    },
+    {
+      "type": "heading",
+      "start": 41,
+      "end": 47
+    },
+    {
+      "type": "paragraph",
+      "start": 51,
+      "end": 75
+    }
+  ],
+  "blocks": {
+    "b1": {
+      "start": 51,
+      "end": 75
+    }
+  },
+  "listItems": []
+}

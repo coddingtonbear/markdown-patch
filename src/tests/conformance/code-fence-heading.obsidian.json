@@ -1,0 +1,50 @@
+{
+  "headings": [
+    {
+      "level": 1,
+      "text": "Guide",
+      "start": 0,
+      "end": 7
+    },
+    {
+      "level": 2,
+      "text": "Real Subsection",
+      "start": 115,
+      "end": 133
+    }
+  ],
+  "sections": [
+    {
+      "type": "heading",
+      "start": 0,
+      "end": 7
+    },
+    {
+      "type": "paragraph",
+      "start": 9,
+      "end": 25
+    },
+    {
+      "type": "code",
+      "start": 27,
+      "end": 85
+    },
+    {
+      "type": "paragraph",
+      "start": 87,
+      "end": 113
+    },
+    {
+      "type": "heading",
+      "start": 115,
+      "end": 133
+    },
+    {
+      "type": "paragraph",
+      "start": 135,
+      "end": 163
+    }
+  ],
+  "blocks": {},
+  "listItems": []
+}

@@ -92,14 +92,19 @@ describe("Obsidian conformance", () => {
       expect([...blockIds(text)].sort()).toEqual(Object.keys(g.blocks).sort());
     });
 
-    test("each model block falls within Obsidian's block span", () => {
+    test("each model block span equals Obsidian's block span", () => {
       const model = buildModel(text);
       eachSection(model.root, (node) => {
         for (const block of node.blocks) {
           const span = g.blocks[block.id];
           expect(span).toBeDefined();
-          expect(block.content.start).toBeGreaterThanOrEqual(span.start);
-          expect(block.marker.end).toBeLessThanOrEqual(span.end + 1);
+          // Obsidian reports a single span per block: for an isolated `^id` it
+          // is the preceding block (our `content`); for an inline `^id` it runs
+          // from the content start through the marker.
+          const modelSpan = block.isolated
+            ? { start: block.content.start, end: block.content.end }
+            : { start: block.content.start, end: block.marker.end };
+          expect(modelSpan).toEqual({ start: span.start, end: span.end });
         }
       });
     });

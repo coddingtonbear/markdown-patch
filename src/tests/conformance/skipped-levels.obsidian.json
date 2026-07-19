@@ -1,0 +1,56 @@
+{
+  "headings": [
+    {
+      "level": 1,
+      "text": "Top",
+      "start": 0,
+      "end": 5
+    },
+    {
+      "level": 3,
+      "text": "Deep child",
+      "start": 25,
+      "end": 39
+    },
+    {
+      "level": 1,
+      "text": "Second Top",
+      "start": 90,
+      "end": 102
+    }
+  ],
+  "sections": [
+    {
+      "type": "heading",
+      "start": 0,
+      "end": 5
+    },
+    {
+      "type": "paragraph",
+      "start": 7,
+      "end": 23
+    },
+    {
+      "type": "heading",
+      "start": 25,
+      "end": 39
+    },
+    {
+      "type": "paragraph",
+      "start": 41,
+      "end": 88
+    },
+    {
+      "type": "heading",
+      "start": 90,
+      "end": 102
+    },
+    {
+      "type": "paragraph",
+      "start": 104,
+      "end": 123
+    }
+  ],
+  "blocks": {},
+  "listItems": []
+}

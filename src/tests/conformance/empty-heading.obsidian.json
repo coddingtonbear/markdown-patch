@@ -1,0 +1,56 @@
+{
+  "headings": [
+    {
+      "level": 1,
+      "text": "",
+      "start": 0,
+      "end": 2
+    },
+    {
+      "level": 2,
+      "text": "Named",
+      "start": 39,
+      "end": 47
+    },
+    {
+      "level": 2,
+      "text": "",
+      "start": 81,
+      "end": 83
+    }
+  ],
+  "sections": [
+    {
+      "type": "heading",
+      "start": 0,
+      "end": 2
+    },
+    {
+      "type": "paragraph",
+      "start": 4,
+      "end": 37
+    },
+    {
+      "type": "heading",
+      "start": 39,
+      "end": 47
+    },
+    {
+      "type": "paragraph",
+      "start": 49,
+      "end": 79
+    },
+    {
+      "type": "heading",
+      "start": 81,
+      "end": 83
+    },
+    {
+      "type": "paragraph",
+      "start": 85,
+      "end": 121
+    }
+  ],
+  "blocks": {},
+  "listItems": []
+}

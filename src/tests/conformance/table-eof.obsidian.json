@@ -1,0 +1,29 @@
+{
+  "headings": [
+    {
+      "level": 1,
+      "text": "Journal",
+      "start": 29,
+      "end": 38
+    }
+  ],
+  "sections": [
+    {
+      "type": "yaml",
+      "start": 0,
+      "end": 27
+    },
+    {
+      "type": "heading",
+      "start": 29,
+      "end": 38
+    },
+    {
+      "type": "table",
+      "start": 40,
+      "end": 163
+    }
+  ],
+  "blocks": {},
+  "listItems": []
+}

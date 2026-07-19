@@ -1,0 +1,67 @@
+{
+  "headings": [
+    {
+      "level": 1,
+      "text": "Log",
+      "start": 0,
+      "end": 5
+    },
+    {
+      "level": 2,
+      "text": "2026-07-18",
+      "start": 7,
+      "end": 20
+    },
+    {
+      "level": 2,
+      "text": "2026-07-18",
+      "start": 41,
+      "end": 54
+    },
+    {
+      "level": 2,
+      "text": "2026-07-19",
+      "start": 98,
+      "end": 111
+    }
+  ],
+  "sections": [
+    {
+      "type": "heading",
+      "start": 0,
+      "end": 5
+    },
+    {
+      "type": "heading",
+      "start": 7,
+      "end": 20
+    },
+    {
+      "type": "paragraph",
+      "start": 22,
+      "end": 39
+    },
+    {
+      "type": "heading",
+      "start": 41,
+      "end": 54
+    },
+    {
+      "type": "paragraph",
+      "start": 56,
+      "end": 96
+    },
+    {
+      "type": "heading",
+      "start": 98,
+      "end": 111
+    },
+    {
+      "type": "paragraph",
+      "start": 113,
+      "end": 125
+    }
+  ],
+  "blocks": {},
+  "listItems": []
+}
