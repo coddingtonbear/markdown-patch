@@ -14,20 +14,20 @@
 
 import { buildModel, DocumentModel, SectionNode, BlockNode } from "./model.js";
 import { resolveTarget } from "./resolve.js";
-import { rebaseHeadings } from "./levels.js";
-import { applyEdits, Edit } from "./splice.js";
+import { Edit } from "./splice.js";
 import {
   headingMarkerRange,
   subtreeContentRange,
   subtreeEnd,
   blockFullRange,
 } from "./ranges.js";
+import { toLineEnding, sectionFragment, splice } from "./text.js";
+import { structuralHeading, deleteBlock } from "./engine/structural.js";
 import {
   Instruction,
   HeadingInstruction,
   BlockInstruction,
   PatchResult,
-  Warning,
   EngineError,
   PreconditionFailedError,
   TargetNotFoundError,
@@ -41,43 +41,6 @@ const cellOf = (instruction: Instruction) => ({
   scope: instruction.scope,
 });
 
-const normalizeToLf = (text: string): string =>
-  text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-
-/** Re-express `text` using the document's line ending. */
-const toLineEnding = (text: string, ending: "\n" | "\r\n"): string =>
-  ending === "\n"
-    ? normalizeToLf(text)
-    : normalizeToLf(text).replace(/\n/g, "\r\n");
-
-/**
- * Normalize an inserted body/section fragment to end with exactly one line
- * ending (or empty for an empty value), matching the model's invariant that a
- * non-empty content span ends with a single terminator and the library owns the
- * blank-line gap that follows.
- */
-const endWithSingleEol = (text: string, ending: "\n" | "\r\n"): string => {
-  const stripped = text.replace(/(?:\r\n|\r|\n)+$/, "");
-  return stripped.length === 0 ? "" : stripped + ending;
-};
-
-/**
- * Turn a relative heading-bearing fragment into the exact bytes to splice in:
- * rebase its `#`-levels by `baseline`, re-apply the document's line ending, and
- * terminate it with a single ending.
- */
-const sectionFragment = (
-  value: string,
-  baseline: number,
-  model: DocumentModel
-): { text: string; warnings: Warning[] } => {
-  const rebased = rebaseHeadings(value, baseline);
-  return {
-    text: endWithSingleEol(toLineEnding(rebased.text, model.lineEnding), model.lineEnding),
-    warnings: rebased.warnings,
-  };
-};
-
 /** The parent's source heading level, or 0 when the parent is the root. */
 const parentLevel = (section: SectionNode): number =>
   section.parent?.heading?.level ?? 0;
@@ -90,17 +53,14 @@ const patchHeading = (
   instruction: HeadingInstruction,
   section: SectionNode
 ): PatchResult => {
-  if (instruction.operation === "delete") {
-    throw new EngineError("heading delete is not yet implemented in this build");
-  }
-  if (instruction.scope === "parent") {
-    throw new EngineError("heading move is not yet implemented in this build");
+  if (instruction.operation === "delete" || instruction.scope === "parent") {
+    return structuralHeading(document, model, instruction, section);
   }
   // Excluding delete and parent narrows to HeadingWriteInstruction.
   const { operation, scope, content: value } = instruction;
 
   if (scope === "content") {
-    const fragment = sectionFragment(value, section.heading?.level ?? 0, model);
+    const fragment = sectionFragment(value, section.heading?.level ?? 0, model.lineEnding);
     const edit = contentEdit(section.content, operation, fragment.text);
     return splice(document, [edit], fragment.warnings);
   }
@@ -110,7 +70,7 @@ const patchHeading = (
   }
 
   // markerAndContent: the whole subtree, rebased to the parent's level.
-  const fragment = sectionFragment(value, parentLevel(section), model);
+  const fragment = sectionFragment(value, parentLevel(section), model.lineEnding);
   if (operation === "replace") {
     return splice(
       document,
@@ -184,7 +144,7 @@ const patchBlock = (
   block: BlockNode
 ): PatchResult => {
   if (instruction.operation === "delete") {
-    throw new EngineError("block delete is not yet implemented in this build");
+    return deleteBlock(document, model, instruction, block);
   }
   // Excluding delete narrows to BlockWrite | BlockMarkerReplace; both carry a
   // string `content`.  Block content and ids are literal, never rebased.
@@ -225,12 +185,6 @@ const patchBlock = (
 };
 
 // --- Entry point ---------------------------------------------------------
-
-const splice = (
-  document: string,
-  edits: Edit[],
-  warnings: Warning[]
-): PatchResult => ({ document: applyEdits(document, edits), warnings });
 
 /**
  * Apply a single {@link Instruction} to `document`, returning the new document

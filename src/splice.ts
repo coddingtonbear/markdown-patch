@@ -21,7 +21,15 @@ export class OverlappingEditsError extends Error {}
  * document.
  */
 export const applyEdits = (document: string, edits: Edit[]): string => {
-  const sorted = [...edits].sort((a, b) => a.range.start - b.range.start);
+  // Sort by start, breaking ties so a zero-length insertion precedes a
+  // same-start replacement/deletion (its text lands just before the region).
+  // This lets a move express "insert here" and "delete the old span" as two
+  // edits that share a boundary without spuriously overlapping.
+  const sorted = [...edits].sort(
+    (a, b) =>
+      a.range.start - b.range.start ||
+      (a.range.end - a.range.start) - (b.range.end - b.range.start)
+  );
   const parts: string[] = [];
   let cursor = 0;
   for (const { range, text } of sorted) {
