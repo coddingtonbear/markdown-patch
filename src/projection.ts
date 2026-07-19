@@ -21,7 +21,14 @@ export interface PublicMap {
   blocks: string[];
 }
 
-const headingPath = (node: SectionNode): (string | null)[] => {
+/**
+ * The null-padded address of a heading-bearing section: an array whose length
+ * is the heading's level, index `i` holding the text of the level-`i+1` heading
+ * on the path to this node, `null` for a skipped level and `""` for an
+ * empty-text heading.  Shared with the resolver so map addresses and target
+ * matching use one definition.
+ */
+export const headingPath = (node: SectionNode): (string | null)[] => {
   const level = node.heading!.level;
   const path: (string | null)[] = new Array(level).fill(null);
   let current: SectionNode | null = node;
