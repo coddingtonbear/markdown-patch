@@ -121,7 +121,7 @@ describe("Instruction typing (compile-time)", () => {
         operation: "replace",
         scope: "parent",
         target: ["Overview", "Details"],
-        value: { parent: ["Appendix"], place: "last" },
+        destination: { parent: ["Appendix"], place: "last" },
       },
       {
         targetType: "heading",

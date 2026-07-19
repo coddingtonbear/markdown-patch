@@ -90,10 +90,10 @@ const moveSection = (
   if (!section.heading) {
     throw new EngineError("the document root cannot be moved");
   }
-  const resolvedParent = resolveHeading(model, instruction.value.parent);
+  const resolvedParent = resolveHeading(model, instruction.destination.parent);
   if (!resolvedParent) {
     throw new TargetNotFoundError(
-      `could not resolve new parent ${JSON.stringify(instruction.value.parent)}`
+      `could not resolve new parent ${JSON.stringify(instruction.destination.parent)}`
     );
   }
   const newParent = resolvedParent.section;
@@ -115,7 +115,7 @@ const moveSection = (
     range: { start: subtreeStart(section), end: subtreeEnd(section) },
     text: "",
   };
-  const at = childInsertOffset(model, newParent, instruction.value.place);
+  const at = childInsertOffset(model, newParent, instruction.destination.place);
   const insertion: Edit = { range: { start: at, end: at }, text: movedText };
 
   return splice(document, [removal, insertion], releveled.warnings);

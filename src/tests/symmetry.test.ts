@@ -81,7 +81,7 @@ describe("map/patch symmetry — written targets are addressable in the next map
         target: ["C"],
         operation: "replace",
         scope: "parent",
-        value: { parent: ["A"], place: "last" },
+        destination: { parent: ["A"], place: "last" },
       },
       check: (r) => hasHeading(r, ["A", "C"]),
     },

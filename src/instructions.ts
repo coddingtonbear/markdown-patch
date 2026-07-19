@@ -32,7 +32,7 @@ export type Place =
   | { before: HeadingAddress }
   | { after: HeadingAddress };
 
-/** The value of a `replace @ parent` (move) instruction. */
+/** The `destination` of a `replace @ parent` (move) instruction. */
 export interface ParentSpec {
   /** The section's new parent, or `null`/`[]` to move to the document root. */
   parent: HeadingAddress;
@@ -84,7 +84,9 @@ export interface HeadingWriteInstruction extends HeadingTargeted {
 export interface HeadingMoveInstruction extends HeadingTargeted {
   operation: "replace";
   scope: "parent";
-  value: ParentSpec;
+  /** The section's new placement in the tree. Carried in its own field so it is
+   * never confused with the string `content`/JSON `value` write carriers. */
+  destination: ParentSpec;
 }
 /**
  * `delete` a heading's body (`content`), its subtree (`markerAndContent`), or

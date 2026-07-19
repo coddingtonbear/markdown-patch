@@ -89,7 +89,7 @@ describe("patch — move (replace @ parent)", () => {
       target: ["A", "B"],
       operation: "replace",
       scope: "parent",
-      value: { parent: null, place: "last" },
+      destination: { parent: null, place: "last" },
     });
     expect(result.document).toBe(
       "# A\na-body\n\n# C\nc-body\n# B\nb-body\n"
@@ -102,7 +102,7 @@ describe("patch — move (replace @ parent)", () => {
       target: ["C"],
       operation: "replace",
       scope: "parent",
-      value: { parent: ["A"], place: "last" },
+      destination: { parent: ["A"], place: "last" },
     });
     // C (h1) becomes a child of A (h1) -> h2, appended after B.
     expect(result.document).toBe(
@@ -116,7 +116,7 @@ describe("patch — move (replace @ parent)", () => {
       target: ["C"],
       operation: "replace",
       scope: "parent",
-      value: { parent: ["A"], place: { before: ["A", "B"] } },
+      destination: { parent: ["A"], place: { before: ["A", "B"] } },
     });
     expect(result.document).toBe(
       "# A\na-body\n\n## C\nc-body\n## B\nb-body\n\n"
@@ -130,7 +130,7 @@ describe("patch — move (replace @ parent)", () => {
       target: ["A", "B"],
       operation: "replace",
       scope: "parent",
-      value: { parent: ["C"], place: "last" },
+      destination: { parent: ["C"], place: "last" },
     });
     // B (h2) -> child of C (h1) -> h2, deep (h3) shifts with it -> h3.
     expect(result.document).toContain("# C\nc\n## B\n### deep\nd\n");
@@ -143,7 +143,7 @@ describe("patch — move (replace @ parent)", () => {
         target: ["A"],
         operation: "replace",
         scope: "parent",
-        value: { parent: ["A", "B"], place: "last" },
+        destination: { parent: ["A", "B"], place: "last" },
       })
     ).toThrow(EngineError);
   });
@@ -155,7 +155,7 @@ describe("patch — move (replace @ parent)", () => {
         target: ["A", "B"],
         operation: "replace",
         scope: "parent",
-        value: { parent: ["Nope"], place: "last" },
+        destination: { parent: ["Nope"], place: "last" },
       })
     ).toThrow(TargetNotFoundError);
   });
