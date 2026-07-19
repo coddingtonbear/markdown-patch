@@ -33,8 +33,10 @@ import {
   EngineError,
   PreconditionFailedError,
   TargetNotFoundError,
+  ContentPreexistsError,
   assertValidCell,
 } from "./instructions.js";
+import { ResolvedTarget } from "./resolve.js";
 
 /** The subset of an instruction {@link assertValidCell} inspects. */
 const cellOf = (instruction: Instruction) => ({
@@ -46,6 +48,39 @@ const cellOf = (instruction: Instruction) => ({
 /** The parent's source heading level, or 0 when the parent is the root. */
 const parentLevel = (section: SectionNode): number =>
   section.parent?.heading?.level ?? 0;
+
+/**
+ * The current text of the span a write targets, for the `rejectIfContentPreexists`
+ * idempotency guard.  Returns `null` when the notion does not apply (frontmatter,
+ * or a heading marker on the markerless root).
+ */
+const scopeSpanText = (
+  document: string,
+  resolved: ResolvedTarget,
+  scope: string
+): string | null => {
+  if (resolved.kind === "heading") {
+    const section = resolved.section;
+    const range =
+      scope === "content"
+        ? section.content
+        : scope === "marker"
+          ? section.marker
+          : subtreeContentRange(section);
+    return range ? document.slice(range.start, range.end) : null;
+  }
+  if (resolved.kind === "block") {
+    const block = resolved.block;
+    const range =
+      scope === "content"
+        ? block.content
+        : scope === "marker"
+          ? block.marker
+          : blockFullRange(block);
+    return document.slice(range.start, range.end);
+  }
+  return null;
+};
 
 // --- Heading handlers ----------------------------------------------------
 
@@ -225,6 +260,24 @@ export const patch = (
         instruction.target
       )}`
     );
+  }
+
+  // rejectIfContentPreexists keeps prepend/append idempotent: refuse to insert
+  // string content that already appears in the target's current span.  As in
+  // 1.x this applies to heading and block writes only, not frontmatter.
+  if (
+    instruction.rejectIfContentPreexists &&
+    (instruction.operation === "prepend" || instruction.operation === "append") &&
+    "content" in instruction &&
+    typeof instruction.content === "string" &&
+    instruction.content.trim().length > 0
+  ) {
+    const span = scopeSpanText(document, resolved, instruction.scope);
+    if (span !== null && span.includes(instruction.content.trim())) {
+      throw new ContentPreexistsError(
+        `the target already contains the content to ${instruction.operation}`
+      );
+    }
   }
 
   // `resolveTarget` dispatches on `targetType`, so the resolved kind always
