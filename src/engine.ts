@@ -23,6 +23,7 @@ import {
 } from "./ranges.js";
 import { toLineEnding, sectionFragment, splice } from "./text.js";
 import { structuralHeading, deleteBlock } from "./engine/structural.js";
+import { patchFrontmatter } from "./engine/frontmatter.js";
 import {
   Instruction,
   HeadingInstruction,
@@ -228,9 +229,7 @@ export const patch = (
     return patchBlock(document, model, instruction, resolved.block);
   }
   if (instruction.targetType === "frontmatter" && resolved.kind === "frontmatter") {
-    throw new EngineError(
-      "frontmatter patching is not yet implemented in this build"
-    );
+    return patchFrontmatter(document, model, instruction);
   }
   throw new EngineError(
     `resolved ${resolved.kind} does not match ${instruction.targetType} target`
