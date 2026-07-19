@@ -3,9 +3,11 @@ import {
   Scope,
   TargetType,
   Instruction,
+  InstructionInput,
   isValidCell,
   assertValidCell,
   InvalidCellError,
+  withDefaultScope,
 } from "../instructions";
 
 const OPERATIONS: Operation[] = ["replace", "prepend", "append", "delete"];
@@ -152,5 +154,47 @@ describe("Instruction typing (compile-time)", () => {
       },
     ];
     expect(examples).toHaveLength(6);
+  });
+});
+
+describe("InstructionInput — scope defaulting boundary", () => {
+  test("scope may be omitted where it would default to content", () => {
+    // A write/delete cell: `scope` is optional on the input.
+    const headingWrite: InstructionInput = {
+      targetType: "heading",
+      target: ["A"],
+      operation: "replace",
+      content: "x",
+    };
+    const frontmatterValue: InstructionInput = {
+      targetType: "frontmatter",
+      target: "title",
+      operation: "replace",
+      value: "x",
+    };
+    expect(withDefaultScope(headingWrite).scope).toBe("content");
+    expect(withDefaultScope(frontmatterValue).scope).toBe("content");
+  });
+
+  test("a move is never defaulted — it must name scope: parent", () => {
+    // @ts-expect-error a `destination` without scope: "parent" matches no member.
+    const move: InstructionInput = {
+      targetType: "heading",
+      target: ["A"],
+      operation: "replace",
+      destination: { parent: null, place: "last" },
+    };
+    void move;
+  });
+
+  test("an explicit scope is preserved by the default", () => {
+    const explicit: InstructionInput = {
+      targetType: "heading",
+      target: ["A"],
+      operation: "replace",
+      scope: "markerAndContent",
+      content: "# A\nx",
+    };
+    expect(withDefaultScope(explicit).scope).toBe("markerAndContent");
   });
 });

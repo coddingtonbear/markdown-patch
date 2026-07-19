@@ -172,6 +172,32 @@ export type Instruction =
   | BlockInstruction
   | FrontmatterInstruction;
 
+/**
+ * Make `scope` optional on exactly those members whose scope union admits
+ * `content` — the write and delete cells — while leaving it required on the
+ * marker-only and parent-only members, where it selects a specific behavior and
+ * has no sensible default.  Distributes over the {@link Instruction} union.
+ */
+type WithOptionalContentScope<T> = T extends { scope: infer S }
+  ? "content" extends S
+    ? Omit<T, "scope"> & { scope?: S }
+    : T
+  : T;
+
+/**
+ * A public instruction as a caller may write it: `scope` may be omitted wherever
+ * it would default to `content` (mirroring 1.x's optional `targetScope`).
+ * {@link patch} normalizes this to a full {@link Instruction} before anything
+ * inspects it, so every internal handler still sees an explicit scope.
+ */
+export type InstructionInput = WithOptionalContentScope<Instruction>;
+
+/** Default an omitted `scope` to `content`, yielding a full {@link Instruction}. */
+export const withDefaultScope = (input: InstructionInput): Instruction => {
+  const scope = (input as { scope?: Scope }).scope ?? "content";
+  return { ...input, scope } as Instruction;
+};
+
 // --- Result and warnings -------------------------------------------------
 
 export type WarningCode = "heading-depth-overflow";

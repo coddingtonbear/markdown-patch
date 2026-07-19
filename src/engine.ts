@@ -28,6 +28,7 @@ import { patchFrontmatter } from "./engine/frontmatter.js";
 import { createHeading, createBlock } from "./engine/create.js";
 import {
   Instruction,
+  InstructionInput,
   HeadingInstruction,
   BlockInstruction,
   PatchResult,
@@ -36,6 +37,7 @@ import {
   TargetNotFoundError,
   ContentPreexistsError,
   assertValidCell,
+  withDefaultScope,
 } from "./instructions.js";
 import { ResolvedTarget } from "./resolve.js";
 
@@ -225,15 +227,18 @@ const patchBlock = (
 // --- Entry point ---------------------------------------------------------
 
 /**
- * Apply a single {@link Instruction} to `document`, returning the new document
- * and any warnings.  Throws {@link PreconditionFailedError} on an `ifMatch`
- * mismatch, {@link TargetNotFoundError} when the target does not resolve, and
+ * Apply a single instruction to `document`, returning the new document and any
+ * warnings.  Accepts an {@link InstructionInput}: an omitted `scope` defaults to
+ * `content` before anything inspects the instruction.  Throws
+ * {@link PreconditionFailedError} on an `ifMatch` mismatch,
+ * {@link TargetNotFoundError} when the target does not resolve, and
  * {@link InvalidCellError} for a combination outside the algebra.
  */
 export const patch = (
   document: string,
-  instruction: Instruction
+  input: InstructionInput
 ): PatchResult => {
+  const instruction = withDefaultScope(input);
   const model = buildModel(document);
   assertValidCell(cellOf(instruction));
 

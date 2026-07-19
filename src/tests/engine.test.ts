@@ -304,6 +304,58 @@ describe("patch — preconditions and resolution", () => {
   });
 });
 
+describe("patch — scope defaults to content", () => {
+  test("a heading write with no scope edits the section body", () => {
+    const result = patch(DOC, {
+      targetType: "heading",
+      target: ["A", "B"],
+      operation: "replace",
+      content: "z",
+    });
+    expect(result.document).toBe("# A\na-body\n\n## B\nz\n\n# C\nc-body\n");
+  });
+
+  test("a heading delete with no scope empties the section body", () => {
+    const result = patch(DOC, {
+      targetType: "heading",
+      target: ["A", "B"],
+      operation: "delete",
+    });
+    expect(result.document).toBe("# A\na-body\n\n## B\n\n# C\nc-body\n");
+  });
+
+  test("a block write with no scope edits the block text", () => {
+    const result = patch("a paragraph ^ref\n", {
+      targetType: "block",
+      target: "ref",
+      operation: "replace",
+      content: "changed",
+    });
+    expect(result.document).toBe("changed ^ref\n");
+  });
+
+  test("a frontmatter write with no scope sets the value", () => {
+    const result = patch("---\ntitle: Hello\n---\nbody\n", {
+      targetType: "frontmatter",
+      target: "title",
+      operation: "replace",
+      value: "Bye",
+    });
+    expect(result.document).toBe("---\ntitle: Bye\n---\nbody\n");
+  });
+
+  test("an explicit scope is still honored over the default", () => {
+    const result = patch(DOC, {
+      targetType: "heading",
+      target: ["A", "B"],
+      operation: "replace",
+      scope: "marker",
+      content: "Renamed",
+    });
+    expect(result.document).toContain("## Renamed\n");
+  });
+});
+
 describe("patch — no-op identity", () => {
   test("replacing a leaf section body with its own current text is byte-identity", () => {
     // B is a leaf, so its content span is just "b-body\n"; replacing with the

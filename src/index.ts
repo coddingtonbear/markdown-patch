@@ -31,6 +31,7 @@ export {
 } from "./instructions.js";
 export type {
   Instruction,
+  InstructionInput,
   HeadingInstruction,
   HeadingWriteInstruction,
   HeadingMoveInstruction,
