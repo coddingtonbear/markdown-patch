@@ -44,9 +44,22 @@ export interface BlockNode {
   kind: string;
   /** Column header texts, for `table` blocks only. */
   columns?: string[];
-  /** The block's content, excluding the `^id` marker. */
+  /**
+   * True when the `^id` sits alone on its own line and therefore targets the
+   * *preceding* block (Obsidian's isolated-block-reference rule): in that case
+   * {@link content} is the preceding block's span and {@link marker} is the
+   * detached `^id` line that follows it.  False for an inline `^id` trailing a
+   * paragraph/table row, where content and marker are contiguous.
+   */
+  isolated: boolean;
+  /**
+   * The region the block id addresses.  For an inline block this is the token
+   * text preceding the `^id` marker; for an isolated block it is the whole
+   * preceding block.  Never includes a trailing line ending (Obsidian excludes
+   * it from block spans).
+   */
   content: DocumentRange;
-  /** The `^id` token span. */
+  /** The `^id` token span, with any trailing line ending excluded. */
   marker: DocumentRange;
   /** The blank-line separator following the block. */
   trailingGap: DocumentRange;
@@ -290,6 +303,21 @@ const sectionContaining = (root: SectionNode, offset: number): SectionNode => {
 
 const BLOCK_REFERENCE_REGEX = /[^\S\r\n]*\^([a-zA-Z0-9_-]+)\s*$/;
 
+/**
+ * Back up over trailing line endings so a boundary sits just past the last
+ * visible character (`content` is normalized, so only `\n` occurs).  Obsidian's
+ * block spans exclude every trailing newline — a token's raw may carry one (an
+ * inline paragraph) or a following blank line (a table) — so block boundaries
+ * are trimmed the same way.
+ */
+const stripTrailingEol = (content: string, end: number, start: number): number => {
+  let trimmed = end;
+  while (trimmed > start && content[trimmed - 1] === "\n") {
+    trimmed--;
+  }
+  return trimmed;
+};
+
 const findBlocks = (
   content: string,
   abs: Abs,
@@ -298,6 +326,11 @@ const findBlocks = (
 ): BlockNode[] => {
   const blocks: BlockNode[] = [];
   let searchFrom = 0;
+  // The most recent block-level token an isolated `^id` line can bind to, in
+  // content space with its trailing newline stripped.  Mirrors the old engine's
+  // `lastBlockDetails` and matches Obsidian, which reports an isolated block's
+  // position as the preceding block rather than the marker line.
+  let lastIsolatedTarget: { start: number; end: number } | null = null;
 
   marked.walkTokens(tokens, (token) => {
     const found = content.indexOf(token.raw, searchFrom);
@@ -307,34 +340,49 @@ const findBlocks = (
       return;
     }
     searchFrom = found;
+    const rawEnd = found + token.raw.length;
+
     const match = BLOCK_REFERENCE_REGEX.exec(token.raw);
-    if (!CAN_INCLUDE_BLOCK_REFERENCE.includes(token.type) || !match) {
-      return;
+    if (match && CAN_INCLUDE_BLOCK_REFERENCE.includes(token.type)) {
+      const id = match[1];
+      if (id) {
+        const markerStart = found + match.index;
+        const markerEnd = stripTrailingEol(content, rawEnd, found);
+        let contentStart = found;
+        let contentEnd = markerStart;
+        let isolated = false;
+        if (contentStart === contentEnd && lastIsolatedTarget) {
+          // Nothing precedes the `^id` on its line: it targets the block above.
+          contentStart = lastIsolatedTarget.start;
+          contentEnd = lastIsolatedTarget.end;
+          isolated = true;
+        }
+        const section = sectionContaining(root, abs(contentStart));
+        const block: BlockNode = {
+          id,
+          kind: token.type,
+          isolated,
+          content: { start: abs(contentStart), end: abs(contentEnd) },
+          marker: { start: abs(markerStart), end: abs(markerEnd) },
+          trailingGap: { start: abs(markerEnd), end: abs(markerEnd) },
+          section,
+        };
+        if (token.type === "table") {
+          block.columns = (token as marked.Tokens.Table).header.map(
+            (cell) => cell.text
+          );
+        }
+        blocks.push(block);
+        section.blocks.push(block);
+      }
     }
-    const id = match[1];
-    if (!id) {
-      return;
+
+    if (TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE.includes(token.type)) {
+      lastIsolatedTarget = {
+        start: found,
+        end: stripTrailingEol(content, rawEnd, found),
+      };
     }
-    const contentStart = found;
-    const contentEnd = found + match.index;
-    const markerStart = found + match.index;
-    const markerEnd = found + token.raw.length;
-    const section = sectionContaining(root, abs(contentStart));
-    const block: BlockNode = {
-      id,
-      kind: token.type,
-      content: { start: abs(contentStart), end: abs(contentEnd) },
-      marker: { start: abs(markerStart), end: abs(markerEnd) },
-      trailingGap: { start: abs(markerEnd), end: abs(markerEnd) },
-      section,
-    };
-    if (token.type === "table") {
-      block.columns = (token as marked.Tokens.Table).header.map(
-        (cell) => cell.text
-      );
-    }
-    blocks.push(block);
-    section.blocks.push(block);
   });
 
   return blocks;
