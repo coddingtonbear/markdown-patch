@@ -4,14 +4,26 @@ import { EngineError, TargetNotFoundError } from "../instructions";
 const DOC = "# A\na-body\n\n## B\nb-body\n\n# C\nc-body\n";
 
 describe("patch — heading delete cells", () => {
-  test("delete @ content empties the body, keeping the heading and gap", () => {
+  test("delete @ content empties the subtree body, keeping the heading and gap", () => {
+    // A's content spans through its ## B subsection, so emptying it removes the
+    // subsection too, leaving only the bare heading and the following gap.
     const result = patch(DOC, {
       targetType: "heading",
       target: ["A"],
       operation: "delete",
       scope: "content",
     });
-    expect(result.document).toBe("# A\n\n## B\nb-body\n\n# C\nc-body\n");
+    expect(result.document).toBe("# A\n\n# C\nc-body\n");
+  });
+
+  test("delete @ content on a leaf empties just that section's body", () => {
+    const result = patch(DOC, {
+      targetType: "heading",
+      target: ["A", "B"],
+      operation: "delete",
+      scope: "content",
+    });
+    expect(result.document).toBe("# A\na-body\n\n## B\n\n# C\nc-body\n");
   });
 
   test("delete @ markerAndContent removes the subtree and its trailing gap", () => {

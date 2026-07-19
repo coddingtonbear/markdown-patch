@@ -6,6 +6,7 @@ import { patch } from "../engine";
 import { Instruction } from "../instructions";
 import { buildModel, eachSection, serializeModel } from "../model";
 import { projectMap, headingPath } from "../projection";
+import { headingContentRange } from "../ranges";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -166,8 +167,11 @@ describe("splice locality — content edits are confined to the target body", ()
         if (paths.get(JSON.stringify(headingPath(section))) !== 1) {
           return;
         }
-        const before = document.slice(0, section.content.start);
-        const after = document.slice(section.content.end);
+        // `content` scope spans the subtree below the heading (span B), so the
+        // preserved suffix begins where that span ends, not at the direct body.
+        const body = headingContentRange(section);
+        const before = document.slice(0, body.start);
+        const after = document.slice(body.end);
         const result = patch(document, {
           targetType: "heading",
           target: headingPath(section),

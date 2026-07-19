@@ -11,7 +11,24 @@ import { RootHasNoMarkerError } from "../ranges";
 const DOC = "# A\na-body\n\n## B\nb-body\n\n# C\nc-body\n";
 
 describe("patch — heading content cells", () => {
-  test("replace @ content sets the section body, leaving the gap and siblings", () => {
+  test("replace @ content on a leaf sets just that section's body", () => {
+    // B has no children, so its `content` span is exactly its direct body.
+    const result = patch(DOC, {
+      targetType: "heading",
+      target: ["A", "B"],
+      operation: "replace",
+      scope: "content",
+      content: "new-b",
+    });
+    expect(result.document).toBe(
+      "# A\na-body\n\n## B\nnew-b\n\n# C\nc-body\n"
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("replace @ content spans the whole subtree below the heading (subsections included)", () => {
+    // A's `content` is everything under it minus its own heading line — a-body
+    // *and* the ## B subsection — so replacing it absorbs the child section.
     const result = patch(DOC, {
       targetType: "heading",
       target: ["A"],
@@ -19,9 +36,7 @@ describe("patch — heading content cells", () => {
       scope: "content",
       content: "new-a",
     });
-    expect(result.document).toBe(
-      "# A\nnew-a\n\n## B\nb-body\n\n# C\nc-body\n"
-    );
+    expect(result.document).toBe("# A\nnew-a\n\n# C\nc-body\n");
     expect(result.warnings).toEqual([]);
   });
 
@@ -38,7 +53,9 @@ describe("patch — heading content cells", () => {
     );
   });
 
-  test("append @ content inserts at the bottom of the body, before the gap", () => {
+  test("append @ content inserts at the bottom of the subtree body, before the gap", () => {
+    // A's content spans through ## B, so an append lands after B's body, not
+    // between a-body and the subsection.
     const result = patch(DOC, {
       targetType: "heading",
       target: ["A"],
@@ -47,7 +64,7 @@ describe("patch — heading content cells", () => {
       content: "bot",
     });
     expect(result.document).toBe(
-      "# A\na-body\nbot\n\n## B\nb-body\n\n# C\nc-body\n"
+      "# A\na-body\n\n## B\nb-body\nbot\n\n# C\nc-body\n"
     );
   });
 
@@ -253,12 +270,12 @@ describe("patch — preconditions and resolution", () => {
     // Compute the version via a no-op resolve by patching with the right token.
     const first = patch(DOC, {
       targetType: "heading",
-      target: ["A"],
+      target: ["A", "B"],
       operation: "append",
       scope: "content",
       content: "x",
     });
-    expect(first.document).toContain("a-body\nx\n");
+    expect(first.document).toContain("b-body\nx\n");
   });
 
   test("ifMatch not matching the current version fails without modifying the document", () => {
@@ -288,14 +305,15 @@ describe("patch — preconditions and resolution", () => {
 });
 
 describe("patch — no-op identity", () => {
-  test("replacing a section body with its own current text is byte-identity", () => {
-    // A's body is "a-body\n"; replacing with the same text must not change bytes.
+  test("replacing a leaf section body with its own current text is byte-identity", () => {
+    // B is a leaf, so its content span is just "b-body\n"; replacing with the
+    // same text must not change any bytes.
     const result = patch(DOC, {
       targetType: "heading",
-      target: ["A"],
+      target: ["A", "B"],
       operation: "replace",
       scope: "content",
-      content: "a-body",
+      content: "b-body",
     });
     expect(result.document).toBe(DOC);
   });

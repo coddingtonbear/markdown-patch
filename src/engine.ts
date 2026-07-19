@@ -17,6 +17,7 @@ import { resolveTarget } from "./resolve.js";
 import { Edit } from "./splice.js";
 import {
   headingMarkerRange,
+  headingContentRange,
   subtreeContentRange,
   subtreeEnd,
   blockFullRange,
@@ -63,7 +64,7 @@ const scopeSpanText = (
     const section = resolved.section;
     const range =
       scope === "content"
-        ? section.content
+        ? headingContentRange(section)
         : scope === "marker"
           ? section.marker
           : subtreeContentRange(section);
@@ -98,7 +99,7 @@ const patchHeading = (
 
   if (scope === "content") {
     const fragment = sectionFragment(value, section.heading?.level ?? 0, model.lineEnding);
-    const edit = contentEdit(section.content, operation, fragment.text);
+    const edit = contentEdit(headingContentRange(section), operation, fragment.text);
     return splice(document, [edit], fragment.warnings);
   }
 

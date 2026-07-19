@@ -9,8 +9,9 @@
  *   sibling already precedes the target, its orphaned body/children are simply
  *   absorbed by the preceding text; if it is the first at its level, its
  *   children are promoted to its parent and re-levelled up one.
- * - `delete @ content` / `delete @ markerAndContent`: empty the body, or remove
- *   the whole subtree plus its trailing gap.
+ * - `delete @ content` / `delete @ markerAndContent`: empty the section's body
+ *   (its subtree below the heading line), or remove the whole subtree — heading
+ *   line included — plus its trailing gap.
  * - block deletes: empty a block's text, detach its `^id`, or remove the whole
  *   block plus the blank line that separated it.
  */
@@ -20,6 +21,7 @@ import { resolveHeading } from "../resolve.js";
 import { Edit } from "../splice.js";
 import {
   headingMarkerRange,
+  headingContentRange,
   subtreeContentRange,
   subtreeEnd,
   blockFullRange,
@@ -169,7 +171,7 @@ export const structuralHeading = (
   }
   switch (instruction.scope) {
     case "content":
-      return splice(document, [{ range: section.content, text: "" }], []);
+      return splice(document, [{ range: headingContentRange(section), text: "" }], []);
     case "markerAndContent":
       return splice(
         document,

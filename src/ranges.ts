@@ -1,9 +1,10 @@
 /**
  * Range geometry over model nodes: turn a resolved node into the byte spans an
- * operation acts on.  The key distinction is that `content` acts on a section's
- * *direct* body while `markerAndContent` (and moves and deletes) act on the
- * whole *subtree*, which is contiguous in document order because a section's
- * descendants immediately follow its content and gap.
+ * operation acts on.  Both `content` and `markerAndContent` act on a section's
+ * whole *subtree* — which is contiguous in document order because a section's
+ * descendants immediately follow its content and gap — the difference being that
+ * `content` excludes the heading line itself (the subtree *minus* its own
+ * marker) while `markerAndContent` includes it.
  */
 
 import { DocumentRange } from "./types.js";
@@ -25,6 +26,19 @@ const subtreeStart = (section: SectionNode): number =>
  */
 export const subtreeContentRange = (section: SectionNode): DocumentRange => ({
   start: subtreeStart(section),
+  end: lastDescendant(section).trailingGap.start,
+});
+
+/**
+ * The `content` scope of a heading: everything below the heading line through
+ * the last descendant's content, excluding the heading line itself and the final
+ * trailing gap.  This is the whole subtree *minus* its own marker — the span 1.x
+ * `content` addressed — so a single content read/replace round-trips a section's
+ * full body, subsections included.  For a leaf section it coincides with the
+ * direct body (`section.content`).
+ */
+export const headingContentRange = (section: SectionNode): DocumentRange => ({
+  start: section.content.start,
   end: lastDescendant(section).trailingGap.start,
 });
 
