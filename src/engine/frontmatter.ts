@@ -68,9 +68,26 @@ export const patchFrontmatter = (
     entry.value,
   ]);
   const key = instruction.target;
-  const index = pairs.findIndex(([existing]) => existing === key);
+  let index = pairs.findIndex(([existing]) => existing === key);
   if (index === -1) {
-    throw new TargetNotFoundError(`frontmatter key "${key}" was not found`);
+    // Creation is only meaningful when setting/merging a value: a content write
+    // or a whole-entry replace.  Renaming, deleting, or inserting relative to a
+    // key that does not exist has no sensible meaning.
+    const creatable =
+      instruction.createTargetIfMissing &&
+      ((instruction.scope === "content" && instruction.operation !== "delete") ||
+        (instruction.scope === "markerAndContent" &&
+          instruction.operation === "replace"));
+    if (!creatable) {
+      throw new TargetNotFoundError(`frontmatter key "${key}" was not found`);
+    }
+    // Seed an empty value of the content's kind so a merge has something to
+    // merge onto; a replace overwrites it regardless.  `creatable` guarantees a
+    // value instruction here, so `content` is present.
+    const content = "content" in instruction ? instruction.content : "";
+    const seed = isList(content) ? [] : isDictionary(content) ? {} : "";
+    pairs.push([key, seed]);
+    index = pairs.length - 1;
   }
 
   if (instruction.scope === "marker") {

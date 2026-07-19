@@ -24,6 +24,7 @@ import {
 import { toLineEnding, sectionFragment, splice } from "./text.js";
 import { structuralHeading, deleteBlock } from "./engine/structural.js";
 import { patchFrontmatter } from "./engine/frontmatter.js";
+import { createHeading, createBlock } from "./engine/create.js";
 import {
   Instruction,
   HeadingInstruction,
@@ -209,9 +210,15 @@ export const patch = (
   const resolved = resolveTarget(model, instruction);
   if (!resolved) {
     if (instruction.createTargetIfMissing) {
-      throw new EngineError(
-        "createTargetIfMissing is not yet implemented in this build"
-      );
+      switch (instruction.targetType) {
+        case "heading":
+          return createHeading(document, model, instruction);
+        case "block":
+          return createBlock(document, model, instruction);
+        case "frontmatter":
+          // patchFrontmatter creates the key itself when it is missing.
+          return patchFrontmatter(document, model, instruction);
+      }
     }
     throw new TargetNotFoundError(
       `could not resolve ${instruction.targetType} target ${JSON.stringify(
