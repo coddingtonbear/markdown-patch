@@ -121,7 +121,7 @@ To rename a key, use `scope: "marker"` — the new key name is a string, so it r
 
 ### Renaming, deleting, and moving
 
-Rename a heading with the `marker` scope. Supply just the text — the engine keeps the level, so no `#`s are needed:
+Rename a heading with the `marker` scope. Supply just the new text — the heading keeps whatever level it had, so you never need to know its depth:
 
 ```typescript
 patch(document, {
@@ -132,6 +132,10 @@ patch(document, {
   content: "Follow-ups",
 });
 ```
+
+Do **not** include `#` characters here. They are not stripped — they become part of the heading text, so `"## Follow-ups"` renames the heading to the literal `## Follow-ups`. (The deprecated `applyPatch` required them; if you are migrating, drop them.)
+
+The same shape renames a block id (`targetType: "block"`, new id without `^`) or a frontmatter key (`targetType: "frontmatter"`, new key in `content`).
 
 `delete` empties the `content` scope, removes the whole subtree (`markerAndContent`), or dissolves just the heading line while keeping its body (`marker`).
 
