@@ -68,7 +68,7 @@ I discovered a thing
 - Caught the flight home
 ```
 
-The leading `\n` in the content above is deliberate: a blank-line separator at the target boundary is preserved only if one was already there, and is never synthesized for you.
+The leading `\n` in the content above is deliberate. Content is spliced in exactly as written at the edge of the target's span, and the engine adds no whitespace of its own — without that newline, `## My discovery` would sit flush against the line above it. See the README for the full whitespace rules.
 
 See {@link Reference.patch} for the full instruction shape, {@link Reference.readTarget} for the read-side mirror of the same addressing, and {@link Reference.projectMap} for discovering what a document has to target.
 

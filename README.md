@@ -82,9 +82,25 @@ Under `markerAndContent` (or a sibling insert) the same content lands at the tar
 
 Because the heading line is part of the `markerAndContent` span, a `replace` whose content has *no* heading removes it — the section is dissolved into a plain paragraph. Include a leading `#` (at any depth; it is rebased for you) to keep it a heading.
 
-### Blank lines are not synthesized
+### Whitespace is spliced verbatim
 
-A blank-line separator at the target boundary is preserved only if one was already there — it is never inserted. In the example above the result is `- Follow up with design team\n## Notes from the call`, with no gap. If you want a blank line, include it yourself: end your `content` with `\n\n` for `append`, or start it with `\n\n` for `prepend`.
+Your `content` is inserted exactly as written at one edge of the target's span; the engine adds no whitespace of its own. For a heading, that span begins immediately *after* the heading line and ends after the last line of its subtree. So given:
+
+```markdown
+# One
+
+body of one
+```
+
+- `prepend` lands flush against the heading line → `# One\nX\n\nbody of one\n`
+- `append` lands flush against the section's last line → `# One\n\nbody of one\nX\n`
+- `replace` clears the whole span, blank line included → `# One\nX\n`
+
+In all three cases **a leading `\n` in your content is what buys you a blank line before it**. Passing `"\nX\n"` instead gives `# One\n\nX\n\nbody of one\n`, `# One\n\nbody of one\n\nX\n`, and `# One\n\nX\n` respectively.
+
+Note that this is a *leading* newline even for `append`: the gap you usually want is between the existing text and yours, and that edge comes first. Trailing newlines control the gap *after* your content, and are trimmed at the very end of a document — so padding the end of an `append` at the end of a file does nothing.
+
+The case that most often surprises: prepending into a section whose heading is already followed by a blank line still yields `# One\nX`, with no gap. That blank line is part of the body, not of the boundary, so it is pushed below your text rather than kept above it.
 
 ### Frontmatter
 
