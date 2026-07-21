@@ -1,10 +1,9 @@
 /**
  * Turn a public target address back into the model node it names.  Headings are
- * matched by their null-padded address (see {@link headingPath}); a target with
- * explicit levels wins over a level-agnostic collapsed one, and a collapsed
- * address falls back to matching by nesting so the common "the section named X"
- * case needs no level annotation.  Duplicates resolve to the first match in
- * document order; the `ifMatch` precondition guards against staleness.
+ * matched by their containment path (see {@link headingPath}) — the ancestor
+ * heading texts from the top level down, ignoring source depth — so a skipped
+ * level needs no annotation.  Duplicates resolve to the first match in document
+ * order; the `ifMatch` precondition guards against staleness.
  */
 
 import {
@@ -22,12 +21,8 @@ export type ResolvedTarget =
   | { kind: "block"; block: BlockNode }
   | { kind: "frontmatter"; entry: FrontmatterEntry };
 
-const arrayEquals = (a: (string | null)[], b: (string | null)[]): boolean =>
+const arrayEquals = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((value, index) => value === b[index]);
-
-/** Drop skipped levels, keeping empty-text (`""`) segments. */
-const collapse = (path: (string | null)[]): (string | null)[] =>
-  path.filter((segment) => segment !== null);
 
 /** Every heading-bearing section, in document order. */
 const headingSections = (model: DocumentModel): SectionNode[] => {
@@ -51,22 +46,13 @@ export const resolveHeading = (
   }
   const sections = headingSections(model);
 
-  // Exact tier: the node's padded address equals the target as written, so an
-  // explicitly levelled address (`["A", null, "B"]`) selects a precise depth.
-  const exact = sections.find((section) =>
+  // Match by containment path, ignoring source depth, so a plain address finds
+  // its section even across a skipped heading level.  The first match in
+  // document order wins, so a repeated heading resolves to its first occurrence.
+  const match = sections.find((section) =>
     arrayEquals(headingPath(section), target)
   );
-  if (exact) {
-    return { kind: "heading", section: exact };
-  }
-
-  // Collapsed tier: match by nesting, ignoring levels, so a plain path still
-  // finds a section reached across a skipped heading level.
-  const wanted = collapse(target);
-  const collapsed = sections.find((section) =>
-    arrayEquals(collapse(headingPath(section)), wanted)
-  );
-  return collapsed ? { kind: "heading", section: collapsed } : null;
+  return match ? { kind: "heading", section: match } : null;
 };
 
 /** Resolve a bare block id to its block node, or `null`. */

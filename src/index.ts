@@ -20,8 +20,8 @@ export * from "./types.js";
 
 export { patch } from "./engine.js";
 export { buildModel } from "./model.js";
-export { projectMap } from "./projection.js";
-export type { PublicMap } from "./projection.js";
+export { projectMap, headingTreePaths } from "./projection.js";
+export type { PublicMap, HeadingTree } from "./projection.js";
 export { readTarget } from "./read.js";
 export type { ReadTarget, ReadResult } from "./read.js";
 export {

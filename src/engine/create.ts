@@ -41,25 +41,23 @@ export const createHeading = (
       "createTargetIfMissing for headings supports content-scope writes only"
     );
   }
-  const collapsed = (instruction.target ?? []).filter(
-    (segment): segment is string => segment !== null
-  );
-  if (collapsed.length === 0) {
+  const path = instruction.target ?? [];
+  if (path.length === 0) {
     throw new EngineError("the document root cannot be created");
   }
 
   // Find the deepest existing ancestor prefix; the remaining segments are new.
   let ancestor = model.root;
   let matched = 0;
-  for (let length = collapsed.length - 1; length >= 1; length--) {
-    const resolved = resolveHeading(model, collapsed.slice(0, length));
+  for (let length = path.length - 1; length >= 1; length--) {
+    const resolved = resolveHeading(model, path.slice(0, length));
     if (resolved) {
       ancestor = resolved.section;
       matched = length;
       break;
     }
   }
-  const toCreate = collapsed.slice(matched);
+  const toCreate = path.slice(matched);
 
   const warnings: Warning[] = [];
   const parts: string[] = [];

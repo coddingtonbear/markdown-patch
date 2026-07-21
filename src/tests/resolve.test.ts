@@ -21,19 +21,13 @@ describe("resolveHeading", () => {
     expect(resolveHeading(model, [])?.section).toBe(model.root);
   });
 
-  test("collapsed path matches by nesting", () => {
+  test("containment path matches by nesting, first in document order", () => {
     const model = buildModel(dupDoc);
-    // ["A","B"] exactly matches the h2 B (padded ["A","B"]), not the h3 B.
+    // ["A","B"] names the first "A"'s child "B" (an h2); the second "A"'s "B"
+    // (an h3) shares the same containment path but comes later.
     const r = resolveHeading(model, ["A", "B"]);
     expect(headingLevel(r)).toBe(2);
     expect(bodyOf(dupDoc, r)).toContain("body b1");
-  });
-
-  test("null-padding disambiguates by level", () => {
-    const model = buildModel(dupDoc);
-    const r = resolveHeading(model, ["A", null, "B"]);
-    expect(headingLevel(r)).toBe(3);
-    expect(bodyOf(dupDoc, r)).toContain("body b2");
   });
 
   test("duplicate headings resolve to the first in document order", () => {
@@ -48,19 +42,17 @@ describe("resolveHeading", () => {
     }
   });
 
-  test("collapsed path spans a skipped level (garden path)", () => {
+  test("containment path spans a skipped level (garden path)", () => {
     const doc = ["# Over", "### Quirk", "x", ""].join("\n");
     const model = buildModel(doc);
+    // The skipped h2 leaves no hole in the address; ["Over","Quirk"] resolves.
     expect(headingLevel(resolveHeading(model, ["Over", "Quirk"]))).toBe(3);
-    expect(headingLevel(resolveHeading(model, ["Over", null, "Quirk"]))).toBe(3);
   });
 
-  test("empty-text heading is distinct from a skipped level", () => {
+  test("empty-text heading is addressable by its empty-string key", () => {
     const doc = ["# ", "under empty", "## Real", "deep", ""].join("\n");
     const model = buildModel(doc);
     expect(headingLevel(resolveHeading(model, ["", "Real"]))).toBe(2);
-    // [null,"Real"] must NOT match ["","Real"].
-    expect(resolveHeading(model, [null, "Real"])).toBeNull();
   });
 
   test("returns null when no heading matches", () => {

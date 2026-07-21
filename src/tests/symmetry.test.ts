@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import { patch } from "../engine";
 import { Instruction } from "../instructions";
 import { buildModel, eachSection, serializeModel } from "../model";
-import { projectMap, headingPath } from "../projection";
+import { projectMap, headingPath, headingTreePaths } from "../projection";
 import { headingContentRange } from "../ranges";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,14 +15,10 @@ const CONFORMANCE_DIR = path.join(__dirname, "conformance");
 const arrayEquals = (a: unknown[], b: unknown[]): boolean =>
   a.length === b.length && a.every((value, index) => value === b[index]);
 
-const collapse = (path: (string | null)[]): (string | null)[] =>
-  path.filter((segment) => segment !== null);
-
-const collapsedHeadings = (document: string): (string | null)[][] =>
-  projectMap(buildModel(document)).headings.map(collapse);
-
 const hasHeading = (document: string, wanted: string[]): boolean =>
-  collapsedHeadings(document).some((heading) => arrayEquals(heading, wanted));
+  headingTreePaths(projectMap(buildModel(document)).headings).some((heading) =>
+    arrayEquals(heading, wanted)
+  );
 
 // The top design constraint: a successful, non-overflow write leaves its target
 // addressable in the map derived from the result.

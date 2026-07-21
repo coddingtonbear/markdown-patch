@@ -24,12 +24,15 @@ export type Scope = "content" | "marker" | "markerAndContent" | "parent";
 export type TargetType = "heading" | "block" | "frontmatter";
 
 /**
- * A heading address: a null-padded or collapsed array of heading texts, or
- * `null`/`[]` for the document root.  A collapsed array (no `null`s) matches by
- * nesting like a 1.x path; `null` explicitly marks a skipped level and `""` a
- * genuinely empty-text heading.  Array length is the heading's level.
+ * A heading address: the containment path of ancestor heading texts from the
+ * top level down (e.g. `["Overview", "Details"]`), or `null`/`[]` for the
+ * document root.  The address names sections by nesting, never by heading
+ * depth: a level skipped in the source (an `h1` followed directly by an `h3`)
+ * simply does not appear, and `""` is a genuinely empty-text heading.  The
+ * engine owns heading depth end to end, so a caller never encodes or counts
+ * levels.
  */
-export type HeadingAddress = (string | null)[] | null;
+export type HeadingAddress = string[] | null;
 
 /** Where a moved section lands relative to its new parent's children. */
 export type Place =
