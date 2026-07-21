@@ -7,15 +7,17 @@ import { DocumentModel, SectionNode } from "./model.js";
  * (an `h1` followed directly by an `h3`) does not appear as a hole — the engine
  * owns depth and a consumer never needs it.
  *
- * Sibling headings are keyed by text, so a repeated sibling name cannot appear
- * twice: the **first** occurrence in document order wins and later same-name
- * siblings (with their subtrees) are omitted, matching the resolver, which
- * resolves an address to the first match in document order.  To reach a heading
- * shadowed by an earlier duplicate, target the next-higher heading or the
- * document as a whole.
+ * Sibling headings are keyed by text, so a repeated sibling name appears once.
+ * A repeat is not dropped, though — its children merge into the first
+ * occurrence's subtree — because the resolver addresses a heading by its whole
+ * containment path, not by its name.  Two sections that share a path really are
+ * one address and resolve to the first in document order, while a
+ * uniquely-pathed descendant of a repeat is its own address and is listed.  For
+ * `## Log / ### Monday` followed by `## Log / ### Tuesday`, the tree is
+ * `{ Log: { Monday: {}, Tuesday: {} } }`: both are separately addressable.
  *
- * future: surface shadowed duplicate headings (e.g. under a reserved section of
- * the map) so they are visible and addressable rather than silently omitted.
+ * The tree therefore enumerates exactly the addresses the resolver accepts —
+ * see {@link headingTreePaths}.
  */
 export interface HeadingTree {
   [headingText: string]: HeadingTree;
@@ -71,18 +73,23 @@ export const projectMap = (model: DocumentModel): PublicMap => {
   };
   collectBlocks(model.root);
 
-  // Headings nest by containment, first-wins on a repeated sibling name.
+  // Headings nest by containment.  A repeated sibling name reuses the existing
+  // subtree rather than starting a second one, so the repeat's descendants —
+  // which carry their own distinct containment paths — stay listed.  This is
+  // what keeps the tree equal to the set of addresses the resolver accepts.
   const buildTree = (node: SectionNode, into: HeadingTree): void => {
     for (const child of node.children) {
       if (!child.heading) {
         continue;
       }
       const { text } = child.heading;
-      if (Object.prototype.hasOwnProperty.call(into, text)) {
-        continue; // shadowed duplicate; see {@link HeadingTree}
+      const existing = Object.prototype.hasOwnProperty.call(into, text)
+        ? into[text]
+        : undefined;
+      const subtree: HeadingTree = existing ?? {};
+      if (!existing) {
+        into[text] = subtree;
       }
-      const subtree: HeadingTree = {};
-      into[text] = subtree;
       buildTree(child, subtree);
     }
   };

@@ -1,5 +1,6 @@
-import { buildModel } from "../model";
-import { projectMap, headingTreePaths } from "../projection";
+import { buildModel, eachSection } from "../model";
+import { projectMap, headingTreePaths, headingPath } from "../projection";
+import { resolveHeading } from "../resolve";
 
 describe("projectMap", () => {
   test("produces the first-pass public shape", () => {
@@ -49,31 +50,91 @@ describe("projectMap", () => {
     expect(map.frontmatterFields).toEqual([]);
   });
 
-  test("first-wins keeps the first duplicate's subtree, not the last", () => {
+  test("a repeated sibling name merges its children into one subtree", () => {
     const doc =
       "## Log\n\n### Monday\n\nm\n\n## Log\n\n### Tuesday\n\nt\n";
     const map = projectMap(buildModel(doc));
-    // The first "Log" (with Monday) wins; the second "Log" and Tuesday drop out.
+    // "Log" is one key, but Tuesday has its own containment path and so is its
+    // own address — dropping it would hide a heading the resolver can reach.
+    expect(map.headings).toEqual({ Log: { Monday: {}, Tuesday: {} } });
+  });
+
+  test("sections that genuinely share a path collapse to one address", () => {
+    const doc =
+      "## Log\n\n### Monday\n\nfirst\n\n## Log\n\n### Monday\n\nsecond\n";
+    const map = projectMap(buildModel(doc));
+    // Both Mondays are ["Log", "Monday"]; that is one address, and it resolves
+    // to the first in document order.
     expect(map.headings).toEqual({ Log: { Monday: {} } });
   });
 
-  test("a block under a shadowed duplicate heading is still listed", () => {
+  test("a repeat's descendants merge even below a shared path", () => {
+    const doc =
+      "# A\n\n## X\n\nfirst\n\n# A\n\n## X\n\n### Z\n\nz\n";
+    const map = projectMap(buildModel(doc));
+    // ["A","X"] is shared, but ["A","X","Z"] is unique and stays addressable.
+    expect(map.headings).toEqual({ A: { X: { Z: {} } } });
+  });
+
+  test("a block under a repeated heading is still listed", () => {
     const doc =
       "## Log\n\nfirst ^a\n\n## Log\n\nsecond ^b\n";
     const map = projectMap(buildModel(doc));
-    // The second "Log" is omitted from the tree, but its block stays addressable.
+    // Neither "Log" has child headings, so the tree has one leaf; blocks are
+    // addressed globally and both stay listed.
     expect(map.headings).toEqual({ Log: {} });
     expect(map.blocks).toEqual(["a", "b"]);
   });
 
   test("headingTreePaths enumerates every address in document order", () => {
-    const doc = "# A\n\n## B\n\nb\n\n### C\n\nc\n\n# D\n\nd\n";
-    const paths = headingTreePaths(projectMap(buildModel(doc)).headings);
-    expect(paths).toEqual([
-      ["A"],
-      ["A", "B"],
-      ["A", "B", "C"],
-      ["D"],
-    ]);
+    const paths = headingTreePaths(
+      projectMap(buildModel("# A\n\n## B\n\nb\n\n### C\n\nc\n\n# D\n\nd\n")).headings
+    );
+    expect(paths).toEqual([["A"], ["A", "B"], ["A", "B", "C"], ["D"]]);
+  });
+});
+
+// The map's contract: it advertises neither more nor less than the resolver
+// accepts.  Under-reporting hides reachable headings from a consumer whose only
+// view of the document is this map; over-reporting hands out addresses that 404.
+describe("map/resolver agreement — the tree is exactly the addressable set", () => {
+  const documents: Array<{ name: string; document: string }> = [
+    { name: "plain nesting", document: "# A\n\n## B\n\nb\n\n### C\n\nc\n\n# D\n\nd\n" },
+    { name: "skipped levels", document: "# A\n\nbody\n\n#### Deep\n\ndeep\n" },
+    {
+      name: "repeated sibling with distinct children",
+      document: "## Log\n\n### Monday\n\nm\n\n## Log\n\n### Tuesday\n\nt\n",
+    },
+    {
+      name: "repeated sibling with colliding children",
+      document: "## Log\n\n### Monday\n\nfirst\n\n## Log\n\n### Monday\n\nsecond\n",
+    },
+    {
+      name: "repeat nested below a shared path",
+      document: "# A\n\n## X\n\nfirst\n\n# A\n\n## X\n\n### Z\n\nz\n",
+    },
+    { name: "empty heading text", document: "# \n\nbody\n\n## Child\n\nc\n" },
+    { name: "no headings at all", document: "just prose\n" },
+  ];
+
+  test.each(documents)("$name", ({ document }) => {
+    const model = buildModel(document);
+    const advertised = headingTreePaths(projectMap(model).headings);
+
+    // Every advertised address resolves.
+    for (const address of advertised) {
+      expect(resolveHeading(model, address)).not.toBeNull();
+    }
+
+    // ...and every heading in the document is advertised, so nothing reachable
+    // is hidden.  Sections sharing a path are one address, hence the dedup.
+    const actual: string[][] = [];
+    eachSection(model.root, (node) => {
+      if (node.heading) {
+        actual.push(headingPath(node));
+      }
+    });
+    const key = (path: string[]): string => JSON.stringify(path);
+    expect(new Set(advertised.map(key))).toEqual(new Set(actual.map(key)));
   });
 });
