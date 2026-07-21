@@ -268,6 +268,14 @@ export class EngineError extends Error {
   }
 }
 
+/**
+ * The instruction failed schema validation at the {@link patch} boundary — a
+ * malformed field, a mismatched target shape, or the wrong payload carrier for
+ * its cell.  Distinct from {@link InvalidCellError}, which is specifically an
+ * `operation × scope` combination outside the algebra.
+ */
+export class InvalidInstructionError extends EngineError {}
+
 /** The requested operation×scope combination is not part of the algebra. */
 export class InvalidCellError extends EngineError {
   constructor(public cell: Cell) {

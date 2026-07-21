@@ -36,9 +36,11 @@ import {
   PreconditionFailedError,
   TargetNotFoundError,
   ContentPreexistsError,
+  InvalidInstructionError,
   assertValidCell,
   withDefaultScope,
 } from "./instructions.js";
+import { InstructionInputSchema } from "./schema.js";
 import { ResolvedTarget } from "./resolve.js";
 
 /** The subset of an instruction {@link assertValidCell} inspects. */
@@ -238,6 +240,21 @@ export const patch = (
   document: string,
   input: InstructionInput
 ): PatchResult => {
+  // Validate the whole instruction at the boundary: field shapes, the target
+  // shape for its type, cell validity, and the carrier the cell expects. A
+  // failure here means the caller sent a malformed instruction, so surface it
+  // as one typed error rather than letting a handler misread an absent field.
+  const parsed = InstructionInputSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new InvalidInstructionError(
+      parsed.error.issues
+        .map((issue) =>
+          issue.path.length ? `${issue.path.join(".")}: ${issue.message}` : issue.message
+        )
+        .join("; ")
+    );
+  }
+
   const instruction = withDefaultScope(input);
   const model = buildModel(document);
   assertValidCell(cellOf(instruction));

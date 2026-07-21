@@ -27,6 +27,7 @@ export type { ReadTarget, ReadResult } from "./read.js";
 export {
   EngineError,
   InvalidCellError,
+  InvalidInstructionError,
   TargetNotFoundError,
   PreconditionFailedError,
   ContentPreexistsError,
@@ -34,6 +35,10 @@ export {
   isValidCell,
   assertValidCell,
 } from "./instructions.js";
+export {
+  InstructionInputSchema,
+  InstructionInputObjectSchema,
+} from "./schema.js";
 export type {
   Instruction,
   InstructionInput,

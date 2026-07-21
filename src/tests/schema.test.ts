@@ -1,0 +1,169 @@
+import { z } from "zod";
+
+import {
+  InstructionInputSchema,
+  InstructionInputObjectSchema,
+} from "../schema";
+import { patch } from "../engine";
+import {
+  InstructionInput,
+  InvalidInstructionError,
+} from "../instructions";
+
+// --- Type-level drift guard ----------------------------------------------
+//
+// Every member of the hand-written InstructionInput union must be accepted by
+// the flat schema's input type. If the union grows a field or tightens a type
+// the schema does not mirror, this assignment stops compiling — which, under
+// ts-jest, fails the suite. (The reverse does not hold and is not expected: the
+// flat schema is looser at compile time and tightened at runtime by the
+// superRefine, so a bare object without its carrier is a valid *type* but a
+// runtime error.)
+const _unionSatisfiesSchema: (
+  i: InstructionInput
+) => z.input<typeof InstructionInputObjectSchema> = (i) => i;
+void _unionSatisfiesSchema;
+
+// A representative instance of each union member, to exercise the schema at
+// runtime the way callers actually use it.
+const valid: { name: string; instruction: InstructionInput }[] = [
+  {
+    name: "heading write @ content",
+    instruction: { targetType: "heading", target: ["A"], operation: "append", content: "x" },
+  },
+  {
+    name: "heading write @ marker",
+    instruction: { targetType: "heading", target: ["A"], operation: "replace", scope: "marker", content: "New" },
+  },
+  {
+    name: "heading move @ parent",
+    instruction: {
+      targetType: "heading",
+      target: ["A", "B"],
+      operation: "replace",
+      scope: "parent",
+      destination: { parent: null, place: "last" },
+    },
+  },
+  {
+    name: "heading delete",
+    instruction: { targetType: "heading", target: ["A"], operation: "delete", scope: "markerAndContent" },
+  },
+  {
+    name: "block write @ content",
+    instruction: { targetType: "block", target: "abc", operation: "append", content: "row" },
+  },
+  {
+    name: "block marker replace",
+    instruction: { targetType: "block", target: "abc", operation: "replace", scope: "marker", content: "def" },
+  },
+  {
+    name: "frontmatter value write",
+    instruction: { targetType: "frontmatter", target: "title", operation: "replace", value: "T" },
+  },
+  {
+    name: "frontmatter value merge",
+    instruction: { targetType: "frontmatter", target: "tags", operation: "append", value: ["x"] },
+  },
+  {
+    name: "frontmatter rename",
+    instruction: { targetType: "frontmatter", target: "a", operation: "replace", scope: "marker", content: "b" },
+  },
+  {
+    name: "frontmatter delete",
+    instruction: { targetType: "frontmatter", target: "a", operation: "delete" },
+  },
+];
+
+describe("InstructionInputSchema", () => {
+  test.each(valid)("accepts a $name", ({ instruction }) => {
+    expect(InstructionInputSchema.safeParse(instruction).success).toBe(true);
+  });
+
+  test("defaults an omitted scope to content and the flags to false", () => {
+    const parsed = InstructionInputSchema.parse({
+      targetType: "heading",
+      target: ["A"],
+      operation: "append",
+      content: "x",
+    });
+    expect(parsed.scope).toBe("content");
+    expect(parsed.createTargetIfMissing).toBe(false);
+    expect(parsed.rejectIfContentPreexists).toBe(false);
+  });
+
+  describe("rejects malformed instructions", () => {
+    const invalid: { name: string; instruction: unknown }[] = [
+      {
+        name: "a heading target given as a string",
+        instruction: { targetType: "heading", target: "A", operation: "append", content: "x" },
+      },
+      {
+        name: "a block target given as an array",
+        instruction: { targetType: "block", target: ["a"], operation: "append", content: "x" },
+      },
+      {
+        name: "an invalid cell (parent on a block)",
+        instruction: {
+          targetType: "block",
+          target: "a",
+          operation: "replace",
+          scope: "parent",
+          destination: { parent: null, place: "last" },
+        },
+      },
+      {
+        name: "an invalid cell (prepend on a frontmatter marker)",
+        instruction: { targetType: "frontmatter", target: "a", operation: "prepend", scope: "marker", content: "b" },
+      },
+      {
+        name: "a heading write carrying value instead of content",
+        instruction: { targetType: "heading", target: ["A"], operation: "replace", value: 1 },
+      },
+      {
+        name: "a frontmatter value write carrying content instead of value",
+        instruction: { targetType: "frontmatter", target: "a", operation: "replace", content: "x" },
+      },
+      {
+        name: "a heading write missing its content carrier",
+        instruction: { targetType: "heading", target: ["A"], operation: "replace" },
+      },
+      {
+        name: "a move missing its destination carrier",
+        instruction: { targetType: "heading", target: ["A"], operation: "replace", scope: "parent" },
+      },
+      {
+        name: "a delete carrying content",
+        instruction: { targetType: "heading", target: ["A"], operation: "delete", content: "x" },
+      },
+    ];
+
+    test.each(invalid)("rejects $name", ({ instruction }) => {
+      expect(InstructionInputSchema.safeParse(instruction).success).toBe(false);
+    });
+  });
+});
+
+describe("patch() boundary validation", () => {
+  test("throws InvalidInstructionError for a malformed instruction", () => {
+    expect(() =>
+      // A heading write with no content carrier: valid cell, wrong shape.
+      patch("# A\n\nbody\n", {
+        targetType: "heading",
+        target: ["A"],
+        operation: "replace",
+      } as InstructionInput)
+    ).toThrow(InvalidInstructionError);
+  });
+
+  test("applies a well-formed instruction", () => {
+    const { document } = patch("# A\n\nbody\n", {
+      targetType: "frontmatter",
+      target: "title",
+      operation: "replace",
+      value: "Set",
+      createTargetIfMissing: true,
+    });
+    expect(document).toContain("title: Set");
+  });
+});

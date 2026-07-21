@@ -4,7 +4,8 @@
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "marked": "^17.0.1",
-    "yaml": "^2.5.1"
+    "yaml": "^2.5.1",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/commander": "^2.12.2",

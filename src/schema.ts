@@ -1,0 +1,247 @@
+/**
+ * The published Zod schema for a patch instruction.
+ *
+ * This is the single source of truth for the *shape and validity* of an
+ * instruction as a caller supplies it, from which downstream projects derive
+ * their own surfaces: obsidian-local-rest-api builds its MCP `vault_patch` tool
+ * input from {@link InstructionInputObjectSchema}'s field shape and its OpenAPI
+ * `PatchInstruction` component by running the same schema through
+ * `zod-to-json-schema`.  Keeping it here means those three representations
+ * cannot drift.
+ *
+ * The schema is deliberately a *flat* object rather than a discriminated union:
+ * that is the only shape an MCP tool input accepts (a tool takes a flat
+ * `ZodRawShape`, never a top-level union), and it matches how both the REST and
+ * MCP layers already model an instruction.  The cross-field rules that a
+ * discriminated union would encode in its structure — which carrier a cell
+ * requires, which `operation × scope` pairs are valid for a target — are instead
+ * enforced by {@link instructionAlgebra} in a `superRefine`.
+ *
+ * The hand-written {@link InstructionInput} union in `instructions.ts` remains
+ * the exported *type*; this schema is checked against it (see `schema.test.ts`)
+ * so the two stay in agreement.  {@link patch} validates its input against
+ * {@link InstructionInputSchema} at the boundary, so a malformed instruction is
+ * rejected with a typed {@link InvalidInstructionError} before any handler runs.
+ */
+
+import { z } from "zod";
+
+import {
+  Operation,
+  Scope,
+  TargetType,
+  isValidCell,
+} from "./instructions.js";
+
+// --- Field pieces --------------------------------------------------------
+
+const operationValues = [
+  "replace",
+  "prepend",
+  "append",
+  "delete",
+] as const satisfies readonly Operation[];
+
+const scopeValues = [
+  "content",
+  "marker",
+  "markerAndContent",
+  "parent",
+] as const satisfies readonly Scope[];
+
+const targetTypeValues = [
+  "heading",
+  "block",
+  "frontmatter",
+] as const satisfies readonly TargetType[];
+
+/** A heading containment path, or `null`/`[]` for the document root. */
+const headingAddress = z
+  .union([z.array(z.string()), z.null()])
+  .describe(
+    "A heading's containment path: the ancestor heading texts from the top level down (e.g. [\"Overview\",\"Details\"]), or null/[] for the document root."
+  );
+
+/** Where a moved section lands among its new parent's children. */
+const place = z
+  .union([
+    z.enum(["first", "last"]),
+    z.object({ before: headingAddress }).strict(),
+    z.object({ after: headingAddress }).strict(),
+  ])
+  .describe(
+    "Position among the new parent's children: \"first\", \"last\", or { before } / { after } a sibling heading address."
+  );
+
+const destination = z
+  .object({
+    parent: headingAddress.describe(
+      "The section's new parent heading address, or null/[] for the document root."
+    ),
+    place,
+  })
+  .strict()
+  .describe(
+    "For a heading move (operation `replace`, scope `parent`): where the section is re-parented. Provide exactly one of `content`, `value`, or `destination`."
+  );
+
+// --- The flat object -----------------------------------------------------
+
+/**
+ * The instruction as a flat object, before cross-field validation.  Exposed so
+ * consumers can read its `.shape` (e.g. to build an MCP tool input, one Zod
+ * field per parameter).  Use {@link InstructionInputSchema} to actually
+ * validate an instruction — it adds the {@link instructionAlgebra} refinement.
+ */
+export const InstructionInputObjectSchema = z
+  .object({
+    targetType: z
+      .enum(targetTypeValues)
+      .describe("The kind of node to edit."),
+    target: z
+      .union([z.array(z.string()), z.string(), z.null()])
+      .describe(
+        "The node to edit. For a heading: an array of heading texts from the top level down to the target (e.g. [\"Overview\",\"Details\"]), or null/[] for the document root. For a block: the bare block id, without the leading `^`. For a frontmatter field: the key."
+      ),
+    operation: z
+      .enum(operationValues)
+      .describe(
+        "What happens to the scoped span: replace it, insert before (`prepend`) or after (`append`), or `delete` it."
+      ),
+    scope: z
+      .enum(scopeValues)
+      .default("content")
+      .describe(
+        "Which part of the target the operation acts on (default `content`). `content`: the node body — for a heading, its whole subtree below the heading line. `marker`: the label only — a heading line, a block `^id`, or a frontmatter key (`replace` renames it). `markerAndContent`: the whole node/subtree (`prepend`/`append` insert a sibling). `parent`: a heading's place in the tree — only with operation `replace`, carrying a `destination` (a move)."
+      ),
+    content: z
+      .string()
+      .describe(
+        "String payload: a heading/block body or label, or a new frontmatter key name for a `marker` rename. Heading levels are relative to the edited span (a leading `#` becomes a direct child). Provide exactly one of `content`, `value`, or `destination`."
+      )
+      .optional(),
+    value: z
+      .unknown()
+      .describe(
+        "Structured JSON payload for a frontmatter value — any JSON (string, number, boolean, array, object, null). For `prepend`/`append` this merges (list concat, dict merge, string concat). Provide exactly one of `content`, `value`, or `destination`."
+      )
+      .optional(),
+    destination: destination.optional(),
+    ifMatch: z
+      .string()
+      .describe(
+        "Optimistic-concurrency token (the `version` from a prior document map). If set and the document has changed since, the patch fails with a precondition error without modifying the file."
+      )
+      .optional(),
+    createTargetIfMissing: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Create the target (heading path, block id, or frontmatter key) if it does not already exist."
+      ),
+    rejectIfContentPreexists: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Fail a `prepend`/`append` when the string content already appears in the target span (makes those operations idempotent on retry)."
+      ),
+  })
+  .describe(
+    "A single edit expressed as one operation applied to a scope of a target node. The payload rides in exactly one of `content`, `value`, or `destination`, chosen by what it is. Not every operation×scope×targetType combination is valid; invalid ones are rejected."
+  );
+
+// --- The algebra (cross-field validity) ----------------------------------
+
+/** Which payload carrier a valid cell requires (or `none` for a delete). */
+type Carrier = "content" | "value" | "destination" | "none";
+
+/**
+ * The carrier a `(targetType, operation, scope)` cell expects, mirroring the
+ * {@link Instruction} union member for that cell.  Assumes the cell is already
+ * known valid (see {@link isValidCell}).
+ */
+const expectedCarrier = (
+  targetType: TargetType,
+  operation: Operation,
+  scope: Scope
+): Carrier => {
+  if (operation === "delete") return "none";
+  if (scope === "parent") return "destination"; // heading move
+  if (targetType === "frontmatter") {
+    return scope === "marker" ? "content" : "value"; // rename vs. value write
+  }
+  return "content"; // heading/block body, label, or whole-node write
+};
+
+const carriers = ["content", "value", "destination"] as const;
+
+/**
+ * Validate the cross-field rules the flat object cannot express on its own: the
+ * target shape must match its type, the `operation × scope` cell must be part of
+ * the algebra, and exactly the carrier that cell expects must be present.
+ */
+const instructionAlgebra = (
+  input: z.infer<typeof InstructionInputObjectSchema>,
+  ctx: z.RefinementCtx
+): void => {
+  const { targetType, operation, scope, target } = input;
+
+  // Target shape by type.
+  if (targetType === "heading") {
+    if (target !== null && !Array.isArray(target)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["target"],
+        message:
+          "a heading target must be an array of heading texts, or null for the document root",
+      });
+    }
+  } else if (typeof target !== "string") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["target"],
+      message: `a ${targetType} target must be a string`,
+    });
+  }
+
+  // Cell validity.
+  if (!isValidCell(targetType, operation, scope)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["operation"],
+      message: `${operation} @ ${scope} is not a valid operation for a ${targetType} target`,
+    });
+    return; // carrier expectations are undefined for an invalid cell
+  }
+
+  // Carrier: exactly the one the cell expects, and no others.
+  const expected = expectedCarrier(targetType, operation, scope);
+  for (const carrier of carriers) {
+    const present = input[carrier] !== undefined;
+    if (carrier === expected && !present) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [carrier],
+        message: `${operation} @ ${scope} on a ${targetType} target requires \`${carrier}\``,
+      });
+    } else if (carrier !== expected && present) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [carrier],
+        message:
+          expected === "none"
+            ? `a ${operation} carries no payload; remove \`${carrier}\``
+            : `${operation} @ ${scope} on a ${targetType} target carries its payload in \`${expected}\`, not \`${carrier}\``,
+      });
+    }
+  }
+};
+
+/**
+ * The full instruction schema: the flat object plus the {@link instructionAlgebra}
+ * cross-field refinement.  {@link patch} parses input through this at the
+ * boundary.  It is a `ZodEffects`, so read `.shape` from
+ * {@link InstructionInputObjectSchema} rather than from this.
+ */
+export const InstructionInputSchema =
+  InstructionInputObjectSchema.superRefine(instructionAlgebra);
