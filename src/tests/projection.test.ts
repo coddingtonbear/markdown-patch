@@ -110,6 +110,16 @@ describe("projectMap", () => {
     ]);
   });
 
+  test("a duplicate block id gets its own disambiguated entry in the blocks list", () => {
+    const doc = ["first ^dup", "", "second ^dup", "", "third ^dup", ""].join("\n");
+    const map = projectMap(buildModel(doc));
+    expect(map.blocks).toEqual([
+      "dup",
+      "dup\u{FC750}\u{F6440}",
+      "dup\u{FC750}\u{F6441}",
+    ]);
+  });
+
   test("occurrence indexes past 16 cross into two hex digits", () => {
     const lines: string[] = [];
     for (let i = 0; i < 18; i++) {

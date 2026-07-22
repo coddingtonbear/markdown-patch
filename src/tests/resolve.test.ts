@@ -1,5 +1,5 @@
 import { buildModel } from "../model";
-import { resolveTarget, resolveHeading, ResolvedTarget } from "../resolve";
+import { resolveTarget, resolveHeading, resolveBlock, ResolvedTarget } from "../resolve";
 import { headingPath } from "../projection";
 
 const headingLevel = (r: ResolvedTarget | null): number | null =>
@@ -97,6 +97,26 @@ describe("resolveTarget dispatch", () => {
     if (r?.kind === "block") {
       expect(r.block.id).toBe("blk1");
       expect(r.block.kind).toBe("paragraph");
+    }
+  });
+
+  test("a duplicate block id's bare form resolves only the first occurrence", () => {
+    const dupDoc = ["first ^dup", "", "second ^dup", ""].join("\n");
+    const model = buildModel(dupDoc);
+    const r = resolveBlock(model, "dup");
+    expect(r?.kind).toBe("block");
+    if (r?.kind === "block") {
+      expect(r.block.content.start).toBe(dupDoc.indexOf("first"));
+    }
+  });
+
+  test("a duplicate block id's later occurrence resolves via its disambiguated address", () => {
+    const dupDoc = ["first ^dup", "", "second ^dup", ""].join("\n");
+    const model = buildModel(dupDoc);
+    const r = resolveBlock(model, "dup\u{FC750}\u{F6440}");
+    expect(r?.kind).toBe("block");
+    if (r?.kind === "block") {
+      expect(r.block.content.start).toBe(dupDoc.indexOf("second"));
     }
   });
 
