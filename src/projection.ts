@@ -58,7 +58,11 @@ export const headingPath = (node: SectionNode): string[] => {
 
 /** Project the internal model into the public map consumers receive. */
 export const projectMap = (model: DocumentModel): PublicMap => {
-  const headings: HeadingTree = {};
+  // Null-prototype: a heading literally named "__proto__" must become a real
+  // own key. On an ordinary object literal, `into[text] = subtree` for that
+  // text invokes Object.prototype's `__proto__` setter instead, silently
+  // discarding the heading.
+  const headings: HeadingTree = Object.create(null) as HeadingTree;
   const blocks: string[] = [];
 
   // Blocks are addressed globally by bare id, so every block is listed in
@@ -86,7 +90,7 @@ export const projectMap = (model: DocumentModel): PublicMap => {
       const existing = Object.prototype.hasOwnProperty.call(into, text)
         ? into[text]
         : undefined;
-      const subtree: HeadingTree = existing ?? {};
+      const subtree: HeadingTree = existing ?? (Object.create(null) as HeadingTree);
       if (!existing) {
         into[text] = subtree;
       }
