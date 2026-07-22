@@ -1,4 +1,5 @@
 import { readTarget } from "../read";
+import { patch } from "../engine";
 import { TargetNotFoundError } from "../instructions";
 
 const DOC =
@@ -21,7 +22,11 @@ describe("readTarget", () => {
     expect(result.kind).toBe("heading");
     if (result.kind !== "frontmatter") {
       expect(result.content).toContain("The thesis.");
-      expect(result.content).toContain("## Details");
+      // "## Details" is level 2 in the document, but content is de-levelled
+      // relative to "Overview" (level 1), matching what a content-scope write
+      // expects back — see the round-trip tests below.
+      expect(result.content).toContain("# Details");
+      expect(result.content).not.toContain("## Details");
       expect(result.content).toContain("Nested body.");
       expect(result.content).not.toContain("Elsewhere.");
     }
@@ -55,6 +60,54 @@ describe("readTarget", () => {
       kind: "frontmatter",
       value: ["a", "b"],
     });
+  });
+
+  test("a heading's content round-trips through a content-scope write unchanged", () => {
+    // readTarget's heading content must come back de-leveled the same way a
+    // content-scope write expects it (relative to the target's own level), or
+    // reading a section and writing it straight back re-levels every nested
+    // heading inside it.
+    const doc =
+      "# Overview\n\nIntro.\n\n## Details\n\nNested body.\n\n# Other\n\nElsewhere.\n";
+    const result = readTarget(doc, { targetType: "heading", target: ["Overview"] });
+    if (result.kind === "frontmatter") throw new Error("unexpected");
+    const written = patch(doc, {
+      targetType: "heading",
+      target: ["Overview"],
+      operation: "replace",
+      content: result.content,
+    });
+    expect(written.document).toBe(doc);
+  });
+
+  test("a nested heading's content round-trips through a content-scope write unchanged", () => {
+    const doc =
+      "# Overview\n\n## Details\n\nIntro.\n\n### Sub\n\nDeep body.\n\n# Other\n\nElsewhere.\n";
+    const result = readTarget(doc, {
+      targetType: "heading",
+      target: ["Overview", "Details"],
+    });
+    if (result.kind === "frontmatter") throw new Error("unexpected");
+    const written = patch(doc, {
+      targetType: "heading",
+      target: ["Overview", "Details"],
+      operation: "replace",
+      content: result.content,
+    });
+    expect(written.document).toBe(doc);
+  });
+
+  test("a document-root read still round-trips (baseline 0, no releveling needed)", () => {
+    const doc = "# One\n\nbody\n\n# Two\n\nbody two\n";
+    const result = readTarget(doc, { targetType: "heading", target: null });
+    if (result.kind === "frontmatter") throw new Error("unexpected");
+    const written = patch(doc, {
+      targetType: "heading",
+      target: null,
+      operation: "replace",
+      content: result.content,
+    });
+    expect(written.document).toBe(doc);
   });
 
   test("an unresolvable target throws TargetNotFoundError", () => {

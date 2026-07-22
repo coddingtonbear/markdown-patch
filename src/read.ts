@@ -3,11 +3,18 @@
  * address (the same `(targetType, target)` pair a patch instruction carries)
  * resolves to a node, and the node's addressable value comes back.  Headings and
  * blocks yield their content as a string; frontmatter yields the parsed value.
+ *
+ * A heading's content is de-levelled by the target's own level before it is
+ * returned, mirroring the baseline a `content`-scope write rebases *up* by (see
+ * `levels.ts`).  Without this, a heading's content round-trips through a
+ * content-scope write at the wrong depth: reading section "# Overview"'s
+ * "## Details" child and writing it straight back would rebase it to "### Details".
  */
 
 import { buildModel } from "./model.js";
 import { resolveTarget, Addressed } from "./resolve.js";
 import { headingContentRange, blockContentRange } from "./ranges.js";
+import { relevelText } from "./text.js";
 import { TargetNotFoundError } from "./instructions.js";
 
 /** The address of a read: the same addressing subset a patch instruction uses. */
@@ -36,7 +43,14 @@ export const readTarget = (document: string, target: ReadTarget): ReadResult => 
   switch (resolved.kind) {
     case "heading": {
       const range = headingContentRange(resolved.section);
-      return { kind: "heading", content: document.slice(range.start, range.end) };
+      const raw = document.slice(range.start, range.end);
+      const baseline = resolved.section.heading?.level ?? 0;
+      // Baseline 0 (the document root) needs no releveling; skip it so a root
+      // read stays a byte-identical slice rather than a normalize/reapply round
+      // trip through relevelText.
+      const content =
+        baseline === 0 ? raw : relevelText(raw, -baseline, model.lineEnding).text;
+      return { kind: "heading", content };
     }
     case "block": {
       const range = blockContentRange(resolved.block);
