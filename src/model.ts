@@ -326,23 +326,13 @@ const findBlocks = (
   root: SectionNode
 ): BlockNode[] => {
   const blocks: BlockNode[] = [];
-  let searchFrom = 0;
   // The most recent block-level token an isolated `^id` line can bind to, in
   // content space with its trailing newline stripped.  Mirrors the old engine's
   // `lastBlockDetails` and matches Obsidian, which reports an isolated block's
   // position as the preceding block rather than the marker line.
   let lastIsolatedTarget: { start: number; end: number } | null = null;
 
-  marked.walkTokens(tokens, (token) => {
-    const found = content.indexOf(token.raw, searchFrom);
-    if (found === -1) {
-      // Inner blockquote tokens omit their `> ` prefix and never appear
-      // verbatim; skip them rather than corrupt the running offset.
-      return;
-    }
-    searchFrom = found;
-    const rawEnd = found + token.raw.length;
-
+  const visit = (token: marked.Token, found: number, rawEnd: number): void => {
     const match = BLOCK_REFERENCE_REGEX.exec(token.raw);
     if (match && CAN_INCLUDE_BLOCK_REFERENCE.includes(token.type)) {
       const id = match[1];
@@ -384,7 +374,57 @@ const findBlocks = (
         end: stripTrailingEol(content, rawEnd, found),
       };
     }
-  });
+  };
+
+  /**
+   * Walk a sibling token array in the same pre-order `marked.walkTokens`
+   * uses (a token, then its own children, before its next sibling),
+   * mirroring its `table`/`list`/default child dispatch.  A sibling never
+   * anchors earlier than `floor`, and — critically — the floor handed to the
+   * *next* sibling only advances past everything the current token (and its
+   * descendants) consumed, so two byte-identical sibling tokens (e.g. two
+   * back-to-back fenced code blocks with no blank line between them) each
+   * anchor to their own occurrence instead of both collapsing onto the
+   * first. Descendants still search starting at their own parent's start,
+   * since a child's raw is a substring of its parent's and may begin at the
+   * same offset.
+   */
+  const walk = (tokensArray: readonly marked.Token[], floor: number): number => {
+    for (const token of tokensArray) {
+      const found = content.indexOf(token.raw, floor);
+      if (found === -1) {
+        // Inner blockquote tokens omit their `> ` prefix and never appear
+        // verbatim; skip them rather than corrupt the running floor.
+        continue;
+      }
+      const rawEnd = found + token.raw.length;
+      visit(token, found, rawEnd);
+
+      let childFloor = found;
+      if (token.type === "table") {
+        const table = token as marked.Tokens.Table;
+        for (const cell of table.header) {
+          childFloor = walk(cell.tokens, childFloor);
+        }
+        for (const row of table.rows) {
+          for (const cell of row) {
+            childFloor = walk(cell.tokens, childFloor);
+          }
+        }
+      } else if (token.type === "list") {
+        childFloor = walk((token as marked.Tokens.List).items, childFloor);
+      } else {
+        const children = (token as { tokens?: marked.Token[] }).tokens;
+        if (children) {
+          childFloor = walk(children, childFloor);
+        }
+      }
+      floor = Math.max(rawEnd, childFloor);
+    }
+    return floor;
+  };
+
+  walk(tokens, 0);
 
   return blocks;
 };
