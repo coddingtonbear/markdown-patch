@@ -40,7 +40,11 @@ export {
   InstructionInputSchema,
   InstructionInputObjectSchema,
 } from "./schema.js";
-export { NotATableError, TableColumnCountError } from "./engine/table.js";
+export {
+  NotATableError,
+  TableColumnCountError,
+  InvalidCellContentError,
+} from "./engine/table.js";
 export type {
   Instruction,
   InstructionInput,

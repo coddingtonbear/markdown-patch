@@ -20,6 +20,9 @@ export class NotATableError extends EngineError {}
 /** A row's cell count doesn't match the table's column count. */
 export class TableColumnCountError extends EngineError {}
 
+/** A cell's text cannot be represented inside a table row. */
+export class InvalidCellContentError extends EngineError {}
+
 interface ParsedTable {
   header: string;
   separator: string;
@@ -38,7 +41,35 @@ const parseTable = (text: string): ParsedTable => {
   return { header: lines[0] ?? "", separator: lines[1] ?? "", rows: lines.slice(2), trailingEol };
 };
 
-const formatRow = (row: string[]): string => "| " + row.join(" | ") + " |";
+/**
+ * Render one cell's text as table-row source.  A caller supplies cell
+ * *content* — that is the point of the array form — so the delimiters of the
+ * surrounding syntax are ours to escape, not theirs to remember.
+ *
+ * `|` is escaped to `\|`, the only escape GFM defines inside a table row;
+ * left alone it would end the cell early and shift every column after it,
+ * which the column-count check cannot catch because it counts entries in the
+ * supplied array, not cells in the rendered row.  A backslash is *not*
+ * escaped: cell content is still markdown (a caller may legitimately write
+ * `\*` or a link), and doubling backslashes would rewrite that markdown.  The
+ * cost is that a cell wanting a literal backslash immediately before a pipe
+ * cannot express it; that is rarer than writing markdown in a cell.
+ *
+ * A line break has no escape at all — a table row is one line by definition —
+ * so it is rejected rather than silently written, split, or turned into a
+ * `<br>` the caller never asked for.
+ */
+const formatCell = (cell: string): string => {
+  if (/[\r\n]/.test(cell)) {
+    throw new InvalidCellContentError(
+      `cell ${JSON.stringify(cell)} contains a line break, which cannot appear inside a table row`
+    );
+  }
+  return cell.replace(/\|/g, "\\|");
+};
+
+const formatRow = (row: string[]): string =>
+  "| " + row.map(formatCell).join(" | ") + " |";
 
 export const patchTableRows = (
   document: string,
