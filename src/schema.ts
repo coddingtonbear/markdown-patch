@@ -32,6 +32,7 @@ import {
   TargetType,
   isValidCell,
 } from "./instructions.js";
+import { DUPLICATE_DIGITS, DUPLICATE_MARKER } from "./constants.js";
 
 // --- Field pieces --------------------------------------------------------
 
@@ -191,6 +192,20 @@ const carriers = ["content", "value", "destination"] as const;
  */
 const BLOCK_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
+/**
+ * A block *target* additionally accepts the disambiguated form a duplicate
+ * block id's later occurrence is addressed by (see disambiguatedBlockId in
+ * projection.ts): the raw id followed by the reserved marker and one or more
+ * digit codepoints. Only `target` (addressing an existing block) accepts
+ * this — `content` on a `marker`-scope rename (naming a *new* real block id)
+ * still requires {@link BLOCK_ID_PATTERN} alone, since a disambiguated
+ * address is never something you rename a block to.
+ */
+const BLOCK_TARGET_PATTERN = new RegExp(
+  `^[A-Za-z0-9_-]+(${DUPLICATE_MARKER}[${DUPLICATE_DIGITS.join("")}]+)?$`,
+  "u"
+);
+
 /** A 2-D array of strings: table rows for a `block` `content`-cell `value` write. */
 const isTableRowValue = (value: unknown): value is string[][] =>
   Array.isArray(value) &&
@@ -226,7 +241,7 @@ const instructionAlgebra = (
       path: ["target"],
       message: `a ${targetType} target must be a string`,
     });
-  } else if (targetType === "block" && !BLOCK_ID_PATTERN.test(target)) {
+  } else if (targetType === "block" && !BLOCK_TARGET_PATTERN.test(target)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["target"],

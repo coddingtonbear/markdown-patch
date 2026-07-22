@@ -66,6 +66,15 @@ const valid: { name: string; instruction: InstructionInput }[] = [
     instruction: { targetType: "block", target: "abc", operation: "append", value: [["a", "b"]] },
   },
   {
+    name: "block target disambiguated by the duplicate-marker suffix",
+    instruction: {
+      targetType: "block",
+      target: "abc\u{FC750}\u{F6440}",
+      operation: "replace",
+      content: "x",
+    },
+  },
+  {
     name: "frontmatter value write",
     instruction: { targetType: "frontmatter", target: "title", operation: "replace", value: "T" },
   },
@@ -173,6 +182,16 @@ describe("InstructionInputSchema", () => {
       {
         name: "a block marker rename to an id containing a space",
         instruction: { targetType: "block", target: "abc", operation: "replace", scope: "marker", content: "new id" },
+      },
+      {
+        name: "a block marker rename to an id carrying the duplicate-marker suffix",
+        instruction: {
+          targetType: "block",
+          target: "abc",
+          operation: "replace",
+          scope: "marker",
+          content: "def\u{FC750}\u{F6440}",
+        },
       },
       {
         name: "a block marker rename to an id containing a caret",
