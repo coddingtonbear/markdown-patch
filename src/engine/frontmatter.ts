@@ -24,6 +24,7 @@ import {
   PatchResult,
   MergeError,
   TargetNotFoundError,
+  FrontmatterKeyCollisionError,
 } from "../instructions.js";
 
 type Pair = [string, unknown];
@@ -92,7 +93,13 @@ export const patchFrontmatter = (
 
   if (instruction.scope === "marker") {
     // Rename the key, keeping its value and position (replace-only per matrix).
-    pairs[index] = [instruction.content, pairs[index][1]];
+    const newKey = instruction.content;
+    if (newKey !== key && pairs.some(([existing]) => existing === newKey)) {
+      throw new FrontmatterKeyCollisionError(
+        `cannot rename frontmatter key "${key}" to "${newKey}": a key with that name already exists`
+      );
+    }
+    pairs[index] = [newKey, pairs[index][1]];
   } else if (instruction.operation === "delete") {
     if (instruction.scope === "content") {
       pairs[index] = [key, null]; // clear the value, keep the key
@@ -126,6 +133,15 @@ export const patchFrontmatter = (
       if (!isDictionary(content)) {
         throw new MergeError(
           "inserting frontmatter entries requires a dictionary of key/value pairs"
+        );
+      }
+      const incomingKeys = Object.keys(content);
+      const collision = incomingKeys.find((k) =>
+        pairs.some(([existing]) => existing === k)
+      );
+      if (collision) {
+        throw new FrontmatterKeyCollisionError(
+          `cannot insert frontmatter key "${collision}": a key with that name already exists`
         );
       }
       const at = instruction.operation === "prepend" ? index : index + 1;

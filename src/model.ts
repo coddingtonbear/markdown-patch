@@ -7,6 +7,7 @@ import {
   CAN_INCLUDE_BLOCK_REFERENCE,
   TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE,
 } from "./constants.js";
+import { FrontmatterParseError } from "./instructions.js";
 
 /**
  * A single section of a document: a heading plus the body that belongs
@@ -400,7 +401,14 @@ const buildFrontmatter = (
     return { entries: [], block: null };
   }
   const block: DocumentRange = { start: 0, end: contentOffset };
-  const parsed = parseYaml(frontmatterText.trim());
+  let parsed: unknown;
+  try {
+    parsed = parseYaml(frontmatterText.trim());
+  } catch (e) {
+    throw new FrontmatterParseError(
+      `Could not parse document frontmatter: ${(e as Error).message}`
+    );
+  }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     return { entries: [], block };
   }
