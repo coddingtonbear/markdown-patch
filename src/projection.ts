@@ -1,4 +1,4 @@
-import { DocumentModel, SectionNode } from "./model.js";
+import { BlockNode, DocumentModel, SectionNode } from "./model.js";
 import { DUPLICATE_DIGITS, DUPLICATE_MARKER } from "./constants.js";
 
 /**
@@ -61,6 +61,48 @@ export const disambiguatedHeadingText = (node: SectionNode): string => {
 };
 
 /**
+ * Every block in the document, in document order (a pre-order walk of the
+ * section tree). Blocks are addressed globally by id, not scoped to a parent
+ * the way headings are scoped to sibling groups, so disambiguating a
+ * duplicate id needs this full document-order list rather than a single
+ * node's local neighbors.
+ */
+export const allBlocksInOrder = (root: SectionNode): BlockNode[] => {
+  const blocks: BlockNode[] = [];
+  const walk = (node: SectionNode): void => {
+    blocks.push(...node.blocks);
+    for (const child of node.children) {
+      walk(child);
+    }
+  };
+  walk(root);
+  return blocks;
+};
+
+/**
+ * The id a block is keyed/addressed by: its raw id for the first occurrence
+ * among every block in the document sharing that id, or that id plus a
+ * reserved-codepoint suffix for each later occurrence (in document order).
+ * Mirrors {@link disambiguatedHeadingText}'s role for headings — both
+ * {@link projectMap} and the resolver derive from this one function, so an
+ * address is always matched by plain string equality, never decoded. A raw
+ * block id cannot itself collide with a synthesized suffix: block ids are
+ * constrained to `[a-zA-Z0-9_-]+` by {@link BLOCK_REFERENCE_REGEX} in
+ * model.ts, which cannot contain these (astral, non-ASCII) codepoints, so no
+ * buildModel-time guard is needed here the way there is for headings.
+ */
+export const disambiguatedBlockId = (
+  block: BlockNode,
+  allBlocks: readonly BlockNode[]
+): string => {
+  const sameId = allBlocks.filter((candidate) => candidate.id === block.id);
+  const occurrence = sameId.indexOf(block);
+  return occurrence <= 0
+    ? block.id
+    : block.id + DUPLICATE_MARKER + encodeOccurrenceSuffix(occurrence - 1);
+};
+
+/**
  * The terse, context-cheap public view of a document, derived from the
  * {@link DocumentModel}.  It carries no in-band grammar: headings nest by
  * containment in a {@link HeadingTree} and block references are bare ids.
@@ -72,7 +114,12 @@ export interface PublicMap {
   frontmatterFields: string[];
   /** Headings nested by containment; see {@link HeadingTree}. */
   headings: HeadingTree;
-  /** Block reference ids, bare (no `^`), in document order. */
+  /**
+   * Block reference ids, bare (no `^`), in document order. A duplicate id
+   * gets its own entry per occurrence: the first keeps its bare id, and each
+   * later occurrence's entry has a {@link disambiguatedBlockId} suffix
+   * appended, so no two entries are ever the same string.
+   */
   blocks: string[];
 }
 
@@ -100,19 +147,12 @@ export const projectMap = (model: DocumentModel): PublicMap => {
   // text invokes Object.prototype's `__proto__` setter instead, silently
   // discarding the heading.
   const headings: HeadingTree = Object.create(null) as HeadingTree;
-  const blocks: string[] = [];
 
-  // Blocks are addressed globally by bare id, so every block is listed in
-  // document order — including any under a heading shadowed by a duplicate.
-  const collectBlocks = (node: SectionNode): void => {
-    for (const block of node.blocks) {
-      blocks.push(block.id);
-    }
-    for (const child of node.children) {
-      collectBlocks(child);
-    }
-  };
-  collectBlocks(model.root);
+  // Blocks are addressed globally by (possibly disambiguated) id, so every
+  // block is listed in document order — including any under a heading
+  // shadowed by a duplicate.
+  const allBlocks = allBlocksInOrder(model.root);
+  const blocks = allBlocks.map((block) => disambiguatedBlockId(block, allBlocks));
 
   // Headings nest by containment. Every occurrence of a repeated sibling name
   // gets its own key via disambiguatedHeadingText, so — given buildModel's

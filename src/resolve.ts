@@ -16,7 +16,7 @@ import {
   SectionNode,
   eachSection,
 } from "./model.js";
-import { headingPath } from "./projection.js";
+import { allBlocksInOrder, disambiguatedBlockId, headingPath } from "./projection.js";
 import { HeadingAddress, TargetType } from "./instructions.js";
 
 export type ResolvedTarget =
@@ -58,22 +58,19 @@ export const resolveHeading = (
   return match ? { kind: "heading", section: match } : null;
 };
 
-/** Resolve a bare block id to its block node, or `null`. */
+/**
+ * Resolve a block address to its block node, or `null`. Mirrors
+ * resolveHeading: a duplicate id's later occurrence is disambiguated (see
+ * {@link disambiguatedBlockId}), so recomputing every block's address and
+ * matching by plain string equality resolves at most one candidate.
+ */
 export const resolveBlock = (
   model: DocumentModel,
   id: string
 ): { kind: "block"; block: BlockNode } | null => {
-  let found: BlockNode | null = null;
-  eachSection(model.root, (node) => {
-    if (found) {
-      return;
-    }
-    const block = node.blocks.find((candidate) => candidate.id === id);
-    if (block) {
-      found = block;
-    }
-  });
-  return found ? { kind: "block", block: found } : null;
+  const blocks = allBlocksInOrder(model.root);
+  const match = blocks.find((block) => disambiguatedBlockId(block, blocks) === id);
+  return match ? { kind: "block", block: match } : null;
 };
 
 /** Resolve a frontmatter key to its entry, or `null`. */
