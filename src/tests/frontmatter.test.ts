@@ -1,5 +1,18 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
 import { patch } from "../engine";
-import { MergeError } from "../instructions";
+import { buildModel } from "../model";
+import { readTarget } from "../read";
+import {
+  MergeError,
+  FrontmatterParseError,
+  FrontmatterKeyCollisionError,
+} from "../instructions";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const FM = "---\ntitle: Hello\ntags:\n  - a\n  - b\n---\nbody text\n";
 
@@ -154,5 +167,70 @@ describe("patch — frontmatter markerAndContent cells", () => {
     expect(result.document).toBe(
       "---\ntitle: Hello\nauthor: me\ntags:\n  - a\n  - b\n---\nbody text\n"
     );
+  });
+});
+
+describe("buildModel — malformed frontmatter", () => {
+  const colonInFrontmatter = fs.readFileSync(
+    path.join(__dirname, "sample.frontmatter.colon-in-value.md"),
+    "utf-8"
+  );
+
+  test("buildModel throws FrontmatterParseError rather than a raw YAML error", () => {
+    expect(() => buildModel(colonInFrontmatter)).toThrow(FrontmatterParseError);
+  });
+
+  test("patch throws FrontmatterParseError, even for a non-frontmatter target", () => {
+    expect(() =>
+      patch(colonInFrontmatter, {
+        targetType: "block",
+        target: "block-1",
+        operation: "replace",
+        content: "New content.",
+      })
+    ).toThrow(FrontmatterParseError);
+  });
+
+  test("readTarget throws FrontmatterParseError", () => {
+    expect(() =>
+      readTarget(colonInFrontmatter, { targetType: "block", target: "block-1" })
+    ).toThrow(FrontmatterParseError);
+  });
+});
+
+describe("patch — frontmatter key collisions", () => {
+  test("renaming a key onto an existing key raises FrontmatterKeyCollisionError", () => {
+    expect(() =>
+      patch(FM, {
+        targetType: "frontmatter",
+        target: "title",
+        operation: "replace",
+        scope: "marker",
+        content: "tags",
+      })
+    ).toThrow(FrontmatterKeyCollisionError);
+  });
+
+  test("inserting an entry whose key already exists raises FrontmatterKeyCollisionError", () => {
+    expect(() =>
+      patch(FM, {
+        targetType: "frontmatter",
+        target: "title",
+        operation: "append",
+        scope: "markerAndContent",
+        value: { tags: ["c"] },
+      })
+    ).toThrow(FrontmatterKeyCollisionError);
+  });
+
+  test("renaming a key to its own name is not a collision", () => {
+    const result = patch(FM, {
+      targetType: "frontmatter",
+      target: "title",
+      operation: "replace",
+      scope: "marker",
+      content: "title",
+    });
+    expect(result.document).toBe(FM);
   });
 });
