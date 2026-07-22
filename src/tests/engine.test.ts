@@ -5,6 +5,7 @@ import {
   Instruction,
 } from "../instructions";
 import { RootHasNoMarkerError } from "../ranges";
+import { NotATableError, TableColumnCountError } from "../engine/table";
 
 // A small tree: A (h1) > B (h2), then C (h1), each with a one-line body and a
 // library-owned blank-line gap between siblings.
@@ -262,6 +263,104 @@ describe("patch — block cells", () => {
       content: "new ^id2",
     });
     expect(result.document).toBe("new ^id2\n\na paragraph ^ref\n");
+  });
+});
+
+describe("patch — block table-row cells", () => {
+  // Mirrors the design doc's worked example: an isolated `^id` line attaches
+  // to the whole preceding table (header, separator, and body rows).
+  const TABLE_DOC =
+    "| City    | Population |\n" +
+    "| ------- | ---------- |\n" +
+    "| Seattle | 8          |\n" +
+    "^ref\n";
+
+  test("append @ content with a value inserts new rows after the existing body rows", () => {
+    const result = patch(TABLE_DOC, {
+      targetType: "block",
+      target: "ref",
+      operation: "append",
+      scope: "content",
+      value: [["Chicago", "16"]],
+    });
+    expect(result.document).toBe(
+      "| City    | Population |\n" +
+        "| ------- | ---------- |\n" +
+        "| Seattle | 8          |\n" +
+        "| Chicago | 16 |\n" +
+        "^ref\n"
+    );
+  });
+
+  test("prepend @ content with a value inserts new rows right after the header/separator", () => {
+    const result = patch(TABLE_DOC, {
+      targetType: "block",
+      target: "ref",
+      operation: "prepend",
+      scope: "content",
+      value: [["Chicago", "16"]],
+    });
+    expect(result.document).toBe(
+      "| City    | Population |\n" +
+        "| ------- | ---------- |\n" +
+        "| Chicago | 16 |\n" +
+        "| Seattle | 8          |\n" +
+        "^ref\n"
+    );
+  });
+
+  test("replace @ content with a value swaps all body rows, keeping the header/separator", () => {
+    const result = patch(TABLE_DOC, {
+      targetType: "block",
+      target: "ref",
+      operation: "replace",
+      scope: "content",
+      value: [["Chicago", "16"]],
+    });
+    expect(result.document).toBe(
+      "| City    | Population |\n" +
+        "| ------- | ---------- |\n" +
+        "| Chicago | 16 |\n" +
+        "^ref\n"
+    );
+  });
+
+  test("a row with the wrong number of cells raises TableColumnCountError", () => {
+    expect(() =>
+      patch(TABLE_DOC, {
+        targetType: "block",
+        target: "ref",
+        operation: "append",
+        scope: "content",
+        value: [["only-one-cell"]],
+      })
+    ).toThrow(TableColumnCountError);
+  });
+
+  test("a value on a non-table block raises NotATableError", () => {
+    const result = "a paragraph ^ref\n";
+    expect(() =>
+      patch(result, {
+        targetType: "block",
+        target: "ref",
+        operation: "append",
+        scope: "content",
+        value: [["x", "y"]],
+      })
+    ).toThrow(NotATableError);
+  });
+
+  test("createTargetIfMissing is rejected for table-row writes", () => {
+    expect(() =>
+      patch(TABLE_DOC, {
+        targetType: "block",
+        target: "nonexistent",
+        operation: "append",
+        scope: "content",
+        value: [["Chicago", "16"]],
+        createTargetIfMissing: true,
+      })
+    ).toThrow();
   });
 });
 

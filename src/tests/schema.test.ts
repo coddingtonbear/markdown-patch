@@ -58,6 +58,10 @@ const valid: { name: string; instruction: InstructionInput }[] = [
     instruction: { targetType: "block", target: "abc", operation: "replace", scope: "marker", content: "def" },
   },
   {
+    name: "block table-row write",
+    instruction: { targetType: "block", target: "abc", operation: "append", value: [["a", "b"]] },
+  },
+  {
     name: "frontmatter value write",
     instruction: { targetType: "frontmatter", target: "title", operation: "replace", value: "T" },
   },
@@ -135,6 +139,28 @@ describe("InstructionInputSchema", () => {
       {
         name: "a delete carrying content",
         instruction: { targetType: "heading", target: ["A"], operation: "delete", content: "x" },
+      },
+      {
+        name: "a block content write carrying both content and value",
+        instruction: {
+          targetType: "block",
+          target: "abc",
+          operation: "append",
+          content: "x",
+          value: [["a", "b"]],
+        },
+      },
+      {
+        name: "a block content write with a value that isn't a 2-D array of strings",
+        instruction: { targetType: "block", target: "abc", operation: "append", value: ["a", "b"] },
+      },
+      {
+        name: "a block content write with a value row containing a non-string cell",
+        instruction: { targetType: "block", target: "abc", operation: "append", value: [["a", 1]] },
+      },
+      {
+        name: "a value on a block marker cell (only content/value on `content` scope)",
+        instruction: { targetType: "block", target: "abc", operation: "replace", scope: "marker", value: [["a"]] },
       },
     ];
 
