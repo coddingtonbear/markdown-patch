@@ -2,6 +2,7 @@ import { patch } from "../engine";
 import {
   PreconditionFailedError,
   TargetNotFoundError,
+  ContentPreexistsError,
   Instruction,
 } from "../instructions";
 import { RootHasNoMarkerError } from "../ranges";
@@ -400,6 +401,59 @@ describe("patch — preconditions and resolution", () => {
         content: "x",
       })
     ).toThrow(TargetNotFoundError);
+  });
+});
+
+describe("patch — rejectIfContentPreexists on heading-bearing content", () => {
+  // A's content already contains a rebased (absolute-level) heading: "##
+  // Already Here" is what "# Already Here" becomes once rebased to A's
+  // baseline (1). A naive comparison of the *raw* (relative-level) instruction
+  // content against this *absolute*-level span never matches once the heading
+  // isn't the very first thing in the content — the leading "#" run no longer
+  // lines up as a lucky substring — so the guard silently passes when it
+  // shouldn't.
+  const doc = "# A\nintro\n## Already Here\nbody\n\n# C\nc-body\n";
+
+  test("detects relative-level content that already exists once rebased to the target's level", () => {
+    expect(() =>
+      patch(doc, {
+        targetType: "heading",
+        target: ["A"],
+        operation: "append",
+        scope: "content",
+        content: "intro\n# Already Here\nbody\n",
+        rejectIfContentPreexists: true,
+      })
+    ).toThrow(ContentPreexistsError);
+  });
+
+  test("does not reject genuinely new heading-bearing content", () => {
+    const result = patch(doc, {
+      targetType: "heading",
+      target: ["A"],
+      operation: "append",
+      scope: "content",
+      content: "intro\n# Not Here Yet\nbody\n",
+      rejectIfContentPreexists: true,
+    });
+    expect(result.document).toContain("## Not Here Yet");
+  });
+
+  test("detects relative-level content already present under markerAndContent (parent-level baseline)", () => {
+    // markerAndContent rebases to the *parent's* level, not the target's own —
+    // here B's parent A is level 1, so a relative "# B" (1 hash) is what B's
+    // own absolute "## B" (2 hashes) looks like at that baseline.
+    const nestedDoc = "# A\n## B\nintro\n### Already Here\nbody\n\n# C\nc-body\n";
+    expect(() =>
+      patch(nestedDoc, {
+        targetType: "heading",
+        target: ["A", "B"],
+        operation: "prepend",
+        scope: "markerAndContent",
+        content: "# B\nintro\n## Already Here\nbody\n",
+        rejectIfContentPreexists: true,
+      })
+    ).toThrow(ContentPreexistsError);
   });
 });
 
