@@ -101,7 +101,7 @@ export const InstructionInputObjectSchema = z
     target: z
       .union([z.array(z.string()), z.string(), z.null()])
       .describe(
-        "The node to edit. For a heading: an array of heading texts from the top level down to the target (e.g. [\"Overview\",\"Details\"]), or null/[] for the document root. For a block: the bare block id, without the leading `^`. For a frontmatter field: the key."
+        "The node to edit. For a heading: an array of heading texts from the top level down to the target (e.g. [\"Overview\",\"Details\"]), or null/[] for the document root. For a block: the bare block id, without the leading `^` (letters, numbers, hyphens, and underscores only). For a frontmatter field: the key."
       ),
     operation: z
       .enum(operationValues)
@@ -117,7 +117,7 @@ export const InstructionInputObjectSchema = z
     content: z
       .string()
       .describe(
-        "String payload: a heading/block body or label, or a new frontmatter key name for a `marker` rename. Heading levels are relative to the edited span (a leading `#` becomes a direct child). Provide exactly one of `content`, `value`, or `destination`."
+        "String payload: a heading/block body or label, a new block id for a block `marker` rename (letters, numbers, hyphens, and underscores only), or a new frontmatter key name for a frontmatter `marker` rename. Heading levels are relative to the edited span (a leading `#` becomes a direct child). A heading `marker` rename may not contain a line break. Provide exactly one of `content`, `value`, or `destination`."
       )
       .optional(),
     value: z
@@ -182,6 +182,15 @@ const expectedCarriers = (
 
 const carriers = ["content", "value", "destination"] as const;
 
+/**
+ * A block id's allowed character set — mirrors `BLOCK_REFERENCE_REGEX` in
+ * `model.ts`, which is what actually recognizes a `^id` marker in the
+ * document.  A target or rename outside this set could never address (or
+ * produce) a real block reference, so it is rejected here rather than
+ * spliced in verbatim and silently failing to parse as one.
+ */
+const BLOCK_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
 /** A 2-D array of strings: table rows for a `block` `content`-cell `value` write. */
 const isTableRowValue = (value: unknown): value is string[][] =>
   Array.isArray(value) &&
@@ -216,6 +225,13 @@ const instructionAlgebra = (
       code: z.ZodIssueCode.custom,
       path: ["target"],
       message: `a ${targetType} target must be a string`,
+    });
+  } else if (targetType === "block" && !BLOCK_ID_PATTERN.test(target)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["target"],
+      message:
+        "a block id may contain only letters, numbers, hyphens, and underscores",
     });
   }
 
@@ -281,6 +297,28 @@ const instructionAlgebra = (
       path: ["value"],
       message:
         "value for a block content write must be a 2-D array of strings — one row per entry, one cell per column",
+    });
+  } else if (
+    targetType === "block" &&
+    scope === "marker" &&
+    operation === "replace" &&
+    !BLOCK_ID_PATTERN.test(input.content as string)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["content"],
+      message:
+        "a block id may contain only letters, numbers, hyphens, and underscores",
+    });
+  } else if (
+    targetType === "heading" &&
+    scope === "marker" &&
+    /[\r\n]/.test(input.content as string)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["content"],
+      message: "a heading marker rename cannot contain a line break",
     });
   }
 };
