@@ -320,6 +320,16 @@ export class ContentPreexistsError extends EngineError {}
 /** A frontmatter merge or type mismatch made the operation impossible. */
 export class MergeError extends EngineError {}
 
+/** The frontmatter block could not be parsed as YAML. */
+export class FrontmatterParseError extends EngineError {}
+
+/**
+ * A frontmatter `marker`-scope rename, or a `markerAndContent` insert, would
+ * introduce a second entry with the same key — silently dropping one of the
+ * two values on serialization.
+ */
+export class FrontmatterKeyCollisionError extends EngineError {}
+
 /** Throw {@link InvalidCellError} unless the cell is part of the algebra. */
 export const assertValidCell = (cell: Cell): void => {
   if (!isValidCell(cell.targetType, cell.operation, cell.scope)) {

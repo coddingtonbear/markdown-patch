@@ -12,14 +12,9 @@ import {
   CAN_INCLUDE_BLOCK_REFERENCE,
   TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE,
 } from "./constants.js";
+import { FrontmatterParseError } from "./instructions.js";
 
-export class FrontmatterParseError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "FrontmatterParseError";
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
+export { FrontmatterParseError };
 
 function getHeadingPositions(
   document: string,
