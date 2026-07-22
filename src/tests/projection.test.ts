@@ -86,6 +86,19 @@ describe("projectMap", () => {
     expect(map.blocks).toEqual(["a", "b"]);
   });
 
+  test("a heading literally named __proto__ is a real, addressable key", () => {
+    const doc = "# __proto__\n\nbody\n\n## Child\n\nc\n";
+    const map = projectMap(buildModel(doc));
+    // A plain `into[text] = subtree` assignment for text === "__proto__" sets
+    // the object's prototype instead of an own property, silently dropping the
+    // heading from the map. It must come back as a real own, enumerable key.
+    expect(Object.prototype.hasOwnProperty.call(map.headings, "__proto__")).toBe(
+      true
+    );
+    expect(map.headings.__proto__).toEqual({ Child: {} });
+    expect(Object.keys(map.headings)).toEqual(["__proto__"]);
+  });
+
   test("headingTreePaths enumerates every address in document order", () => {
     const paths = headingTreePaths(
       projectMap(buildModel("# A\n\n## B\n\nb\n\n### C\n\nc\n\n# D\n\nd\n")).headings
@@ -115,6 +128,10 @@ describe("map/resolver agreement — the tree is exactly the addressable set", (
     },
     { name: "empty heading text", document: "# \n\nbody\n\n## Child\n\nc\n" },
     { name: "no headings at all", document: "just prose\n" },
+    {
+      name: "__proto__ as heading text",
+      document: "# __proto__\n\nbody\n\n## Child\n\nc\n",
+    },
   ];
 
   test.each(documents)("$name", ({ document }) => {
