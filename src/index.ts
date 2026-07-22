@@ -31,6 +31,7 @@ export {
   MergeError,
   FrontmatterParseError,
   FrontmatterKeyCollisionError,
+  ReservedDuplicateMarkerError,
   isValidCell,
   assertValidCell,
   isBlockTableRowInstruction,

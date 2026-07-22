@@ -50,40 +50,76 @@ describe("projectMap", () => {
     expect(map.frontmatterFields).toEqual([]);
   });
 
-  test("a repeated sibling name merges its children into one subtree", () => {
+  test("a repeated sibling name gets a distinct key per occurrence", () => {
     const doc =
       "## Log\n\n### Monday\n\nm\n\n## Log\n\n### Tuesday\n\nt\n";
     const map = projectMap(buildModel(doc));
-    // "Log" is one key, but Tuesday has its own containment path and so is its
-    // own address — dropping it would hide a heading the resolver can reach.
-    expect(map.headings).toEqual({ Log: { Monday: {}, Tuesday: {} } });
+    // The first "Log" keeps its plain text; the second gets a marker suffix
+    // so both are separately addressable, each with its own subtree.
+    const secondLog = "Log\u{FC750}\u{F6440}";
+    expect(map.headings).toEqual({
+      Log: { Monday: {} },
+      [secondLog]: { Tuesday: {} },
+    });
   });
 
-  test("sections that genuinely share a path collapse to one address", () => {
+  test("sections that would have collided on path alone now get distinct addresses", () => {
     const doc =
       "## Log\n\n### Monday\n\nfirst\n\n## Log\n\n### Monday\n\nsecond\n";
     const map = projectMap(buildModel(doc));
-    // Both Mondays are ["Log", "Monday"]; that is one address, and it resolves
-    // to the first in document order.
-    expect(map.headings).toEqual({ Log: { Monday: {} } });
+    // Both "Log"s have a "Monday" child, but the second "Log" is itself
+    // disambiguated, so the two Mondays end up on distinct paths.
+    const secondLog = "Log\u{FC750}\u{F6440}";
+    expect(map.headings).toEqual({
+      Log: { Monday: {} },
+      [secondLog]: { Monday: {} },
+    });
   });
 
-  test("a repeat's descendants merge even below a shared path", () => {
+  test("a repeat's descendants nest under the repeat's own disambiguated key", () => {
     const doc =
       "# A\n\n## X\n\nfirst\n\n# A\n\n## X\n\n### Z\n\nz\n";
     const map = projectMap(buildModel(doc));
-    // ["A","X"] is shared, but ["A","X","Z"] is unique and stays addressable.
-    expect(map.headings).toEqual({ A: { X: { Z: {} } } });
+    const secondA = "A\u{FC750}\u{F6440}";
+    expect(map.headings).toEqual({
+      A: { X: {} },
+      [secondA]: { X: { Z: {} } },
+    });
   });
 
-  test("a block under a repeated heading is still listed", () => {
+  test("a block under a repeated heading is still listed, and each heading gets its own key", () => {
     const doc =
       "## Log\n\nfirst ^a\n\n## Log\n\nsecond ^b\n";
     const map = projectMap(buildModel(doc));
-    // Neither "Log" has child headings, so the tree has one leaf; blocks are
-    // addressed globally and both stay listed.
-    expect(map.headings).toEqual({ Log: {} });
+    // Blocks are addressed globally and both stay listed regardless.
+    const secondLog = "Log\u{FC750}\u{F6440}";
+    expect(map.headings).toEqual({ Log: {}, [secondLog]: {} });
     expect(map.blocks).toEqual(["a", "b"]);
+  });
+
+  test("a third occurrence advances the hex digit", () => {
+    const doc = "## Dup\n\na\n\n## Dup\n\nb\n\n## Dup\n\nc\n";
+    const map = projectMap(buildModel(doc));
+    expect(Object.keys(map.headings)).toEqual([
+      "Dup",
+      "Dup\u{FC750}\u{F6440}",
+      "Dup\u{FC750}\u{F6441}",
+    ]);
+  });
+
+  test("occurrence indexes past 16 cross into two hex digits", () => {
+    const lines: string[] = [];
+    for (let i = 0; i < 18; i++) {
+      lines.push("## Dup", "", `body ${i}`, "");
+    }
+    const map = projectMap(buildModel(lines.join("\n")));
+    const keys = Object.keys(map.headings);
+    expect(keys).toHaveLength(18);
+    // The 17th occurrence (index 15, hex "f") is the last representable in
+    // a single reserved digit.
+    expect(keys[16]).toBe("Dup\u{FC750}\u{F644F}");
+    // The 18th occurrence (index 16, hex "10") is the first that needs two.
+    expect(keys[17]).toBe("Dup\u{FC750}\u{F6441}\u{F6440}");
   });
 
   test("a heading literally named __proto__ is a real, addressable key", () => {
@@ -126,6 +162,10 @@ describe("map/resolver agreement — the tree is exactly the addressable set", (
       name: "repeat nested below a shared path",
       document: "# A\n\n## X\n\nfirst\n\n# A\n\n## X\n\n### Z\n\nz\n",
     },
+    {
+      name: "three siblings with the same text",
+      document: "## Dup\n\na\n\n## Dup\n\nb\n\n## Dup\n\nc\n",
+    },
     { name: "empty heading text", document: "# \n\nbody\n\n## Child\n\nc\n" },
     { name: "no headings at all", document: "just prose\n" },
     {
@@ -144,7 +184,8 @@ describe("map/resolver agreement — the tree is exactly the addressable set", (
     }
 
     // ...and every heading in the document is advertised, so nothing reachable
-    // is hidden.  Sections sharing a path are one address, hence the dedup.
+    // is hidden. Every section now gets its own disambiguated address, so the
+    // advertised and actual sets should match one-for-one, with no dedup.
     const actual: string[][] = [];
     eachSection(model.root, (node) => {
       if (node.heading) {

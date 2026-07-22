@@ -1,5 +1,6 @@
 import { buildModel } from "../model";
 import { resolveTarget, resolveHeading, ResolvedTarget } from "../resolve";
+import { headingPath } from "../projection";
 
 const headingLevel = (r: ResolvedTarget | null): number | null =>
   r && r.kind === "heading" && r.section.heading ? r.section.heading.level : null;
@@ -30,15 +31,28 @@ describe("resolveHeading", () => {
     expect(bodyOf(dupDoc, r)).toContain("body b1");
   });
 
-  test("duplicate headings resolve to the first in document order", () => {
+  test("a bare, unsuffixed address uniquely names the first occurrence", () => {
     const model = buildModel(dupDoc);
     const r = resolveHeading(model, ["A"]);
     expect(headingLevel(r)).toBe(1);
-    // The first "A" owns the h2 B subtree; its direct body is empty, but the
-    // node identity is the first occurrence.
+    // The second "A" now has its own disambiguated address (see the next
+    // test), so ["A"] is no longer "first wins among ambiguous matches" — it
+    // unambiguously names only the first occurrence.
     expect(r?.kind).toBe("heading");
     if (r?.kind === "heading") {
       expect(r.section).toBe(model.root.children[0]);
+    }
+  });
+
+  test("a repeated heading's later occurrence resolves via its disambiguated address", () => {
+    const model = buildModel(dupDoc);
+    const secondA = model.root.children[1];
+    const address = headingPath(secondA);
+    expect(address).toEqual(["A\u{FC750}\u{F6440}"]);
+    const r = resolveHeading(model, address);
+    expect(r?.kind).toBe("heading");
+    if (r?.kind === "heading") {
+      expect(r.section).toBe(secondA);
     }
   });
 

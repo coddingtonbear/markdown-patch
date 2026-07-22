@@ -330,6 +330,16 @@ export class FrontmatterParseError extends EngineError {}
  */
 export class FrontmatterKeyCollisionError extends EngineError {}
 
+/**
+ * A heading or block id, as written in the source document, already ends with
+ * the exact reserved sequence the engine uses to disambiguate a duplicate
+ * sibling heading's address (see {@link disambiguatedHeadingText} in
+ * `projection.ts`). Left unguarded, this could make a synthesized disambiguated
+ * address collide with real document content and silently resolve to the
+ * wrong section.
+ */
+export class ReservedDuplicateMarkerError extends EngineError {}
+
 /** Throw {@link InvalidCellError} unless the cell is part of the algebra. */
 export const assertValidCell = (cell: Cell): void => {
   if (!isValidCell(cell.targetType, cell.operation, cell.scope)) {
