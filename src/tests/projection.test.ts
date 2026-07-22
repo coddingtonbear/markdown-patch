@@ -20,11 +20,14 @@ describe("projectMap", () => {
     const map = projectMap(buildModel(doc));
 
     expect(map.frontmatterFields).toEqual(["status", "reviewers"]);
-    // Headings nest by containment (the skipped h2 leaves no hole), and the two
-    // "2026-07-18" siblings collapse to one key — first-wins.
+    // Headings nest by containment (the skipped h2 leaves no hole), and the
+    // second "2026-07-18" gets its own disambiguated key.
     expect(map.headings).toEqual({
       Overview: { "Known quirks": {} },
-      "Development Logs": { "2026-07-18": {} },
+      "Development Logs": {
+        "2026-07-18": {},
+        "2026-07-18\u{FC750}\u{F6440}": {},
+      },
     });
     expect(map.blocks).toEqual(["thesis", "quirks"]);
     expect(map.version).toMatch(/^[0-9a-f]{6}$/);

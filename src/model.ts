@@ -5,9 +5,10 @@ import { createHash } from "crypto";
 import { DocumentRange } from "./types.js";
 import {
   CAN_INCLUDE_BLOCK_REFERENCE,
+  DUPLICATE_MARKER_SUFFIX,
   TARGETABLE_BY_ISOLATED_BLOCK_REFERENCE,
 } from "./constants.js";
-import { FrontmatterParseError } from "./instructions.js";
+import { FrontmatterParseError, ReservedDuplicateMarkerError } from "./instructions.js";
 
 /**
  * A single section of a document: a heading plus the body that belongs
@@ -429,6 +430,28 @@ const findBlocks = (
   return blocks;
 };
 
+/**
+ * A raw heading in the source document that already ends with the exact
+ * reserved sequence used to disambiguate a duplicate sibling heading's
+ * address (see {@link disambiguatedHeadingText} in projection.ts) could
+ * collide with a synthesized address and silently resolve to the wrong
+ * section. This is checked once, here, so every consumer (map projection,
+ * read, patch) is protected uniformly rather than just the map endpoint.
+ *
+ * Block ids get no such check: {@link BLOCK_REFERENCE_REGEX} constrains a
+ * block id to `[a-zA-Z0-9_-]+`, which cannot contain these (astral,
+ * non-ASCII) codepoints in the first place.
+ */
+const assertNoReservedMarkerCollisions = (headings: HeadingSpan[]): void => {
+  for (const heading of headings) {
+    if (DUPLICATE_MARKER_SUFFIX.test(heading.text)) {
+      throw new ReservedDuplicateMarkerError(
+        `Heading "${heading.text}" ends with a sequence reserved for addressing duplicate headings; rename it to avoid ambiguous addressing.`
+      );
+    }
+  }
+};
+
 const findLineEnding = (document: string): "\n" | "\r\n" =>
   document.indexOf("\r\n") > -1 ? "\r\n" : "\n";
 
@@ -505,6 +528,7 @@ export const buildModel = (document: string): DocumentModel => {
   const headings = findHeadings(normalized, tokens);
   const root = buildSectionTree(normalized, abs, headings);
   findBlocks(normalized, abs, tokens, root);
+  assertNoReservedMarkerCollisions(headings);
 
   return {
     version: versionOf(document),

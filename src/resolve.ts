@@ -2,8 +2,11 @@
  * Turn a public target address back into the model node it names.  Headings are
  * matched by their containment path (see {@link headingPath}) — the ancestor
  * heading texts from the top level down, ignoring source depth — so a skipped
- * level needs no annotation.  Duplicates resolve to the first match in document
- * order; the `ifMatch` precondition guards against staleness.
+ * level needs no annotation.  A duplicate sibling heading no longer collides
+ * with an earlier one: {@link headingPath} disambiguates each occurrence past
+ * the first, so every heading-bearing section has its own unique address and
+ * `.find()` below matches at most one. The `ifMatch` precondition still guards
+ * against staleness between reading a target and applying an edit.
  */
 
 import {
@@ -47,8 +50,8 @@ export const resolveHeading = (
   const sections = headingSections(model);
 
   // Match by containment path, ignoring source depth, so a plain address finds
-  // its section even across a skipped heading level.  The first match in
-  // document order wins, so a repeated heading resolves to its first occurrence.
+  // its section even across a skipped heading level. Disambiguated addresses
+  // make every section's path unique, so `.find()` matches at most one.
   const match = sections.find((section) =>
     arrayEquals(headingPath(section), target)
   );

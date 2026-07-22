@@ -12,9 +12,12 @@ describe("reserved duplicate-marker collision guard", () => {
     expect(() => buildModel(doc)).toThrow(ReservedDuplicateMarkerError);
   });
 
-  test("throws when a block id ends with the marker followed by digits", () => {
+  test("a block id cannot contain the reserved marker, so this never throws", () => {
+    // Obsidian's block-id syntax only allows [a-zA-Z0-9_-]; a "^id" carrying
+    // these (astral) codepoints simply isn't recognized as a block reference
+    // at all, so there is nothing here for the guard to catch.
     const doc = `paragraph text ^ref\u{FC750}\u{F6440}\n`;
-    expect(() => buildModel(doc)).toThrow(ReservedDuplicateMarkerError);
+    expect(() => buildModel(doc)).not.toThrow();
   });
 
   test("does not throw when the marker sequence sits in the middle of a heading", () => {

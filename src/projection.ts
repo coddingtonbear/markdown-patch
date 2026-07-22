@@ -1,4 +1,5 @@
 import { DocumentModel, SectionNode } from "./model.js";
+import { DUPLICATE_DIGITS, DUPLICATE_MARKER } from "./constants.js";
 
 /**
  * A nested map of heading text to its child headings, mirroring the document's
@@ -7,14 +8,13 @@ import { DocumentModel, SectionNode } from "./model.js";
  * (an `h1` followed directly by an `h3`) does not appear as a hole — the engine
  * owns depth and a consumer never needs it.
  *
- * Sibling headings are keyed by text, so a repeated sibling name appears once.
- * A repeat is not dropped, though — its children merge into the first
- * occurrence's subtree — because the resolver addresses a heading by its whole
- * containment path, not by its name.  Two sections that share a path really are
- * one address and resolve to the first in document order, while a
- * uniquely-pathed descendant of a repeat is its own address and is listed.  For
+ * Sibling headings are keyed by text, and every occurrence gets its own key: a
+ * repeated sibling name is not merged. The first occurrence keeps its plain
+ * text; each later occurrence's key has a {@link disambiguatedHeadingText}
+ * suffix appended, so no two sections ever share an address. For
  * `## Log / ### Monday` followed by `## Log / ### Tuesday`, the tree is
- * `{ Log: { Monday: {}, Tuesday: {} } }`: both are separately addressable.
+ * `{ Log: { Monday: {} }, "Log<marker>": { Tuesday: {} } }`: both "Log"s, and
+ * both children, are separately addressable.
  *
  * The tree therefore enumerates exactly the addresses the resolver accepts —
  * see {@link headingTreePaths}.
@@ -22,6 +22,43 @@ import { DocumentModel, SectionNode } from "./model.js";
 export interface HeadingTree {
   [headingText: string]: HeadingTree;
 }
+
+/** Encode a 0-based occurrence index as hex, one reserved digit per hex character. */
+const encodeOccurrenceSuffix = (occurrenceIndex: number): string =>
+  occurrenceIndex
+    .toString(16)
+    .split("")
+    .map((hexChar) => DUPLICATE_DIGITS[parseInt(hexChar, 16)])
+    .join("");
+
+/**
+ * The text a heading-bearing section is keyed/addressed by: its raw heading
+ * text for the first occurrence among same-text siblings under the same
+ * parent, or that text plus a reserved-codepoint suffix for each later
+ * occurrence (in document order). This is the single source of truth both
+ * {@link headingPath} (resolution) and {@link projectMap} (the map a caller
+ * reads) derive from, so the two can never drift apart — an address is always
+ * matched by plain string equality against a freshly recomputed value, never
+ * decoded. Keys produced here are guaranteed unique among a parent's children
+ * as long as no raw heading text already collides with a synthesized suffix,
+ * which {@link buildModel} guards against.
+ */
+export const disambiguatedHeadingText = (node: SectionNode): string => {
+  const heading = node.heading;
+  if (!heading) {
+    return "";
+  }
+  if (!node.parent) {
+    return heading.text;
+  }
+  const siblings = node.parent.children.filter(
+    (sibling) => sibling.heading?.text === heading.text
+  );
+  const occurrence = siblings.indexOf(node);
+  return occurrence <= 0
+    ? heading.text
+    : heading.text + DUPLICATE_MARKER + encodeOccurrenceSuffix(occurrence - 1);
+};
 
 /**
  * The terse, context-cheap public view of a document, derived from the
@@ -50,7 +87,7 @@ export const headingPath = (node: SectionNode): string[] => {
   const path: string[] = [];
   let current: SectionNode | null = node;
   while (current && current.heading) {
-    path.push(current.heading.text);
+    path.push(disambiguatedHeadingText(current));
     current = current.parent;
   }
   return path.reverse();
@@ -77,23 +114,17 @@ export const projectMap = (model: DocumentModel): PublicMap => {
   };
   collectBlocks(model.root);
 
-  // Headings nest by containment.  A repeated sibling name reuses the existing
-  // subtree rather than starting a second one, so the repeat's descendants —
-  // which carry their own distinct containment paths — stay listed.  This is
-  // what keeps the tree equal to the set of addresses the resolver accepts.
+  // Headings nest by containment. Every occurrence of a repeated sibling name
+  // gets its own key via disambiguatedHeadingText, so — given buildModel's
+  // collision guard — keys are unique by construction and no merge is needed.
   const buildTree = (node: SectionNode, into: HeadingTree): void => {
     for (const child of node.children) {
       if (!child.heading) {
         continue;
       }
-      const { text } = child.heading;
-      const existing = Object.prototype.hasOwnProperty.call(into, text)
-        ? into[text]
-        : undefined;
-      const subtree: HeadingTree = existing ?? (Object.create(null) as HeadingTree);
-      if (!existing) {
-        into[text] = subtree;
-      }
+      const key = disambiguatedHeadingText(child);
+      const subtree: HeadingTree = Object.create(null) as HeadingTree;
+      into[key] = subtree;
       buildTree(child, subtree);
     }
   };
