@@ -21,6 +21,7 @@ import {
   Warning,
   EngineError,
   TargetNotFoundError,
+  isBlockTableRowInstruction,
 } from "../instructions.js";
 
 const MAX_HEADING_LEVEL = 6;
@@ -97,6 +98,11 @@ export const createBlock = (
   if (instruction.operation === "delete" || instruction.scope !== "content") {
     throw new EngineError(
       "createTargetIfMissing for blocks supports content-scope writes only"
+    );
+  }
+  if (isBlockTableRowInstruction(instruction)) {
+    throw new EngineError(
+      "createTargetIfMissing for blocks does not support table-row writes; create the table first, then append/prepend/replace rows"
     );
   }
   const value = toLineEnding(instruction.content, model.lineEnding);

@@ -26,6 +26,7 @@ import { toLineEnding, sectionFragment, splice } from "./text.js";
 import { structuralHeading, deleteBlock } from "./engine/structural.js";
 import { patchFrontmatter } from "./engine/frontmatter.js";
 import { createHeading, createBlock } from "./engine/create.js";
+import { patchTableRows } from "./engine/table.js";
 import {
   Instruction,
   InstructionInput,
@@ -39,6 +40,7 @@ import {
   InvalidInstructionError,
   assertValidCell,
   withDefaultScope,
+  isBlockTableRowInstruction,
 } from "./instructions.js";
 import { InstructionInputSchema } from "./schema.js";
 import { ResolvedTarget } from "./resolve.js";
@@ -188,8 +190,12 @@ const patchBlock = (
   if (instruction.operation === "delete") {
     return deleteBlock(document, model, instruction, block);
   }
-  // Excluding delete narrows to BlockWrite | BlockMarkerReplace; both carry a
-  // string `content`.  Block content and ids are literal, never rebased.
+  if (isBlockTableRowInstruction(instruction)) {
+    return patchTableRows(document, model, instruction, block);
+  }
+  // Excluding delete and table rows narrows to BlockWrite | BlockMarkerReplace;
+  // both carry a string `content`.  Block content and ids are literal, never
+  // rebased.
   const { operation, scope } = instruction;
   const value = toLineEnding(instruction.content, model.lineEnding);
 

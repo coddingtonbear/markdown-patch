@@ -8,6 +8,7 @@ import {
   assertValidCell,
   InvalidCellError,
   withDefaultScope,
+  isBlockTableRowInstruction,
 } from "../instructions";
 
 const OPERATIONS: Operation[] = ["replace", "prepend", "append", "delete"];
@@ -139,6 +140,13 @@ describe("Instruction typing (compile-time)", () => {
         content: "revised-thesis",
       },
       {
+        targetType: "block",
+        operation: "append",
+        scope: "content",
+        target: "population-table",
+        value: [["Chicago, IL", "16"]],
+      },
+      {
         targetType: "frontmatter",
         operation: "append",
         scope: "content",
@@ -153,7 +161,45 @@ describe("Instruction typing (compile-time)", () => {
         content: "state",
       },
     ];
-    expect(examples).toHaveLength(6);
+    expect(examples).toHaveLength(7);
+  });
+});
+
+describe("isBlockTableRowInstruction", () => {
+  test("true for a block content cell carrying value", () => {
+    expect(
+      isBlockTableRowInstruction({
+        targetType: "block",
+        target: "abc",
+        operation: "append",
+        scope: "content",
+        value: [["a", "b"]],
+      })
+    ).toBe(true);
+  });
+
+  test("false for a block content cell carrying literal content", () => {
+    expect(
+      isBlockTableRowInstruction({
+        targetType: "block",
+        target: "abc",
+        operation: "append",
+        scope: "content",
+        content: "text",
+      })
+    ).toBe(false);
+  });
+
+  test("false for a block marker cell", () => {
+    expect(
+      isBlockTableRowInstruction({
+        targetType: "block",
+        target: "abc",
+        operation: "replace",
+        scope: "marker",
+        content: "newid",
+      })
+    ).toBe(false);
   });
 });
 

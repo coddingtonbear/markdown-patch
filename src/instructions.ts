@@ -134,10 +134,33 @@ export interface BlockDeleteInstruction extends BlockTargeted {
   operation: "delete";
   scope: "content" | "marker" | "markerAndContent";
 }
+/**
+ * `replace`/`prepend`/`append` on a table block's rows: `value` is a 2-D array
+ * of cell text, one entry per row. Shares the `block` + `content` cell with
+ * {@link BlockWriteInstruction} — the carrier chosen (`content` vs `value`)
+ * decides whether the write is literal text or structured table rows.
+ * `replace` swaps the body rows (keeping the header/separator); `prepend`/
+ * `append` insert before/after the existing body rows.
+ */
+export interface BlockTableRowInstruction extends BlockTargeted {
+  operation: "replace" | "prepend" | "append";
+  scope: "content";
+  value: string[][];
+}
 export type BlockInstruction =
   | BlockWriteInstruction
   | BlockMarkerReplaceInstruction
-  | BlockDeleteInstruction;
+  | BlockDeleteInstruction
+  | BlockTableRowInstruction;
+
+/** True when `instruction` is a table-row write: a `block` target's `content`
+ *  cell carrying structured `value` rather than literal `content` text. */
+export const isBlockTableRowInstruction = (
+  instruction: BlockInstruction
+): instruction is BlockTableRowInstruction =>
+  instruction.scope === "content" &&
+  instruction.operation !== "delete" &&
+  "value" in instruction;
 
 // --- Frontmatter instructions --------------------------------------------
 

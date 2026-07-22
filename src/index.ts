@@ -34,11 +34,13 @@ export {
   MergeError,
   isValidCell,
   assertValidCell,
+  isBlockTableRowInstruction,
 } from "./instructions.js";
 export {
   InstructionInputSchema,
   InstructionInputObjectSchema,
 } from "./schema.js";
+export { NotATableError, TableColumnCountError } from "./engine/table.js";
 export type {
   Instruction,
   InstructionInput,
@@ -50,6 +52,7 @@ export type {
   BlockWriteInstruction,
   BlockMarkerReplaceInstruction,
   BlockDeleteInstruction,
+  BlockTableRowInstruction,
   FrontmatterInstruction,
   FrontmatterValueInstruction,
   FrontmatterRenameInstruction,

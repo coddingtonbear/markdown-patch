@@ -123,7 +123,7 @@ export const InstructionInputObjectSchema = z
     value: z
       .unknown()
       .describe(
-        "Structured JSON payload for a frontmatter value — any JSON (string, number, boolean, array, object, null). For `prepend`/`append` this merges (list concat, dict merge, string concat). Provide exactly one of `content`, `value`, or `destination`."
+        "Structured JSON payload: a frontmatter value (any JSON — string, number, boolean, array, object, null; for `prepend`/`append` this merges: list concat, dict merge, string concat), or table rows on a `block` target's `content` cell (a 2-D array of strings, one row per entry — `replace` swaps the body rows, `prepend`/`append` insert before/after the existing ones; each row's length must match the table's column count). Provide exactly one of `content`, `value`, or `destination`."
       )
       .optional(),
     destination: destination.optional(),
@@ -156,29 +156,44 @@ export const InstructionInputObjectSchema = z
 type Carrier = "content" | "value" | "destination" | "none";
 
 /**
- * The carrier a `(targetType, operation, scope)` cell expects, mirroring the
- * {@link Instruction} union member for that cell.  Assumes the cell is already
- * known valid (see {@link isValidCell}).
+ * The carrier(s) a `(targetType, operation, scope)` cell accepts, mirroring the
+ * {@link Instruction} union member(s) for that cell.  Every cell expects exactly
+ * one carrier except `block`'s `content` cell, which accepts either `content`
+ * (literal text) or `value` (structured table rows) — the same way `frontmatter`
+ * already distinguishes `content` (key rename) from `value` (value write), just
+ * within one scope instead of across two.  Assumes the cell is already known
+ * valid (see {@link isValidCell}).
  */
-const expectedCarrier = (
+const expectedCarriers = (
   targetType: TargetType,
   operation: Operation,
   scope: Scope
-): Carrier => {
-  if (operation === "delete") return "none";
-  if (scope === "parent") return "destination"; // heading move
+): readonly Carrier[] => {
+  if (operation === "delete") return ["none"];
+  if (scope === "parent") return ["destination"]; // heading move
   if (targetType === "frontmatter") {
-    return scope === "marker" ? "content" : "value"; // rename vs. value write
+    return scope === "marker" ? ["content"] : ["value"]; // rename vs. value write
   }
-  return "content"; // heading/block body, label, or whole-node write
+  if (targetType === "block" && scope === "content") {
+    return ["content", "value"]; // literal text, or structured table rows
+  }
+  return ["content"]; // heading/block label or whole-node write
 };
 
 const carriers = ["content", "value", "destination"] as const;
 
+/** A 2-D array of strings: table rows for a `block` `content`-cell `value` write. */
+const isTableRowValue = (value: unknown): value is string[][] =>
+  Array.isArray(value) &&
+  value.every(
+    (row) => Array.isArray(row) && row.every((cell) => typeof cell === "string")
+  );
+
 /**
  * Validate the cross-field rules the flat object cannot express on its own: the
  * target shape must match its type, the `operation × scope` cell must be part of
- * the algebra, and exactly the carrier that cell expects must be present.
+ * the algebra, and exactly one of the carrier(s) the cell expects must be
+ * present — with the right shape, for cells whose carrier is structured.
  */
 const instructionAlgebra = (
   input: z.infer<typeof InstructionInputObjectSchema>,
@@ -214,26 +229,59 @@ const instructionAlgebra = (
     return; // carrier expectations are undefined for an invalid cell
   }
 
-  // Carrier: exactly the one the cell expects, and no others.
-  const expected = expectedCarrier(targetType, operation, scope);
-  for (const carrier of carriers) {
-    const present = input[carrier] !== undefined;
-    if (carrier === expected && !present) {
+  // Carrier: exactly one of the ones the cell expects, and no others.
+  const expected = expectedCarriers(targetType, operation, scope);
+  const present = carriers.filter((carrier) => input[carrier] !== undefined);
+
+  if (expected[0] === "none") {
+    for (const carrier of present) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: [carrier],
-        message: `${operation} @ ${scope} on a ${targetType} target requires \`${carrier}\``,
-      });
-    } else if (carrier !== expected && present) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [carrier],
-        message:
-          expected === "none"
-            ? `a ${operation} carries no payload; remove \`${carrier}\``
-            : `${operation} @ ${scope} on a ${targetType} target carries its payload in \`${expected}\`, not \`${carrier}\``,
+        message: `a ${operation} carries no payload; remove \`${carrier}\``,
       });
     }
+    return;
+  }
+
+  if (present.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [expected[0]],
+      message: `${operation} @ ${scope} on a ${targetType} target requires ${
+        expected.length === 1 ? `\`${expected[0]}\`` : expected.map((c) => `\`${c}\``).join(" or ")
+      }`,
+    });
+  } else if (present.length > 1) {
+    for (const carrier of present) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [carrier],
+        message: `${operation} @ ${scope} on a ${targetType} target carries its payload in exactly one of ${expected
+          .map((c) => `\`${c}\``)
+          .join(" or ")}, not both`,
+      });
+    }
+  } else if (!expected.includes(present[0])) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [present[0]],
+      message: `${operation} @ ${scope} on a ${targetType} target carries its payload in ${
+        expected.length === 1 ? `\`${expected[0]}\`` : expected.map((c) => `\`${c}\``).join(" or ")
+      }, not \`${present[0]}\``,
+    });
+  } else if (
+    targetType === "block" &&
+    scope === "content" &&
+    present[0] === "value" &&
+    !isTableRowValue(input.value)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["value"],
+      message:
+        "value for a block content write must be a 2-D array of strings — one row per entry, one cell per column",
+    });
   }
 };
 
