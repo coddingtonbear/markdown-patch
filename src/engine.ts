@@ -23,6 +23,7 @@ import {
   blockFullRange,
 } from "./ranges.js";
 import { toLineEnding, sectionFragment, splice } from "./text.js";
+import { rebaseHeadings } from "./levels.js";
 import { structuralHeading, deleteBlock } from "./engine/structural.js";
 import { patchFrontmatter } from "./engine/frontmatter.js";
 import { createHeading, createBlock } from "./engine/create.js";
@@ -87,6 +88,34 @@ const scopeSpanText = (
     return document.slice(range.start, range.end);
   }
   return null;
+};
+
+/**
+ * The text to search for within {@link scopeSpanText} when checking
+ * `rejectIfContentPreexists`.  The span is always absolute-level document
+ * text, but a heading write's `content` carries levels *relative* to the
+ * edited span (see `levels.ts`) — so a naive substring check against the raw
+ * caller value never matches content containing `#` headings, silently
+ * defeating the idempotency guard. Rebasing the value the same way the write
+ * path would (before splicing it in) keeps the comparison apples-to-apples.
+ * `marker` scope and non-heading targets carry no heading semantics, so the
+ * value is compared as-is.
+ */
+const preexistsProbe = (
+  content: string,
+  resolved: ResolvedTarget,
+  scope: string
+): string => {
+  if (resolved.kind !== "heading") {
+    return content;
+  }
+  if (scope === "content") {
+    return rebaseHeadings(content, resolved.section.heading?.level ?? 0).text;
+  }
+  if (scope === "markerAndContent") {
+    return rebaseHeadings(content, parentLevel(resolved.section)).text;
+  }
+  return content;
 };
 
 // --- Heading handlers ----------------------------------------------------
@@ -302,7 +331,8 @@ export const patch = (
     instruction.content.trim().length > 0
   ) {
     const span = scopeSpanText(document, resolved, instruction.scope);
-    if (span !== null && span.includes(instruction.content.trim())) {
+    const probe = preexistsProbe(instruction.content, resolved, instruction.scope);
+    if (span !== null && span.includes(probe.trim())) {
       throw new ContentPreexistsError(
         `the target already contains the content to ${instruction.operation}`
       );
