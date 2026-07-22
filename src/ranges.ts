@@ -17,7 +17,7 @@ export const lastDescendant = (section: SectionNode): SectionNode =>
     : section;
 
 const subtreeStart = (section: SectionNode): number =>
-  section.marker ? section.marker.start : section.content.start;
+  section.marker ? section.marker.start : section.body.start;
 
 /**
  * The subtree's visible extent: the heading line through the last descendant's
@@ -35,10 +35,10 @@ export const subtreeContentRange = (section: SectionNode): DocumentRange => ({
  * trailing gap.  This is the whole subtree *minus* its own marker — the span 1.x
  * `content` addressed — so a single content read/replace round-trips a section's
  * full body, subsections included.  For a leaf section it coincides with the
- * direct body (`section.content`).
+ * direct body (`section.body`).
  */
 export const headingContentRange = (section: SectionNode): DocumentRange => ({
-  start: section.content.start,
+  start: section.body.start,
   end: lastDescendant(section).trailingGap.start,
 });
 

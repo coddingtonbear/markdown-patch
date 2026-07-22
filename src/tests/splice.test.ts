@@ -75,8 +75,8 @@ describe("splice no-op identity (property over fixtures)", () => {
           });
         }
         edits.push({
-          range: node.content,
-          text: doc.slice(node.content.start, node.content.end),
+          range: node.body,
+          text: doc.slice(node.body.start, node.body.end),
         });
       });
       // Edits are node markers/contents, which are disjoint and in order.

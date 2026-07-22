@@ -69,16 +69,16 @@ describe("model partition invariants", () => {
         if (node.marker) {
           expect(node.marker.start).toBeLessThanOrEqual(node.marker.end);
         }
-        expect(node.content.start).toBeLessThanOrEqual(node.content.end);
+        expect(node.body.start).toBeLessThanOrEqual(node.body.end);
         expect(node.trailingGap.start).toBeLessThanOrEqual(node.trailingGap.end);
       }
     });
 
     test("content and trailingGap are contiguous per section", () => {
       for (const node of collectSections(model)) {
-        expect(node.content.end).toEqual(node.trailingGap.start);
+        expect(node.body.end).toEqual(node.trailingGap.start);
         if (node.marker) {
-          expect(node.marker.end).toEqual(node.content.start);
+          expect(node.marker.end).toEqual(node.body.start);
         }
       }
     });
@@ -93,7 +93,7 @@ describe("model partition invariants", () => {
     test("block ranges fall inside their containing section body", () => {
       for (const node of collectSections(model)) {
         for (const block of node.blocks) {
-          expect(block.content.start).toBeGreaterThanOrEqual(node.content.start);
+          expect(block.content.start).toBeGreaterThanOrEqual(node.body.start);
           expect(block.marker.end).toBeLessThanOrEqual(node.trailingGap.end);
           expect(block.section).toBe(node);
         }
@@ -140,14 +140,14 @@ describe("model structure", () => {
     expect(model.frontmatter.block).not.toBeNull();
     expect(model.frontmatter.entries.map((e) => e.key)).toEqual(["title"]);
     // Root content starts at or after the frontmatter block.
-    expect(model.root.content.start).toBeGreaterThanOrEqual(
+    expect(model.root.body.start).toBeGreaterThanOrEqual(
       model.frontmatter.block!.end
     );
   });
 });
 
 const text_of = (doc: string, node: SectionNode): string =>
-  doc.slice(node.content.start, node.content.end);
+  doc.slice(node.body.start, node.body.end);
 
 // A small deterministic PRNG so failures are reproducible from their seed.
 const mulberry32 = (seed: number): (() => number) => {
@@ -205,7 +205,7 @@ describe("model partition fuzz", () => {
       // Section ranges must tile: each section's trailingGap end meets the
       // next boundary and gaps are whitespace only.
       eachSection(model.root, (node) => {
-        expect(node.content.end).toEqual(node.trailingGap.start);
+        expect(node.body.end).toEqual(node.trailingGap.start);
         expect(doc.slice(node.trailingGap.start, node.trailingGap.end)).toMatch(
           /^\s*$/
         );

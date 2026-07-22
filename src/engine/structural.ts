@@ -39,7 +39,7 @@ import {
 
 /** The subtree's first byte: a section's own marker, or its body for the root. */
 const subtreeStart = (section: SectionNode): number =>
-  section.marker ? section.marker.start : section.content.start;
+  section.marker ? section.marker.start : section.body.start;
 
 // --- Move ----------------------------------------------------------------
 
@@ -64,12 +64,12 @@ const childInsertOffset = (
 ): number => {
   const children = newParent.children;
   if (place === "first") {
-    return children.length ? subtreeStart(children[0]) : newParent.content.end;
+    return children.length ? subtreeStart(children[0]) : newParent.body.end;
   }
   if (place === "last") {
     return children.length
       ? subtreeEnd(children[children.length - 1])
-      : newParent.content.end;
+      : newParent.body.end;
   }
   const addr = "before" in place ? place.before : place.after;
   const sibling = resolveHeading(model, addr)?.section;

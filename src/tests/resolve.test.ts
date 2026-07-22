@@ -6,7 +6,7 @@ const headingLevel = (r: ResolvedTarget | null): number | null =>
 
 const bodyOf = (doc: string, r: ResolvedTarget | null): string => {
   if (!r || r.kind !== "heading") return "";
-  return doc.slice(r.section.content.start, r.section.content.end);
+  return doc.slice(r.section.body.start, r.section.body.end);
 };
 
 describe("resolveHeading", () => {

@@ -24,8 +24,8 @@ export interface SectionNode {
   /** The heading line (`# Foo\n`); `null` for the root. */
   marker: DocumentRange | null;
   /** The section's direct body, excluding {@link trailingGap}. */
-  content: DocumentRange;
-  /** The blank-line separator following {@link content} that the library owns. */
+  body: DocumentRange;
+  /** The blank-line separator following {@link body} that the library owns. */
   trailingGap: DocumentRange;
   /** Child sections, in document order. */
   children: SectionNode[];
@@ -36,7 +36,7 @@ export interface SectionNode {
 
 /**
  * A `^id`-bearing block. Blocks are an *overlay* onto the section tree: their
- * ranges fall within their containing section's {@link SectionNode.content},
+ * ranges fall within their containing section's {@link SectionNode.body},
  * they do not tile the document themselves.
  */
 export interface BlockNode {
@@ -225,7 +225,7 @@ const buildSectionTree = (
   const root: SectionNode = {
     heading: null,
     marker: null,
-    content: { start: 0, end: 0 },
+    body: { start: 0, end: 0 },
     trailingGap: { start: 0, end: 0 },
     children: [],
     blocks: [],
@@ -237,7 +237,7 @@ const buildSectionTree = (
   const rootBodyStart = 0;
   const rootBodyEnd = headings.length ? headings[0].markerStart : contentLength;
   const rootSplit = splitTrailingGap(content, rootBodyStart, rootBodyEnd);
-  root.content = { start: abs(rootBodyStart), end: abs(rootSplit.contentEnd) };
+  root.body = { start: abs(rootBodyStart), end: abs(rootSplit.contentEnd) };
   root.trailingGap = { start: abs(rootSplit.contentEnd), end: abs(rootBodyEnd) };
 
   const stack: SectionNode[] = [root];
@@ -256,7 +256,7 @@ const buildSectionTree = (
     const node: SectionNode = {
       heading: { text: heading.text, level: heading.level },
       marker: { start: abs(heading.markerStart), end: abs(heading.markerEnd) },
-      content: { start: abs(bodyStart), end: abs(split.contentEnd) },
+      body: { start: abs(bodyStart), end: abs(split.contentEnd) },
       trailingGap: { start: abs(split.contentEnd), end: abs(bodyEnd) },
       children: [],
       blocks: [],
@@ -292,9 +292,9 @@ const forEachSection = (
 const sectionContaining = (root: SectionNode, offset: number): SectionNode => {
   let best = root;
   forEachSection(root, (node) => {
-    if (offset >= node.content.start && offset < node.trailingGap.end) {
+    if (offset >= node.body.start && offset < node.trailingGap.end) {
       // Prefer the deepest (most specific) containing section.
-      if (node.content.start >= best.content.start) {
+      if (node.body.start >= best.body.start) {
         best = node;
       }
     }
@@ -493,7 +493,7 @@ export const serializeModel = (
     if (node.marker) {
       parts.push(document.slice(node.marker.start, node.marker.end));
     }
-    parts.push(document.slice(node.content.start, node.content.end));
+    parts.push(document.slice(node.body.start, node.body.end));
     parts.push(document.slice(node.trailingGap.start, node.trailingGap.end));
     for (const child of node.children) {
       emit(child);
