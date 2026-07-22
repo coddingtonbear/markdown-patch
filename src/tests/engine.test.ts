@@ -6,7 +6,12 @@ import {
   Instruction,
 } from "../instructions";
 import { RootHasNoMarkerError } from "../ranges";
-import { NotATableError, TableColumnCountError } from "../engine/table";
+import { buildModel } from "../model";
+import {
+  NotATableError,
+  TableColumnCountError,
+  InvalidCellContentError,
+} from "../engine/table";
 
 // A small tree: A (h1) > B (h2), then C (h1), each with a one-line body and a
 // library-owned blank-line gap between siblings.
@@ -324,6 +329,51 @@ describe("patch — block table-row cells", () => {
         "| Chicago | 16 |\n" +
         "^ref\n"
     );
+  });
+
+  test("a pipe in a cell is escaped so it stays one cell", () => {
+    // The array form exists so a caller supplies cell *content* and the library
+    // renders the table syntax. An unescaped `|` would silently split the cell
+    // and shift every column after it.
+    const result = patch(TABLE_DOC, {
+      targetType: "block",
+      target: "ref",
+      operation: "append",
+      scope: "content",
+      value: [["Seattle | Tacoma", "16"]],
+    });
+    expect(result.document).toContain("| Seattle \\| Tacoma | 16 |");
+
+    // And it survives a round trip: re-parsing the patched table still sees two
+    // columns, with the pipe restored as cell text.
+    const block = buildModel(result.document).root.blocks[0];
+    expect(block.columns).toHaveLength(2);
+  });
+
+  test("a newline in a cell is rejected rather than splitting the row", () => {
+    // A line break cannot be expressed inside a GFM table cell; writing it
+    // verbatim would break one row into two malformed ones.
+    expect(() =>
+      patch(TABLE_DOC, {
+        targetType: "block",
+        target: "ref",
+        operation: "append",
+        scope: "content",
+        value: [["two\nlines", "16"]],
+      })
+    ).toThrow(InvalidCellContentError);
+  });
+
+  test("a carriage return in a cell is rejected too", () => {
+    expect(() =>
+      patch(TABLE_DOC, {
+        targetType: "block",
+        target: "ref",
+        operation: "append",
+        scope: "content",
+        value: [["two\r\nlines", "16"]],
+      })
+    ).toThrow(InvalidCellContentError);
   });
 
   test("a row with the wrong number of cells raises TableColumnCountError", () => {
