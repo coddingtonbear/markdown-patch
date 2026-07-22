@@ -58,6 +58,10 @@ const valid: { name: string; instruction: InstructionInput }[] = [
     instruction: { targetType: "block", target: "abc", operation: "replace", scope: "marker", content: "def" },
   },
   {
+    name: "block target/marker with hyphens and underscores",
+    instruction: { targetType: "block", target: "a-b_c1", operation: "replace", scope: "marker", content: "x-y_2" },
+  },
+  {
     name: "block table-row write",
     instruction: { targetType: "block", target: "abc", operation: "append", value: [["a", "b"]] },
   },
@@ -161,6 +165,22 @@ describe("InstructionInputSchema", () => {
       {
         name: "a value on a block marker cell (only content/value on `content` scope)",
         instruction: { targetType: "block", target: "abc", operation: "replace", scope: "marker", value: [["a"]] },
+      },
+      {
+        name: "a block target containing a space",
+        instruction: { targetType: "block", target: "has space", operation: "append", content: "x" },
+      },
+      {
+        name: "a block marker rename to an id containing a space",
+        instruction: { targetType: "block", target: "abc", operation: "replace", scope: "marker", content: "new id" },
+      },
+      {
+        name: "a block marker rename to an id containing a caret",
+        instruction: { targetType: "block", target: "abc", operation: "replace", scope: "marker", content: "^def" },
+      },
+      {
+        name: "a heading marker rename containing an embedded newline",
+        instruction: { targetType: "heading", target: ["A"], operation: "replace", scope: "marker", content: "New\nline" },
       },
     ];
 
