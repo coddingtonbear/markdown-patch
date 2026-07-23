@@ -67,7 +67,7 @@ I discovered a thing
 - Caught the flight home
 ```
 
-Whitespace is the library's job, not yours: content is trimmed to canonical form and the engine supplies the blank-line separators that keep your content its own block, so leading or trailing newlines in `content` change nothing. See the README for the full whitespace rules.
+Whitespace is the library's job, not yours: content is trimmed to canonical form and the engine supplies the blank-line separators that keep your content its own block, so leading or trailing newlines in `content` change nothing. When you *do* want to continue an existing block rather than start a new one — extend a list, complete a sentence — add `within: <index>` to address one of the section's body blocks positionally and splice into it literally, no block reference required. See the README for the full whitespace rules and the `within` contract.
 
 See {@link Reference.patch} for the full instruction shape, {@link Reference.readTarget} for the read-side mirror of the same addressing, and {@link Reference.projectMap} for discovering what a document has to target.
 

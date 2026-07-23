@@ -38,6 +38,22 @@ The heading target is an array of heading texts from the top level down, so a he
 
 Note that the heading line itself is not part of the `content` scope. When you `replace` a heading's content, supply only the body — including the heading line would duplicate it.
 
+# Continue an existing block
+
+A plain `append` always starts a *new* block. To extend a block that is already there — add an item to a list, continue a paragraph — address the block positionally with `within` and splice into it literally:
+
+```typescript
+patch(myDocument, {
+  targetType: "heading",
+  target: ["Meeting Notes", "Action Items"],
+  within: -1, // the section's last body block; 0 is the first
+  operation: "append",
+  content: "\n- Send the report",
+});
+```
+
+On a `within`-addressed block you own the joint: the leading `\n` above is what makes the text a new list item rather than a continuation of the last one. `replace`, `prepend`, and `delete` act on the same block; `scope: "markerAndContent"` with `prepend`/`append` inserts a new block beside it instead. Indices count the section's rendered top-level blocks (isolated `^id` lines don't count), so read the section first and pair the edit with `ifMatch` from the same read.
+
 # Rename a heading
 
 Use the `marker` scope, which addresses the label rather than the body. Supply just the text; the engine preserves the level:

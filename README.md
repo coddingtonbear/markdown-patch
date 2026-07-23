@@ -103,7 +103,33 @@ Where no separator is owed, none is added — a heading line is self-delimiting,
 - The blank line between a heading and its body is kept in place: `replace` swaps the body beneath it and `prepend` inserts below it. A document written flush (`# One\nbody of one\n`) keeps its flush style — `replace` gives `# One\nX\n` — and replacing a body with its own text is byte-identity in either style.
 - Writing into an empty section lands flush under its heading (`# E\nX\n`), with the section's existing trailing gap serving as the separator below.
 
-One consequence worth knowing: a `content`-scope `append`/`prepend` always begins a new block — it can never continue an existing paragraph. To edit inline within a paragraph, target it via a block reference (`^id`), where content is spliced literally and you own the joint.
+One consequence worth knowing: a `content`-scope `append`/`prepend` always begins a new block — it can never continue an existing paragraph. To edit inline *within* an existing block, address the block itself, which puts you on the literal-splice path where content is spliced exactly as given and you own the joint. There are two ways to address one:
+
+- Target it via a block reference (`^id`), if it has one.
+- Add `within: <index>` to a heading instruction to pick one of the section's top-level body blocks by position — no `^id` required.
+
+### Positional block edits: `within`
+
+`within` refines a heading target to the Nth top-level block of the section's *direct* body (paragraphs, lists, tables, code fences, …), counted from 0 in document order; a negative index counts from the end. Isolated `^id` marker lines are not counted, so indices match the rendered blocks you see. Extend the last list of a section:
+
+```typescript
+patch(document, {
+  targetType: "heading",
+  target: ["Log"],
+  within: -1,
+  operation: "append",
+  content: "\n- new item",
+});
+```
+
+With the default `content` scope the four operations act on the block itself: `replace`/`prepend`/`append` splice literally (that leading `\n` above is yours to write — `append` without it continues the block's last line), and `delete` removes the block along with its separator. With `scope: "markerAndContent"`, `prepend`/`append` instead insert your content as a *new* block immediately before/after the addressed one, with the usual library-owned separators.
+
+Two footguns to know about:
+
+- A literal `append` to a block whose last line ends with an inline `^id` lands *after* the marker, un-marking it — prefer the `^id` block target for blocks that carry one.
+- Deleting a block that an isolated `^id` line annotates leaves the marker line behind, dangling.
+
+Because indices are positional, they are meant for single-request use: read the section (or its map), count its rendered blocks, and pair the edit with `ifMatch` from the same read so a concurrent change fails the patch instead of landing on the wrong block.
 
 > This contract intentionally reverses commit `4f84d89`, which documented the earlier "spliced verbatim / a leading `\n` buys the blank line" engine behavior rather than fixing it. That behavior contradicted the 2.0 design principle that the library owns whitespace, and preserved (in mutated form) the 1.x failure mode where a caller forgetting newline bookkeeping merges paragraphs.
 
