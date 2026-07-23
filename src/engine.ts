@@ -22,7 +22,7 @@ import {
   subtreeEnd,
   blockFullRange,
 } from "./ranges.js";
-import { toLineEnding, sectionFragment, ownedGaps, splice } from "./text.js";
+import { toLineEnding, sectionFragment, ownedGaps, lineStartGap, splice } from "./text.js";
 import { rebaseHeadings } from "./levels.js";
 import { structuralHeading, deleteBlock, consumeTrailingBlank } from "./engine/structural.js";
 import { patchFrontmatter } from "./engine/frontmatter.js";
@@ -284,8 +284,11 @@ const contentEdit = (
  * blank-line separators the library owes on the sides where the caller says a
  * separator is due (`padBefore`/`padAfter`).  On a due side, `ownedGaps`
  * contributes only what is missing: an existing blank line or a document edge
- * needs nothing.  An empty fragment clears the range without separators
- * (empty replacement is deletion; an empty insert is a no-op).
+ * needs nothing.  A side owing no blank line still owes a *line start* — a
+ * flush joint against a terminator-less last line gets the single ending that
+ * keeps the fragment off that line.  An empty fragment clears the range
+ * without separators (empty replacement is deletion; an empty insert is a
+ * no-op).
  */
 const blockEdit = (
   document: string,
@@ -298,10 +301,12 @@ const blockEdit = (
     return { range, text };
   }
   const gaps = ownedGaps(document, range, model.lineEnding);
+  const before = pads.padBefore
+    ? gaps.before
+    : lineStartGap(document, range.start, model.lineEnding);
   return {
     range,
-    text:
-      (pads.padBefore ? gaps.before : "") + text + (pads.padAfter ? gaps.after : ""),
+    text: before + text + (pads.padAfter ? gaps.after : ""),
   };
 };
 

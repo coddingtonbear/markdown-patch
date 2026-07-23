@@ -148,6 +148,23 @@ describe("patch — move (replace @ parent)", () => {
     ).toThrow(EngineError);
   });
 
+  test("moving beneath a parent whose last line has no terminator starts a fresh line", () => {
+    // The destination offset is the end of a document with no trailing
+    // newline; without the owed line start the moved marker would glue onto
+    // the parent's last body line ("…no newline## Move me").
+    const doc = "# A\n\n## Move me\n\nbody\n\n# B\nlast line no newline";
+    const result = patch(doc, {
+      targetType: "heading",
+      target: ["A", "Move me"],
+      operation: "replace",
+      scope: "parent",
+      destination: { parent: ["B"], place: "last" },
+    });
+    expect(result.document).toBe(
+      "# A\n\n# B\nlast line no newline\n## Move me\n\nbody\n"
+    );
+  });
+
   test("an unresolvable new parent raises TargetNotFoundError", () => {
     expect(() =>
       patch(DOC, {

@@ -26,7 +26,7 @@ import {
   subtreeEnd,
   blockFullRange,
 } from "../ranges.js";
-import { relevelText, endWithSingleEol, splice } from "../text.js";
+import { relevelText, endWithSingleEol, lineStartGap, splice } from "../text.js";
 import {
   HeadingInstruction,
   HeadingMoveInstruction,
@@ -116,7 +116,13 @@ const moveSection = (
     text: "",
   };
   const at = childInsertOffset(model, newParent, instruction.destination.place);
-  const insertion: Edit = { range: { start: at, end: at }, text: movedText };
+  // The moved subtree opens with its own heading marker, which owes no blank
+  // line — but it still must begin at a line start, which the destination
+  // (the end of a terminator-less last line) may not provide.
+  const insertion: Edit = {
+    range: { start: at, end: at },
+    text: lineStartGap(document, at, model.lineEnding) + movedText,
+  };
 
   return splice(document, [removal, insertion], releveled.warnings);
 };

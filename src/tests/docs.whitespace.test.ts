@@ -98,6 +98,36 @@ body of two
     ).toBe("# One\n\nbody of one\n\nX\n\n# Two\n\nbody of two\n");
   });
 
+  describe("a joint owing no blank line still owes a line start", () => {
+    // Flush-joint sides (a heading-led fragment, a body write directly under
+    // its marker) contribute no blank line — but when the document's last
+    // line has no terminator, splicing there verbatim would continue that
+    // line. The engine owes the single ending that keeps the fragment off it.
+    it("a sibling section appended at a terminator-less last line starts a fresh line", () => {
+      const doc = "# A\nbody no newline";
+      expect(
+        patch(doc, {
+          targetType: "heading",
+          target: ["A"],
+          operation: "append",
+          scope: "markerAndContent",
+          content: "# B\nnew body",
+        }).document
+      ).toBe("# A\nbody no newline\n# B\nnew body\n");
+    });
+
+    it("a body write under a terminator-less heading line starts a fresh line", () => {
+      expect(
+        patch("# A", {
+          targetType: "heading",
+          target: ["A"],
+          operation: "append",
+          content: "X",
+        }).document
+      ).toBe("# A\nX\n");
+    });
+  });
+
   it("writing into an empty section lands flush under its heading", () => {
     // A heading line is self-delimiting, so no separator is owed above; the
     // section's existing gap becomes the separator below.

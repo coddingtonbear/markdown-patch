@@ -71,6 +71,23 @@ const eolsBefore = (document: string, at: number): number => {
 };
 
 /**
+ * The line ending owed so an insertion at `at` begins at a line start: nothing
+ * at the document start or after an existing line ending, one ending when the
+ * preceding character is flush text (a document whose last line has no
+ * terminator).  This is the floor below {@link ownedGaps}' blank-line
+ * separator: a joint that owes no *blank line* — a heading-led fragment, a
+ * body write directly under its marker — still must not begin mid-line.
+ */
+export const lineStartGap = (
+  document: string,
+  at: number,
+  ending: LineEnding
+): string =>
+  at === 0 || document[at - 1] === "\n" || document[at - 1] === "\r"
+    ? ""
+    : ending;
+
+/**
  * The blank-line separators the library owes around a block-level fragment
  * spliced over `range` (a collapsed range for a pure insertion).  A non-empty
  * fragment always ends in a single line ending, so on each side the fragment
