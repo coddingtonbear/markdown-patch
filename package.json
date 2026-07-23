@@ -59,7 +59,7 @@
     "cli"
   ],
   "author": "Adam Coddington <me@adamcoddington.net>",
-  "license": "ISC",
+  "license": "MIT",
   "description": "Change markdown documents by inserting or changing content relative to headings or other parts of a document's structure.",
   "files": [
     "dist/",
