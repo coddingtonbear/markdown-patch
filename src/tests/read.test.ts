@@ -1,6 +1,6 @@
 import { readTarget } from "../read";
 import { patch } from "../engine";
-import { TargetNotFoundError } from "../instructions";
+import { InvalidInstructionError, TargetNotFoundError } from "../instructions";
 
 const DOC =
   "---\n" +
@@ -148,6 +148,134 @@ describe("readTarget", () => {
     expect(() =>
       readTarget(DOC, { targetType: "heading", target: ["Other"], within: 5 })
     ).toThrow(TargetNotFoundError);
+  });
+
+  describe("scoped reads", () => {
+    test("marker yields a heading's raw label text", () => {
+      expect(
+        readTarget(DOC, {
+          targetType: "heading",
+          target: ["Overview", "Details"],
+          scope: "marker",
+        })
+      ).toEqual({ kind: "heading", content: "Details" });
+    });
+
+    test("marker on the document root throws TargetNotFoundError", () => {
+      expect(() =>
+        readTarget(DOC, { targetType: "heading", target: null, scope: "marker" })
+      ).toThrow(TargetNotFoundError);
+    });
+
+    test("markerAndContent yields the subtree at the parent's baseline", () => {
+      const result = readTarget(DOC, {
+        targetType: "heading",
+        target: ["Overview", "Details"],
+        scope: "markerAndContent",
+      });
+      // Details is h2 in the document; at its parent's (h1) baseline it reads
+      // as a top-level "# Details" — the shape a markerAndContent replace takes.
+      expect(result).toEqual({
+        kind: "heading",
+        content: "# Details\n\nNested body.\n",
+      });
+    });
+
+    test("a heading markerAndContent read round-trips through a markerAndContent replace", () => {
+      const doc =
+        "# Overview\n\nIntro.\n\n## Details\n\nNested.\n\n### Sub\n\nDeep.\n\n# Other\n\nElsewhere.\n";
+      const result = readTarget(doc, {
+        targetType: "heading",
+        target: ["Overview", "Details"],
+        scope: "markerAndContent",
+      });
+      if (result.kind === "frontmatter") throw new Error("unexpected");
+      const written = patch(doc, {
+        targetType: "heading",
+        target: ["Overview", "Details"],
+        operation: "replace",
+        scope: "markerAndContent",
+        content: result.content,
+      });
+      expect(written.document).toBe(doc);
+    });
+
+    test("a heading marker read round-trips through a marker replace", () => {
+      const doc = "# Overview\n\nIntro.\n";
+      const result = readTarget(doc, {
+        targetType: "heading",
+        target: ["Overview"],
+        scope: "marker",
+      });
+      if (result.kind === "frontmatter") throw new Error("unexpected");
+      const written = patch(doc, {
+        targetType: "heading",
+        target: ["Overview"],
+        operation: "replace",
+        scope: "marker",
+        content: result.content,
+      });
+      expect(written.document).toBe(doc);
+    });
+
+    test("marker yields a block's bare id; markerAndContent its full span", () => {
+      expect(
+        readTarget(DOC, { targetType: "block", target: "thesis", scope: "marker" })
+      ).toEqual({ kind: "block", content: "thesis" });
+      expect(
+        readTarget(DOC, {
+          targetType: "block",
+          target: "thesis",
+          scope: "markerAndContent",
+        })
+      ).toEqual({ kind: "block", content: "The thesis. ^thesis" });
+    });
+
+    test("a block markerAndContent read round-trips through a markerAndContent replace", () => {
+      const doc = "start\n\nThe thesis. ^thesis\n\nend\n";
+      const result = readTarget(doc, {
+        targetType: "block",
+        target: "thesis",
+        scope: "markerAndContent",
+      });
+      if (result.kind === "frontmatter") throw new Error("unexpected");
+      const written = patch(doc, {
+        targetType: "block",
+        target: "thesis",
+        operation: "replace",
+        scope: "markerAndContent",
+        content: result.content,
+      });
+      expect(written.document).toBe(doc);
+    });
+
+    test("marker yields a frontmatter key; markerAndContent the whole entry", () => {
+      expect(
+        readTarget(DOC, {
+          targetType: "frontmatter",
+          target: "title",
+          scope: "marker",
+        })
+      ).toEqual({ kind: "frontmatter", value: "title" });
+      expect(
+        readTarget(DOC, {
+          targetType: "frontmatter",
+          target: "tags",
+          scope: "markerAndContent",
+        })
+      ).toEqual({ kind: "frontmatter", value: { tags: ["a", "b"] } });
+    });
+
+    test("a within read at a non-content scope throws InvalidInstructionError", () => {
+      expect(() =>
+        readTarget(DOC, {
+          targetType: "heading",
+          target: ["Overview"],
+          within: 0,
+          scope: "marker",
+        })
+      ).toThrow(InvalidInstructionError);
+    });
   });
 
   test("an unresolvable target throws TargetNotFoundError", () => {

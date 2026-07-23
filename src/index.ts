@@ -16,7 +16,7 @@ export type {
 export { projectMap, headingTreePaths } from "./projection.js";
 export type { PublicMap, HeadingTree } from "./projection.js";
 export { readTarget } from "./read.js";
-export type { ReadTarget, ReadResult } from "./read.js";
+export type { ReadTarget, ReadResult, ReadScope } from "./read.js";
 export {
   EngineError,
   InvalidCellError,
