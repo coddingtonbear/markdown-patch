@@ -110,6 +110,28 @@ describe("readTarget", () => {
     expect(written.document).toBe(doc);
   });
 
+  test("within reads one body block of a section, literally", () => {
+    const doc = "# H\n\nfirst\n\n- one\n- two\n\nlast\n";
+    const first = readTarget(doc, {
+      targetType: "heading",
+      target: ["H"],
+      within: 0,
+    });
+    expect(first).toEqual({ kind: "heading", content: "first" });
+    const list = readTarget(doc, {
+      targetType: "heading",
+      target: ["H"],
+      within: -2,
+    });
+    expect(list).toEqual({ kind: "heading", content: "- one\n- two" });
+  });
+
+  test("an out-of-range within read throws TargetNotFoundError", () => {
+    expect(() =>
+      readTarget(DOC, { targetType: "heading", target: ["Other"], within: 5 })
+    ).toThrow(TargetNotFoundError);
+  });
+
   test("an unresolvable target throws TargetNotFoundError", () => {
     expect(() =>
       readTarget(DOC, { targetType: "heading", target: ["Nope"] })

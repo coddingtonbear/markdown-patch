@@ -52,6 +52,12 @@ export const readTarget = (document: string, target: ReadTarget): ReadResult => 
         baseline === 0 ? raw : relevelText(raw, -baseline, model.lineEnding).text;
       return { kind: "heading", content };
     }
+    case "headingChild": {
+      // A body child can contain no heading (headings are structure, not
+      // children), so the slice is returned literally — no releveling.
+      const { start, end } = resolved.child.range;
+      return { kind: "heading", content: document.slice(start, end) };
+    }
     case "block": {
       const range = blockContentRange(resolved.block);
       return { kind: "block", content: document.slice(range.start, range.end) };

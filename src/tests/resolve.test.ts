@@ -1,6 +1,7 @@
 import { buildModel } from "../model";
 import { resolveTarget, resolveHeading, resolveBlock, ResolvedTarget } from "../resolve";
 import { headingPath } from "../projection";
+import { InvalidInstructionError, TargetNotFoundError } from "../instructions";
 
 const headingLevel = (r: ResolvedTarget | null): number | null =>
   r && r.kind === "heading" && r.section.heading ? r.section.heading.level : null;
@@ -146,6 +147,97 @@ describe("resolveTarget dispatch", () => {
     ).toBeNull();
     expect(
       resolveTarget(model, { targetType: "frontmatter", target: "missing" })
+    ).toBeNull();
+  });
+});
+
+describe("resolveWithin", () => {
+  const doc = [
+    "# H",
+    "",
+    "first para",
+    "",
+    "- one",
+    "- two",
+    "",
+    "^listref",
+    "",
+    "last para",
+    "",
+    "## Sub",
+    "",
+    "sub para",
+    "",
+  ].join("\n");
+
+  const childText = (r: ResolvedTarget | null): string => {
+    if (!r || r.kind !== "headingChild") throw new Error("expected headingChild");
+    return doc.slice(r.child.range.start, r.child.range.end);
+  };
+
+  test("a positive index selects the Nth body block of the section", () => {
+    const model = buildModel(doc);
+    const r = resolveTarget(model, {
+      targetType: "heading",
+      target: ["H"],
+      within: 1,
+    });
+    expect(r?.kind).toBe("headingChild");
+    expect(childText(r)).toBe("- one\n- two");
+  });
+
+  test("a negative index counts from the end of the direct body", () => {
+    const model = buildModel(doc);
+    // -1 is "last para": the subsection's blocks are not part of H's direct
+    // body, and the isolated ^listref line is not counted.
+    const r = resolveTarget(model, {
+      targetType: "heading",
+      target: ["H"],
+      within: -1,
+    });
+    expect(childText(r)).toBe("last para");
+    expect((r as { index: number }).index).toBe(2);
+  });
+
+  test("within over the document root addresses the preamble", () => {
+    const preambleDoc = "Preamble.\n\n# First\n\nbody\n";
+    const model = buildModel(preambleDoc);
+    const r = resolveTarget(model, {
+      targetType: "heading",
+      target: null,
+      within: 0,
+    });
+    expect(r?.kind).toBe("headingChild");
+    if (r?.kind === "headingChild") {
+      expect(preambleDoc.slice(r.child.range.start, r.child.range.end)).toBe(
+        "Preamble."
+      );
+    }
+  });
+
+  test("an out-of-range index throws TargetNotFoundError naming the count", () => {
+    const model = buildModel(doc);
+    for (const within of [3, -4]) {
+      expect(() =>
+        resolveTarget(model, { targetType: "heading", target: ["H"], within })
+      ).toThrow(TargetNotFoundError);
+      expect(() =>
+        resolveTarget(model, { targetType: "heading", target: ["H"], within })
+      ).toThrow(/has 3 top-level blocks/);
+    }
+  });
+
+  test("a non-integer index throws InvalidInstructionError", () => {
+    const model = buildModel(doc);
+    expect(() =>
+      resolveTarget(model, { targetType: "heading", target: ["H"], within: 0.5 })
+    ).toThrow(InvalidInstructionError);
+  });
+
+  test("a missing heading still returns null, within or not", () => {
+    const model = buildModel(doc);
+    expect(
+      resolveTarget(model, { targetType: "heading", target: ["Nope"], within: 0 })
     ).toBeNull();
   });
 });
