@@ -47,7 +47,9 @@ describe("patch — heading content cells", () => {
     expect(result.warnings).toEqual([]);
   });
 
-  test("prepend @ content inserts at the top of the body", () => {
+  test("prepend @ content inserts at the top of the body as its own block", () => {
+    // The library owes the blank line between the inserted block and the body
+    // text below it; the joint against the heading line needs none.
     const result = patch(DOC, {
       targetType: "heading",
       target: ["A"],
@@ -56,13 +58,14 @@ describe("patch — heading content cells", () => {
       content: "top",
     });
     expect(result.document).toBe(
-      "# A\ntop\na-body\n\n## B\nb-body\n\n# C\nc-body\n"
+      "# A\ntop\n\na-body\n\n## B\nb-body\n\n# C\nc-body\n"
     );
   });
 
   test("append @ content inserts at the bottom of the subtree body, before the gap", () => {
     // A's content spans through ## B, so an append lands after B's body, not
-    // between a-body and the subsection.
+    // between a-body and the subsection.  The blank line separating the new
+    // block from the body text above it is the library's, not the caller's.
     const result = patch(DOC, {
       targetType: "heading",
       target: ["A"],
@@ -71,7 +74,7 @@ describe("patch — heading content cells", () => {
       content: "bot",
     });
     expect(result.document).toBe(
-      "# A\na-body\n\n## B\nb-body\nbot\n\n# C\nc-body\n"
+      "# A\na-body\n\n## B\nb-body\n\nbot\n\n# C\nc-body\n"
     );
   });
 
@@ -425,7 +428,7 @@ describe("patch — preconditions and resolution", () => {
       scope: "content",
       content: "x",
     });
-    expect(first.document).toContain("b-body\nx\n");
+    expect(first.document).toContain("b-body\n\nx\n");
   });
 
   test("ifMatch not matching the current version fails without modifying the document", () => {

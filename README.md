@@ -59,11 +59,11 @@ const { document: patched, warnings } = patch(document, {
   targetType: "heading",
   target: ["Meeting Notes", "Action Items"],
   operation: "append",
-  content: "- Send the report\n",
+  content: "Decided: ship on Thursday.",
 });
 ```
 
-`patch` returns `{ document, warnings }` — it does not mutate its input.
+`patch` returns `{ document, warnings }` — it does not mutate its input. The appended text lands as its own paragraph, separated from the list above it by a library-supplied blank line; see [Whitespace is library-owned](#whitespace-is-library-owned).
 
 ### Relative heading levels
 
@@ -82,9 +82,11 @@ Under `markerAndContent` (or a sibling insert) the same content lands at the tar
 
 Because the heading line is part of the `markerAndContent` span, a `replace` whose content has *no* heading removes it — the section is dissolved into a plain paragraph. Include a leading `#` (at any depth; it is rebased for you) to keep it a heading.
 
-### Whitespace is spliced verbatim
+### Whitespace is library-owned
 
-Your `content` is inserted exactly as written at one edge of the target's span; the engine adds no whitespace of its own. For a heading, that span begins immediately *after* the heading line and ends after the last line of its subtree. So given:
+Your `content` crosses the API in trimmed, canonical form: leading and trailing blank lines are stripped, and a non-empty write always ends with exactly one newline. `"X"`, `"X\n"`, `"\nX\n"`, and `"X\n\n"` all produce the same document — newlines at the edges of your content are not a channel for controlling layout, so there is nothing to get wrong.
+
+Blank-line separators are the engine's job. At any joint where your content faces body text, the engine supplies the blank line that keeps it a separate block. So given:
 
 ```markdown
 # One
@@ -92,15 +94,18 @@ Your `content` is inserted exactly as written at one edge of the target's span; 
 body of one
 ```
 
-- `prepend` lands flush against the heading line → `# One\nX\n\nbody of one\n`
-- `append` lands flush against the section's last line → `# One\n\nbody of one\nX\n`
-- `replace` clears the whole span, blank line included → `# One\nX\n`
+- `append` becomes a new block after the body → `# One\n\nbody of one\n\nX\n`
+- `prepend` becomes a new block before the body → `# One\n\nX\n\nbody of one\n`
+- `replace` swaps the body → `# One\n\nX\n`
 
-In all three cases **a leading `\n` in your content is what buys you a blank line before it**. Passing `"\nX\n"` instead gives `# One\n\nX\n\nbody of one\n`, `# One\n\nbody of one\n\nX\n`, and `# One\n\nX\n` respectively.
+Where no separator is owed, none is added — a heading line is self-delimiting, and existing blank lines, gaps between sections, and document edges are preserved rather than rewritten:
 
-Note that this is a *leading* newline even for `append`: the gap you usually want is between the existing text and yours, and that edge comes first. Trailing newlines control the gap *after* your content, and are trimmed at the very end of a document — so padding the end of an `append` at the end of a file does nothing.
+- The blank line between a heading and its body is kept in place: `replace` swaps the body beneath it and `prepend` inserts below it. A document written flush (`# One\nbody of one\n`) keeps its flush style — `replace` gives `# One\nX\n` — and replacing a body with its own text is byte-identity in either style.
+- Writing into an empty section lands flush under its heading (`# E\nX\n`), with the section's existing trailing gap serving as the separator below.
 
-The case that most often surprises: prepending into a section whose heading is already followed by a blank line still yields `# One\nX`, with no gap. That blank line is part of the body, not of the boundary, so it is pushed below your text rather than kept above it.
+One consequence worth knowing: a `content`-scope `append`/`prepend` always begins a new block — it can never continue an existing paragraph. To edit inline within a paragraph, target it via a block reference (`^id`), where content is spliced literally and you own the joint.
+
+> This contract intentionally reverses commit `4f84d89`, which documented the earlier "spliced verbatim / a leading `\n` buys the blank line" engine behavior rather than fixing it. That behavior contradicted the 2.0 design principle that the library owns whitespace, and preserved (in mutated form) the 1.x failure mode where a caller forgetting newline bookkeeping merges paragraphs.
 
 ### Frontmatter
 

@@ -1,9 +1,16 @@
 /**
  * Pins the whitespace contract the README documents under "Whitespace is
- * spliced verbatim".  Content is spliced in exactly as written at one edge of
- * the target's span and the engine contributes no whitespace of its own, so a
- * leading `\n` is what produces a blank line before the inserted text — for
- * `append` as much as for `prepend`.
+ * library-owned".  Caller content is reduced to trimmed, canonical form —
+ * leading and trailing blank lines are meaningless — and the engine
+ * contributes the blank-line separator at any joint where the spliced block
+ * faces body text, so a naive prepend/append can never merge into an existing
+ * paragraph.  Joints against a heading line, an existing blank line, or a
+ * document edge get nothing: headings are self-delimiting, and existing
+ * separators and style are preserved rather than rewritten.
+ *
+ * This deliberately reverses commit 4f84d89, which documented the previous
+ * "spliced verbatim / a leading \n buys the blank line" behavior instead of
+ * fixing it to match Design Principle 1 ("the library owns whitespace").
  *
  * These expectations are the literal strings quoted in the docs.  If one of
  * them changes, the documentation is wrong and must change with it.
@@ -11,50 +18,68 @@
 
 import { patch } from "../engine.js";
 
-const doc = `# One
+const spaced = `# One
 
 body of one
 `;
 
-const run = (operation: "append" | "prepend" | "replace", content: string) =>
-  patch(doc, { targetType: "heading", target: ["One"], operation, content }).document;
+const flush = `# One
+body of one
+`;
+
+const run = (
+  doc: string,
+  operation: "append" | "prepend" | "replace",
+  content: string
+) => patch(doc, { targetType: "heading", target: ["One"], operation, content }).document;
 
 describe("documented whitespace behavior", () => {
-  describe("content with no leading newline lands flush against its neighbor", () => {
-    it("prepend butts against the heading line", () => {
-      expect(run("prepend", "X\n")).toBe("# One\nX\n\nbody of one\n");
+  describe("caller newlines are meaningless: every edge variant produces the same document", () => {
+    const variants = ["X", "X\n", "X\n\n", "\nX\n", "\n\nX\n\n"];
+
+    test.each(variants)("append %j", (content) => {
+      expect(run(spaced, "append", content)).toBe("# One\n\nbody of one\n\nX\n");
     });
 
-    it("append butts against the section's last line", () => {
-      expect(run("append", "X\n")).toBe("# One\n\nbody of one\nX\n");
+    test.each(variants)("prepend %j", (content) => {
+      expect(run(spaced, "prepend", content)).toBe("# One\n\nX\n\nbody of one\n");
     });
 
-    it("replace clears the span, blank line included", () => {
-      expect(run("replace", "X\n")).toBe("# One\nX\n");
-    });
-  });
-
-  describe("a leading newline buys a blank line before the content", () => {
-    it("prepend", () => {
-      expect(run("prepend", "\nX\n")).toBe("# One\n\nX\n\nbody of one\n");
-    });
-
-    it("append", () => {
-      expect(run("append", "\nX\n")).toBe("# One\n\nbody of one\n\nX\n");
-    });
-
-    it("replace", () => {
-      expect(run("replace", "\nX\n")).toBe("# One\n\nX\n");
+    test.each(variants)("replace %j", (content) => {
+      expect(run(spaced, "replace", content)).toBe("# One\n\nX\n");
     });
   });
 
-  it("a blank line already following a heading belongs to the body, not the boundary", () => {
-    // The document is well-spaced, but prepending still lands flush against the
-    // heading: the existing blank line is pushed below the inserted text.
-    expect(run("prepend", "X\n")).toBe("# One\nX\n\nbody of one\n");
+  describe("the engine owns the separator at any joint facing body text", () => {
+    it("append gets a blank line between the body's last line and the new block", () => {
+      expect(run(spaced, "append", "X")).toBe("# One\n\nbody of one\n\nX\n");
+    });
+
+    it("prepend gets a blank line between the new block and the body below it", () => {
+      expect(run(flush, "prepend", "X")).toBe("# One\nX\n\nbody of one\n");
+    });
   });
 
-  it("trailing padding survives mid-document but is trimmed at end of document", () => {
+  describe("existing separators and document style are preserved, not rewritten", () => {
+    it("replace keeps the blank line a spaced document has between marker and body", () => {
+      expect(run(spaced, "replace", "X")).toBe("# One\n\nX\n");
+    });
+
+    it("replace does not impose a blank line on a flush document", () => {
+      expect(run(flush, "replace", "X")).toBe("# One\nX\n");
+    });
+
+    it("prepend inserts below a spaced document's marker separator", () => {
+      expect(run(spaced, "prepend", "X")).toBe("# One\n\nX\n\nbody of one\n");
+    });
+
+    it("replacing a body with its own text is byte-identity in either style", () => {
+      expect(run(spaced, "replace", "body of one")).toBe(spaced);
+      expect(run(flush, "replace", "body of one")).toBe(flush);
+    });
+  });
+
+  it("an append mid-document leaves the owned trailing gap in place", () => {
     const midDoc = `# One
 
 body of one
@@ -68,11 +93,22 @@ body of two
         targetType: "heading",
         target: ["One"],
         operation: "append",
-        content: "X\n\n",
+        content: "X",
       }).document
-    ).toBe("# One\n\nbody of one\nX\n\n# Two\n\nbody of two\n");
+    ).toBe("# One\n\nbody of one\n\nX\n\n# Two\n\nbody of two\n");
+  });
 
-    // At the end of the document the same trailing blank line is normalized away.
-    expect(run("append", "X\n\n")).toBe("# One\n\nbody of one\nX\n");
+  it("writing into an empty section lands flush under its heading", () => {
+    // A heading line is self-delimiting, so no separator is owed above; the
+    // section's existing gap becomes the separator below.
+    const emptySection = "# E\n\n# F\nf-body\n";
+    expect(
+      patch(emptySection, {
+        targetType: "heading",
+        target: ["E"],
+        operation: "append",
+        content: "X",
+      }).document
+    ).toBe("# E\nX\n\n# F\nf-body\n");
   });
 });

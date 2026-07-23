@@ -22,7 +22,7 @@ import {
   subtreeEnd,
   blockFullRange,
 } from "./ranges.js";
-import { toLineEnding, sectionFragment, splice } from "./text.js";
+import { toLineEnding, sectionFragment, ownedGaps, splice } from "./text.js";
 import { rebaseHeadings } from "./levels.js";
 import { structuralHeading, deleteBlock } from "./engine/structural.js";
 import { patchFrontmatter } from "./engine/frontmatter.js";
@@ -134,20 +134,71 @@ const patchHeading = (
 
   if (scope === "content") {
     const fragment = sectionFragment(value, section.heading?.level ?? 0, model.lineEnding);
-    const edit = contentEdit(headingContentRange(section), operation, fragment.text);
-    return splice(document, [edit], fragment.warnings);
+    const content = headingContentRange(section);
+    const empty = content.start === content.end;
+    // The blank-line run between the marker and the first body text is a
+    // library-owned separator: replace swaps the value and leaves it standing,
+    // prepend inserts below it.  (An empty replacement is a body delete and
+    // clears the full span, separator included.)
+    const bodyStart = fragment.text
+      ? bodyStartPast(document, content)
+      : content.start;
+    switch (operation) {
+      case "replace":
+        return splice(
+          document,
+          [{ range: { start: bodyStart, end: content.end }, text: fragment.text }],
+          fragment.warnings
+        );
+      case "prepend":
+        // The inserted block faces body text below: the library owes the
+        // blank line that keeps it a separate block.
+        return splice(
+          document,
+          [
+            blockEdit(document, model, { start: bodyStart, end: bodyStart }, fragment.text, {
+              padBefore: false,
+              padAfter: !empty,
+            }),
+          ],
+          fragment.warnings
+        );
+      case "append":
+        // Mirror image: the joint above faces the body's last line.  Below is
+        // the owned trailing gap (or the next marker/EOF), never body text.
+        return splice(
+          document,
+          [
+            blockEdit(document, model, { start: content.end, end: content.end }, fragment.text, {
+              padBefore: !empty,
+              padAfter: false,
+            }),
+          ],
+          fragment.warnings
+        );
+    }
   }
 
   if (scope === "marker") {
     return splice(document, [markerRenameEdit(document, model, section, operation, value)], []);
   }
 
-  // markerAndContent: the whole subtree, rebased to the parent's level.
+  // markerAndContent: the whole subtree, rebased to the parent's level.  The
+  // joint below a subtree edit is always a heading marker, a gap, or EOF —
+  // self-delimiting, so no separator is owed there.  Above, a separator is
+  // owed only when the fragment itself does not open with a heading line
+  // (a heading interrupts a paragraph; plain text does not).
   const fragment = sectionFragment(value, parentLevel(section), model.lineEnding);
+  const padBefore = !/^#{1,6} /.test(fragment.text);
   if (operation === "replace") {
     return splice(
       document,
-      [{ range: subtreeContentRange(section), text: fragment.text }],
+      [
+        blockEdit(document, model, subtreeContentRange(section), fragment.text, {
+          padBefore,
+          padAfter: false,
+        }),
+      ],
       fragment.warnings
     );
   }
@@ -164,12 +215,32 @@ const patchHeading = (
       : subtreeEnd(section);
   return splice(
     document,
-    [{ range: { start: at, end: at }, text: fragment.text }],
+    [
+      blockEdit(document, model, { start: at, end: at }, fragment.text, {
+        padBefore,
+        padAfter: false,
+      }),
+    ],
     fragment.warnings
   );
 };
 
-/** Build the edit for a `content`-scope write on a body range. */
+/** The offset of the first body text in `content`, past any leading blank run. */
+const bodyStartPast = (
+  document: string,
+  content: { start: number; end: number }
+): number => {
+  const leading = /^(?:[^\S\r\n]*(?:\r\n|\r|\n))+/.exec(
+    document.slice(content.start, content.end)
+  );
+  return content.start + (leading ? leading[0].length : 0);
+};
+
+/**
+ * Build the edit for a `content`-scope write on a block's literal text span.
+ * Block content is spliced exactly as given — the caller owns the joint — since
+ * this is the documented contract for inline edits within a `^id` block.
+ */
 const contentEdit = (
   content: { start: number; end: number },
   operation: "replace" | "prepend" | "append",
@@ -183,6 +254,32 @@ const contentEdit = (
     case "append":
       return { range: { start: content.end, end: content.end }, text };
   }
+};
+
+/**
+ * Build the edit splicing a canonical fragment over `range`, adding the
+ * blank-line separators the library owes on the sides where the caller says a
+ * separator is due (`padBefore`/`padAfter`).  On a due side, `ownedGaps`
+ * contributes only what is missing: an existing blank line or a document edge
+ * needs nothing.  An empty fragment clears the range without separators
+ * (empty replacement is deletion; an empty insert is a no-op).
+ */
+const blockEdit = (
+  document: string,
+  model: DocumentModel,
+  range: { start: number; end: number },
+  text: string,
+  pads: { padBefore: boolean; padAfter: boolean }
+): Edit => {
+  if (!text) {
+    return { range, text };
+  }
+  const gaps = ownedGaps(document, range, model.lineEnding);
+  return {
+    range,
+    text:
+      (pads.padBefore ? gaps.before : "") + text + (pads.padAfter ? gaps.after : ""),
+  };
 };
 
 /** Rebuild a heading line with renamed/prefixed/suffixed label text. */

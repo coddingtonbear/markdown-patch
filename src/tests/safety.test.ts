@@ -25,7 +25,7 @@ describe("rejectIfContentPreexists", () => {
       content: "new line",
       rejectIfContentPreexists: true,
     });
-    expect(result.document).toBe("# A\nalready here\nnew line\n");
+    expect(result.document).toBe("# A\nalready here\n\nnew line\n");
   });
 
   test("replace is never blocked by the guard (it overwrites)", () => {
@@ -48,7 +48,7 @@ describe("rejectIfContentPreexists", () => {
       scope: "content",
       content: "already here",
     });
-    expect(result.document).toBe("# A\nalready here\nalready here\n");
+    expect(result.document).toBe("# A\nalready here\n\nalready here\n");
   });
 });
 
