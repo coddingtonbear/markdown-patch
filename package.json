@@ -20,8 +20,20 @@
   "name": "markdown-patch",
   "version": "2.0.0",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc",
+    "prepack": "rm -rf dist && npm run build",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "docs": "typedoc",
     "docs-serve": "http-server docs"
@@ -29,8 +41,24 @@
   "bin": {
     "mdpatch": "./dist/cli.js"
   },
-  "keywords": [],
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coddingtonbear/markdown-patch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/coddingtonbear/markdown-patch/issues"
+  },
+  "homepage": "https://github.com/coddingtonbear/markdown-patch#readme",
+  "keywords": [
+    "markdown",
+    "patch",
+    "frontmatter",
+    "heading",
+    "block-reference",
+    "obsidian",
+    "cli"
+  ],
+  "author": "Adam Coddington <me@adamcoddington.net>",
   "license": "ISC",
   "description": "Change markdown documents by inserting or changing content relative to headings or other parts of a document's structure.",
   "files": [

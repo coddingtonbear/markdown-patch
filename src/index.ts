@@ -6,6 +6,12 @@ export type { DocumentRange } from "./types.js";
 
 export { patch } from "./engine.js";
 export { buildModel } from "./model.js";
+export type {
+  DocumentModel,
+  SectionNode,
+  BlockNode,
+  FrontmatterEntry,
+} from "./model.js";
 export { projectMap, headingTreePaths } from "./projection.js";
 export type { PublicMap, HeadingTree } from "./projection.js";
 export { readTarget } from "./read.js";
