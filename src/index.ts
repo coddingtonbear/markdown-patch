@@ -2,18 +2,7 @@
  * @module Reference
  */
 
-export {
-  PatchFailureReason,
-  PatchFailed,
-  PatchError,
-  TablePartsNotFound,
-  applyPatch,
-} from "./patch.js";
-export { getDocumentMap } from "./map.js";
-
-export * from "./types.js";
-
-// --- 2.0 engine ----------------------------------------------------------
+export type { DocumentRange } from "./types.js";
 
 export { patch } from "./engine.js";
 export { buildModel } from "./model.js";

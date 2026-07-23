@@ -133,7 +133,7 @@ patch(document, {
 });
 ```
 
-Do **not** include `#` characters here. They are not stripped — they become part of the heading text, so `"## Follow-ups"` renames the heading to the literal `## Follow-ups`. (The deprecated `applyPatch` required them; if you are migrating, drop them.)
+Do **not** include `#` characters here. They are not stripped — they become part of the heading text, so `"## Follow-ups"` renames the heading to the literal `## Follow-ups`. (The removed 1.x `applyPatch` required them; if you are migrating, drop them.)
 
 The same shape renames a block id (`targetType: "block"`, new id without `^`) or a frontmatter key (`targetType: "frontmatter"`, new key in `content`).
 
@@ -211,19 +211,19 @@ All failures extend `EngineError`:
 
 ## CLI reference
 
-> **Note:** the `mdpatch` CLI currently drives the deprecated 1.x engine described under [Deprecated: the 1.x API](#deprecated-the-1x-api). Its addressing is `::`-joined rather than an array, and it has no access to `delete`, moves, or `ifMatch`. CLI support for the model above is still to come; use the library for anything the 1.x surface cannot express.
+The CLI drives the same engine as the library: `patch` is the quick flag-based form for common single edits, and `apply` takes full instruction JSON for everything the model can express (moves, table rows, `ifMatch` pipelines).
 
 ### `mdpatch patch`
 
-Apply a single patch operation.
+Apply a single instruction built from flags. Content is read from stdin unless `--input` is given; `delete` takes no content.
 
 ```
 mdpatch patch [options] <operation> <targetType> <target> <documentPath>
 ```
 
-- `<operation>` — `append`, `prepend`, or `replace`
+- `<operation>` — `append`, `prepend`, `replace`, or `delete`
 - `<targetType>` — `heading`, `block`, or `frontmatter`
-- `<target>` — the target address, `::`-joined for nested headings
+- `<target>` — the target address: a `::`-joined containment path for headings (`""` for the document root), a bare block id, or a frontmatter key
 - `<documentPath>` — file to modify (patched in-place by default)
 
 Options:
@@ -233,10 +233,17 @@ Options:
 | `-i, --input <path>` | Read content from a file instead of stdin |
 | `-o, --output <path>` | Write result to a file instead of patching in-place; use `-` for stdout |
 | `-d, --delimiter <str>` | Heading path delimiter (default: `::`) |
+| `-s, --scope <scope>` | `content` (default), `marker`, `markerAndContent`, or `parent` |
+| `--if-match <version>` | Fail unless the document's version token matches (see `print-map`) |
+| `--create-target-if-missing` | Create the target (and missing ancestors) when it does not exist |
+| `--reject-if-content-preexists` | Fail instead of applying when the content is already present |
+
+For a `frontmatter` target the payload is parsed as JSON, falling back to the raw string; for `--scope parent` (a move) the payload is the JSON `destination`, e.g. `{"parent": ["Archive"], "place": "last"}`.
 
 ```sh
 echo "- Send the report" | mdpatch patch append heading "Meeting Notes::Action Items" notes.md
-echo '"done"' | mdpatch patch replace frontmatter status notes.md
+echo '["draft", "urgent"]' | mdpatch patch replace frontmatter tags notes.md
+mdpatch patch delete block quote-1 notes.md -s markerAndContent
 ```
 
 ### `mdpatch apply`
@@ -247,11 +254,11 @@ Apply one or more patch instructions from a JSON patch file.
 mdpatch apply [options] <documentPath> <patchFile>
 ```
 
-The patch file should be a JSON object (single instruction) or JSON array (multiple instructions). Use `-` to read from stdin.
+The patch file should be a JSON object (single instruction) or JSON array (multiple instructions, applied in order) in exactly the shape the library's `patch` accepts — see [The model](#the-model). Use `-` to read from stdin.
 
 ### `mdpatch query`
 
-Extract the content of a specific target and write it to stdout (or a file).
+Read a target's content and write it to stdout (or a file with `-o`): markdown for headings and blocks, JSON for frontmatter values.
 
 ```
 mdpatch query [options] <targetType> <target> <documentPath>
@@ -259,15 +266,15 @@ mdpatch query [options] <targetType> <target> <documentPath>
 
 ### `mdpatch print-map`
 
-Show all patchable targets discovered in a document, useful for finding the right target address.
+Show a document's addressable map — its `version` token (for `--if-match`), frontmatter fields, heading tree, and block ids — as JSON. With a regex, list only matching addresses, one `type<TAB>address` per line.
 
 ```
 mdpatch print-map <documentPath> [regex]
 ```
 
-## Deprecated: the 1.x API
+## Migrating from 1.x
 
-`applyPatch` and `getDocumentMap` are the previous generation of this library. They still work and are still exported, but they are deprecated and will be removed in a future major release.
+Version 2.0 removes the 1.x API: `applyPatch`, `getDocumentMap`, and the `PatchInstruction` types are gone. If you need the old behavior as-is, stay on `markdown-patch@1`.
 
 The 1.x API spread its addressing across a `::`-joined `target` string with a separate `targetDelimiter`, offered no `delete` operation, no moves, and no `version` token. To migrate, switch to `patch` and move each field across:
 

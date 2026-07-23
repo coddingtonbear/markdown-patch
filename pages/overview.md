@@ -72,4 +72,4 @@ The leading `\n` in the content above is deliberate. Content is spliced in exact
 
 See {@link Reference.patch} for the full instruction shape, {@link Reference.readTarget} for the read-side mirror of the same addressing, and {@link Reference.projectMap} for discovering what a document has to target.
 
-> **Note:** {@link Reference.applyPatch} and {@link Reference.getDocumentMap} are the deprecated 1.x API. They still work, but new code should use {@link Reference.patch}; see the README for the migration table.
+> **Note:** the 1.x API (`applyPatch` and `getDocumentMap`) was removed in 2.0; see the README's "Migrating from 1.x" section for the migration table.
