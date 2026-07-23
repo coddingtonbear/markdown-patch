@@ -1,0 +1,94 @@
+{
+  "headings": [
+    {
+      "level": 1,
+      "text": "Kinds",
+      "start": 0,
+      "end": 7
+    },
+    {
+      "level": 1,
+      "text": "Empty",
+      "start": 126,
+      "end": 133
+    },
+    {
+      "level": 1,
+      "text": "After",
+      "start": 135,
+      "end": 142
+    }
+  ],
+  "sections": [
+    {
+      "type": "heading",
+      "start": 0,
+      "end": 7
+    },
+    {
+      "type": "paragraph",
+      "start": 9,
+      "end": 25
+    },
+    {
+      "type": "paragraph",
+      "start": 27,
+      "end": 61
+    },
+    {
+      "type": "list",
+      "start": 63,
+      "end": 74
+    },
+    {
+      "type": "thematicBreak",
+      "start": 86,
+      "end": 89
+    },
+    {
+      "type": "code",
+      "start": 91,
+      "end": 109
+    },
+    {
+      "type": "blockquote",
+      "start": 111,
+      "end": 124
+    },
+    {
+      "type": "heading",
+      "start": 126,
+      "end": 133
+    },
+    {
+      "type": "heading",
+      "start": 135,
+      "end": 142
+    },
+    {
+      "type": "paragraph",
+      "start": 144,
+      "end": 179
+    }
+  ],
+  "blocks": {
+    "inline1": {
+      "start": 27,
+      "end": 61
+    },
+    "listref": {
+      "start": 63,
+      "end": 74
+    }
+  },
+  "listItems": [
+    {
+      "start": 63,
+      "end": 68
+    },
+    {
+      "start": 69,
+      "end": 74
+    }
+  ]
+}
