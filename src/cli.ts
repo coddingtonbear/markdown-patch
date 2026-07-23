@@ -296,6 +296,12 @@ program
     "Heading delimiter to use in place of '::'.",
     "::"
   )
+  .option(
+    "-s, --scope <scope>",
+    "Scope to read ('content', 'marker', 'markerAndContent'); defaults to " +
+      "'content'.  Reads mirror writes: what a scope returns is what a " +
+      "'replace' at that scope consumes."
+  )
   .argument(
     "<targetType>",
     "Target type ('heading', 'block', 'frontmatter')"
@@ -315,6 +321,7 @@ program
         result = readTarget(document, {
           targetType,
           target: parseTarget(targetType as TargetType, target, options.delimiter),
+          ...(options.scope !== undefined ? { scope: options.scope } : {}),
         } as Parameters<typeof readTarget>[1]);
       } catch (e) {
         fail(e);

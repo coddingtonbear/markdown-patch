@@ -59,8 +59,21 @@ export type ReadResult =
  * non-`content` scope (a positional body block has no marker of its own; its
  * `markerAndContent` cells are insert-only on the write side).
  */
+const READ_SCOPES: readonly ReadScope[] = [
+  "content",
+  "marker",
+  "markerAndContent",
+];
+
 export const readTarget = (document: string, target: ReadTarget): ReadResult => {
   const scope: ReadScope = target.scope ?? "content";
+  if (!READ_SCOPES.includes(scope)) {
+    // Untyped callers (the CLI, HTTP layers) pass scope through as a string;
+    // an unrecognized one must not silently read as `content`.
+    throw new InvalidInstructionError(
+      `invalid read scope ${JSON.stringify(scope)}; expected one of ${READ_SCOPES.join(", ")}`
+    );
+  }
   const model = buildModel(document);
   const resolved = resolveTarget(model, target);
   if (!resolved) {
