@@ -170,6 +170,60 @@ describe("patch — frontmatter markerAndContent cells", () => {
   });
 });
 
+describe("buildModel — keys whose written form differs from their parsed form", () => {
+  // Entries come from the positioned YAML AST, so a key is recognized by what
+  // it *parses to*, never by matching its raw line text. The line-scan this
+  // guards against silently produced no entry for such keys — and, since
+  // frontmatter writes re-serialize from the entry list, destroyed them.
+  const QUOTED = '---\n"a:b": 1\nother: 2\n---\nbody\n';
+
+  test("a quoted key containing a colon is listed and addressable", () => {
+    const model = buildModel(QUOTED);
+    expect(model.frontmatter.entries.map((e) => e.key)).toEqual([
+      "a:b",
+      "other",
+    ]);
+    expect(readTarget(QUOTED, { targetType: "frontmatter", target: "a:b" }))
+      .toEqual({ kind: "frontmatter", value: 1 });
+  });
+
+  test("a quoted key survives a write to a sibling key", () => {
+    const result = patch(QUOTED, {
+      targetType: "frontmatter",
+      target: "other",
+      operation: "replace",
+      value: 3,
+    });
+    // The serializer may re-emit the key in plain style ("a:b:" parses to the
+    // same key); what matters is that the entry survives with its value.
+    expect(result.document).toBe("---\na:b: 1\nother: 3\n---\nbody\n");
+    const after = buildModel(result.document);
+    expect(after.frontmatter.entries.map((e) => [e.key, e.value])).toEqual([
+      ["a:b", 1],
+      ["other", 3],
+    ]);
+  });
+
+  test("a plainly quoted key is editable under its parsed name", () => {
+    const result = patch('---\n"foo": 1\n---\nbody\n', {
+      targetType: "frontmatter",
+      target: "foo",
+      operation: "replace",
+      value: 9,
+    });
+    expect(result.document).toBe("---\nfoo: 9\n---\nbody\n");
+  });
+
+  test("a numeric key round-trips in document order", () => {
+    const doc = "---\n2024: notes\nalpha: 1\n---\n";
+    const model = buildModel(doc);
+    expect(model.frontmatter.entries.map((e) => e.key)).toEqual([
+      "2024",
+      "alpha",
+    ]);
+  });
+});
+
 describe("buildModel — malformed frontmatter", () => {
   const colonInFrontmatter = fs.readFileSync(
     path.join(__dirname, "sample.frontmatter.colon-in-value.md"),

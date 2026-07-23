@@ -1,5 +1,5 @@
 import * as marked from "marked";
-import { parse as parseYaml } from "yaml";
+import { isMap, isScalar, parseDocument } from "yaml";
 import { createHash } from "crypto";
 
 import { DocumentRange } from "./types.js";
@@ -521,49 +521,48 @@ const buildFrontmatter = (
     return { entries: [], block: null };
   }
   const block: DocumentRange = { start: 0, end: contentOffset };
-  let parsed: unknown;
-  try {
-    parsed = parseYaml(frontmatterText.trim());
-  } catch (e) {
+
+  // Parse the inner YAML once as a positioned AST.  Each pair node carries
+  // both the *parsed* key and real source ranges, so a quoted `"foo"`, a key
+  // containing a colon, or a numeric key all yield the same entry the values
+  // expose.  (The hand-rolled line scan this replaces matched raw line text
+  // against parsed keys by string equality, so any key whose written form
+  // differed from its parsed form silently produced no entry — and, since
+  // frontmatter writes re-serialize from the entry list, was dropped from the
+  // document by the next edit.)
+  const doc = parseDocument(frontmatterText);
+  if (doc.errors.length > 0) {
     throw new FrontmatterParseError(
-      `Could not parse document frontmatter: ${(e as Error).message}`
+      `Could not parse document frontmatter: ${doc.errors[0].message}`
     );
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+  if (!isMap(doc.contents)) {
+    // Empty, or not a mapping (e.g. a bare list): nothing key-addressable.
     return { entries: [], block };
   }
-  const parsedRecord = parsed as Record<string, unknown>;
 
-  // The inner YAML begins just past the opening delimiter and runs for
-  // `frontmatterText.length`; the closing `---` follows.  Locate each
-  // top-level `key:` at a line start so callers get real ranges (used later
-  // for key-scoped splicing).
-  const openingLength =
-    /^---(?:\r\n|\r|\n)/.exec(document)?.[0].length ?? 4;
-  const innerStart = openingLength;
-  const innerEnd = innerStart + frontmatterText.length;
+  // Node ranges are offsets into the inner YAML text, which begins just past
+  // the opening delimiter line.
+  const innerStart = /^---(?:\r\n|\r|\n)/.exec(document)?.[0].length ?? 4;
 
-  const keyStarts: Array<{ key: string; start: number; colon: number }> = [];
-  let lineStart = innerStart;
-  for (const line of frontmatterText.split(/(?<=\n)/)) {
-    const keyMatch = /^([^\s:][^:]*):/.exec(line);
-    if (keyMatch && keyMatch[1].trim() in parsedRecord) {
-      keyStarts.push({
-        key: keyMatch[1].trim(),
-        start: lineStart,
-        colon: lineStart + keyMatch[0].length,
-      });
-    }
-    lineStart += line.length;
-  }
-
-  const entries: FrontmatterEntry[] = keyStarts.map((entry, idx) => {
-    const end = keyStarts[idx + 1]?.start ?? innerEnd;
+  const entries: FrontmatterEntry[] = doc.contents.items.map((item) => {
+    const keyNode = item.key;
+    const valueNode = item.value;
+    const key = String(isScalar(keyNode) ? keyNode.value : keyNode.toJSON());
+    const value: unknown = valueNode ? valueNode.toJSON() : null;
+    const keyRange = keyNode.range;
+    const valueRange = valueNode?.range ?? keyRange;
     return {
-      key: entry.key,
-      value: parsedRecord[entry.key],
-      entryRange: { start: entry.start, end },
-      valueRange: { start: entry.colon, end },
+      key,
+      value,
+      entryRange: {
+        start: innerStart + keyRange[0],
+        end: innerStart + valueRange[1],
+      },
+      valueRange: {
+        start: innerStart + (valueNode?.range?.[0] ?? keyRange[1]),
+        end: innerStart + valueRange[1],
+      },
     };
   });
 
