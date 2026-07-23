@@ -111,11 +111,28 @@ const moveSection = (
   );
   const movedText = endWithSingleEol(releveled.text, model.lineEnding);
 
+  const removalStart = subtreeStart(section);
+  const removalEnd = subtreeEnd(section);
   const removal: Edit = {
-    range: { start: subtreeStart(section), end: subtreeEnd(section) },
+    range: { start: removalStart, end: removalEnd },
     text: "",
   };
   const at = childInsertOffset(model, newParent, instruction.destination.place);
+
+  // A destination adjacent to the section's own span means it is not actually
+  // relocating (a self-anchored place, or a cross-parent move that lands in
+  // the same textual spot, e.g. a last child re-parented to precede the
+  // section that follows it). Remove-and-reinsert would consume the trailing
+  // separator the section already owns; re-level in place instead, leaving
+  // every surrounding byte untouched — a level-neutral move is then a
+  // byte-identical no-op.
+  if (at === removalStart || at === removalEnd) {
+    return splice(
+      document,
+      [{ range: source, text: releveled.text }],
+      releveled.warnings
+    );
+  }
   // The moved subtree opens with its own heading marker, which owes no blank
   // line — but it still must begin at a line start, which the destination
   // (the end of a terminator-less last line) may not provide.

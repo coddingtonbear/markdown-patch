@@ -148,6 +148,41 @@ describe("patch — move (replace @ parent)", () => {
     ).toThrow(EngineError);
   });
 
+  test("a level-neutral move to where the section already sits is a byte-identical no-op", () => {
+    const doc = "# P\n\n## S1\na\n\n## S2\nb\n";
+    const afterSelf = patch(doc, {
+      targetType: "heading",
+      target: ["P", "S1"],
+      operation: "replace",
+      scope: "parent",
+      destination: { parent: ["P"], place: { after: ["P", "S1"] } },
+    });
+    expect(afterSelf.document).toBe(doc);
+
+    const beforeFollower = patch(doc, {
+      targetType: "heading",
+      target: ["P", "S1"],
+      operation: "replace",
+      scope: "parent",
+      destination: { parent: ["P"], place: { before: ["P", "S2"] } },
+    });
+    expect(beforeFollower.document).toBe(doc);
+  });
+
+  test("a same-position move across parents re-levels in place, keeping separators", () => {
+    // B is A's last child and the destination (root, before C) is the same
+    // textual spot: only the levels change, and B's blank-line separator
+    // before C survives.
+    const result = patch("# A\na\n\n## B\nb\n\n# C\nc\n", {
+      targetType: "heading",
+      target: ["A", "B"],
+      operation: "replace",
+      scope: "parent",
+      destination: { parent: null, place: { before: ["C"] } },
+    });
+    expect(result.document).toBe("# A\na\n\n# B\nb\n\n# C\nc\n");
+  });
+
   test("moving beneath a parent whose last line has no terminator starts a fresh line", () => {
     // The destination offset is the end of a document with no trailing
     // newline; without the owed line start the moved marker would glue onto
