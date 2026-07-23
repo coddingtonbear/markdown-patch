@@ -587,3 +587,299 @@ describe("patch — no-op identity", () => {
     expect(instruction.operation).toBe("replace");
   });
 });
+
+describe("patch — within (positional body-block) cells", () => {
+  // Section A has three body blocks: a paragraph, a list, and a table; the
+  // subsection and B's body must never be touched by a within edit on A.
+  const WDOC = [
+    "# A",
+    "",
+    "intro para",
+    "",
+    "- one",
+    "- two",
+    "",
+    "| a |",
+    "| - |",
+    "| 1 |",
+    "",
+    "## Sub",
+    "",
+    "sub body",
+    "",
+    "# B",
+    "",
+    "b body",
+    "",
+  ].join("\n");
+
+  describe("content scope: literal splice, the caller owns the joint", () => {
+    test("append with a leading newline extends a list in place", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: 1,
+        operation: "append",
+        content: "\n- three",
+      });
+      expect(result.document).toContain("- one\n- two\n- three\n\n| a |");
+    });
+
+    test("append without a newline continues the block's last line", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: 0,
+        operation: "append",
+        content: " (continued)",
+      });
+      expect(result.document).toContain("intro para (continued)\n\n- one");
+    });
+
+    test("prepend splices at the block's first byte", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: 0,
+        operation: "prepend",
+        content: "OK: ",
+      });
+      expect(result.document).toContain("# A\n\nOK: intro para\n");
+    });
+
+    test("replace swaps exactly the block's own text", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: -1,
+        operation: "replace",
+        content: "plain text instead of a table",
+      });
+      expect(result.document).toContain(
+        "- two\n\nplain text instead of a table\n\n## Sub"
+      );
+      expect(result.document).not.toContain("| a |");
+    });
+
+    test("replace with the block's own text is a byte identity", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: 1,
+        operation: "replace",
+        content: "- one\n- two",
+      });
+      expect(result.document).toBe(WDOC);
+    });
+
+    test("a negative index counts from the end of the direct body", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: -3,
+        operation: "prepend",
+        content: "X",
+      });
+      expect(result.document).toContain("Xintro para");
+    });
+
+    test("delete removes the block and its separator", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: 0,
+        operation: "delete",
+      });
+      expect(result.document).toContain("# A\n\n- one\n- two\n\n| a |");
+      expect(result.document).not.toContain("intro para");
+    });
+
+    test("delete of the last block leaves the next heading separated", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: -1,
+        operation: "delete",
+      });
+      expect(result.document).toContain("- one\n- two\n\n## Sub");
+      expect(result.document).not.toContain("| a |");
+    });
+
+    test("delete of a final block at EOF with no trailing newline", () => {
+      const doc = "# H\n\nfirst\n\nlast without newline";
+      const result = patch(doc, {
+        targetType: "heading",
+        target: ["H"],
+        within: -1,
+        operation: "delete",
+      });
+      expect(result.document).toBe("# H\n\nfirst\n\n");
+    });
+
+    test("a CRLF document keeps its line endings through a within append", () => {
+      const doc = "# H\r\n\r\n- a\r\n- b\r\n";
+      const result = patch(doc, {
+        targetType: "heading",
+        target: ["H"],
+        within: 0,
+        operation: "append",
+        content: "\n- c",
+      });
+      expect(result.document).toBe("# H\r\n\r\n- a\r\n- b\r\n- c\r\n");
+    });
+  });
+
+  describe("markerAndContent scope: sibling block insert, library-owned separators", () => {
+    test("prepend before the first block in a spaced document", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: 0,
+        operation: "prepend",
+        scope: "markerAndContent",
+        content: "new first block",
+      });
+      expect(result.document).toContain(
+        "# A\n\nnew first block\n\nintro para\n"
+      );
+    });
+
+    test("prepend before the first block in a flush document stays flush at the heading", () => {
+      const doc = "# H\nbody line\n";
+      const result = patch(doc, {
+        targetType: "heading",
+        target: ["H"],
+        within: 0,
+        operation: "prepend",
+        scope: "markerAndContent",
+        content: "new block",
+      });
+      expect(result.document).toBe("# H\nnew block\n\nbody line\n");
+    });
+
+    test("append between two blocks pads both joints", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: 0,
+        operation: "append",
+        scope: "markerAndContent",
+        content: "between",
+      });
+      expect(result.document).toContain(
+        "intro para\n\nbetween\n\n- one\n- two"
+      );
+    });
+
+    test("append after the last block lands before the subsection", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: -1,
+        operation: "append",
+        scope: "markerAndContent",
+        content: "after the table",
+      });
+      expect(result.document).toContain(
+        "| 1 |\n\nafter the table\n\n## Sub"
+      );
+    });
+
+    test("append after a ^id-annotated block falls past its marker line", () => {
+      const doc = "# H\n\n- item\n\n^ref\n\nlast\n";
+      const result = patch(doc, {
+        targetType: "heading",
+        target: ["H"],
+        within: 0,
+        operation: "append",
+        scope: "markerAndContent",
+        content: "inserted",
+      });
+      // The isolated marker stays bound to the list it annotates.
+      expect(result.document).toBe(
+        "# H\n\n- item\n\n^ref\n\ninserted\n\nlast\n"
+      );
+    });
+
+    test("a fragment opening with # becomes a child heading of the section", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: 0,
+        operation: "append",
+        scope: "markerAndContent",
+        content: "# Inserted\nwith body",
+      });
+      // Relative levels: a leading `#` is one level below A (an h1), so h2.
+      expect(result.document).toContain(
+        "intro para\n\n## Inserted\nwith body\n\n- one"
+      );
+    });
+  });
+
+  describe("guards", () => {
+    test("an out-of-range index throws TargetNotFoundError", () => {
+      expect(() =>
+        patch(WDOC, {
+          targetType: "heading",
+          target: ["A"],
+          within: 3,
+          operation: "append",
+          content: "x",
+        })
+      ).toThrow(TargetNotFoundError);
+    });
+
+    test("a stale ifMatch fails before the index is even resolved", () => {
+      expect(() =>
+        patch(WDOC, {
+          targetType: "heading",
+          target: ["A"],
+          within: 99,
+          operation: "append",
+          content: "x",
+          ifMatch: "not-the-version",
+        })
+      ).toThrow(PreconditionFailedError);
+    });
+
+    test("rejectIfContentPreexists refuses content already in the addressed block", () => {
+      expect(() =>
+        patch(WDOC, {
+          targetType: "heading",
+          target: ["A"],
+          within: 1,
+          operation: "append",
+          content: "\n- one",
+          rejectIfContentPreexists: true,
+        })
+      ).toThrow(ContentPreexistsError);
+    });
+
+    test("rejectIfContentPreexists ignores matches outside the addressed block", () => {
+      const result = patch(WDOC, {
+        targetType: "heading",
+        target: ["A"],
+        within: 1,
+        operation: "append",
+        content: "\n- intro para",
+        rejectIfContentPreexists: true,
+      });
+      expect(result.document).toContain("- two\n- intro para\n");
+    });
+
+    test("rejectIfContentPreexists on a sibling insert scans the whole section body", () => {
+      expect(() =>
+        patch(WDOC, {
+          targetType: "heading",
+          target: ["A"],
+          within: 0,
+          operation: "append",
+          scope: "markerAndContent",
+          content: "- one\n- two",
+          rejectIfContentPreexists: true,
+        })
+      ).toThrow(ContentPreexistsError);
+    });
+  });
+});

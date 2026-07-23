@@ -126,6 +126,24 @@ describe("readTarget", () => {
     expect(list).toEqual({ kind: "heading", content: "- one\n- two" });
   });
 
+  test("a within read round-trips through a within replace as byte identity", () => {
+    const doc = "# H\n\nfirst\n\n- one\n- two\n\nlast\n";
+    const result = readTarget(doc, {
+      targetType: "heading",
+      target: ["H"],
+      within: 1,
+    });
+    if (result.kind === "frontmatter") throw new Error("unexpected");
+    const written = patch(doc, {
+      targetType: "heading",
+      target: ["H"],
+      within: 1,
+      operation: "replace",
+      content: result.content,
+    });
+    expect(written.document).toBe(doc);
+  });
+
   test("an out-of-range within read throws TargetNotFoundError", () => {
     expect(() =>
       readTarget(DOC, { targetType: "heading", target: ["Other"], within: 5 })

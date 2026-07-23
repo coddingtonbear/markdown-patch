@@ -106,10 +106,53 @@ export interface HeadingDeleteInstruction extends HeadingTargeted {
   operation: "delete";
   scope: "content" | "marker" | "markerAndContent";
 }
+/**
+ * `replace`/`prepend`/`append` on one positionally-addressed top-level block of
+ * a heading's direct body (`within`: 0-based document order, negative counting
+ * from the end).  Unlike a plain heading content write, the text is spliced
+ * *literally* — the caller owns the joint, exactly as with a `^id` block
+ * content edit — so `append` can continue an existing paragraph or list.
+ */
+export interface HeadingWithinWriteInstruction extends HeadingTargeted {
+  operation: "replace" | "prepend" | "append";
+  scope: "content";
+  /** Index into the section's direct-body top-level blocks; negative from the end. */
+  within: number;
+  content: string;
+}
+/** `delete` one positionally-addressed body block (and its separator). */
+export interface HeadingWithinDeleteInstruction extends HeadingTargeted {
+  operation: "delete";
+  scope: "content";
+  within: number;
+}
+/**
+ * `prepend`/`append @ markerAndContent` beside a positionally-addressed body
+ * block: insert `content` as a *new sibling block* immediately before/after it,
+ * with library-owned blank-line separators (the whitespace contract for new
+ * blocks — only the `content`-scope cells above splice literally).
+ */
+export interface HeadingWithinSiblingInsertInstruction extends HeadingTargeted {
+  operation: "prepend" | "append";
+  scope: "markerAndContent";
+  within: number;
+  content: string;
+}
+export type HeadingWithinInstruction =
+  | HeadingWithinWriteInstruction
+  | HeadingWithinDeleteInstruction
+  | HeadingWithinSiblingInsertInstruction;
 export type HeadingInstruction =
   | HeadingWriteInstruction
   | HeadingMoveInstruction
-  | HeadingDeleteInstruction;
+  | HeadingDeleteInstruction
+  | HeadingWithinInstruction;
+
+/** True when a heading instruction addresses a positional body block. */
+export const isWithinInstruction = (
+  instruction: HeadingInstruction
+): instruction is HeadingWithinInstruction =>
+  "within" in instruction && instruction.within !== undefined;
 
 // --- Block instructions --------------------------------------------------
 

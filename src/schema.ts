@@ -104,6 +104,13 @@ export const InstructionInputObjectSchema = z
       .describe(
         "The node to edit. For a heading: an array of heading texts from the top level down to the target (e.g. [\"Overview\",\"Details\"]), or null/[] for the document root. If a heading is a duplicate of an earlier sibling under the same parent, its address carries an extra non-printable marker suffix appended by the server — copy that address verbatim from wherever the document's heading structure was discovered, never retype or reconstruct it. For a block: the bare block id, without the leading `^` (letters, numbers, hyphens, and underscores only) — a duplicate block id's later occurrence carries the same kind of marker suffix, copied verbatim the same way. For a frontmatter field: the key."
       ),
+    within: z
+      .number()
+      .int()
+      .optional()
+      .describe(
+        "Refines a heading target to one of the section's direct-body top-level blocks (a paragraph, list, table, code fence, blockquote, …): 0 is the first block in document order, and a negative index counts from the end (-1 = last). Isolated `^id` lines are not counted, so indices match the rendered blocks. With scope `content`, the edit is a literal splice into that block — you own the joint, so `append` *continues* the block (e.g. content `\\n- item` extends a list) — and `delete` removes the block. With scope `markerAndContent`, `prepend`/`append` insert a new block immediately before/after it, with library-owned blank-line separators. Heading targets only; cannot be combined with `createTargetIfMissing`."
+      ),
     operation: z
       .enum(operationValues)
       .describe(
@@ -248,6 +255,40 @@ const instructionAlgebra = (
       message:
         "a block id may contain only letters, numbers, hyphens, and underscores",
     });
+  }
+
+  // `within` sub-matrix: a positional body-block refinement narrows the
+  // heading cells to the ones meaningful for a single block — every
+  // `content`-scope operation (literal splice / delete of the block itself)
+  // plus `prepend`/`append @ markerAndContent` (sibling block insert).
+  if (input.within !== undefined) {
+    if (targetType !== "heading") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["within"],
+        message: "`within` applies only to a heading target",
+      });
+    } else {
+      const withinValid =
+        scope === "content" ||
+        (scope === "markerAndContent" &&
+          (operation === "prepend" || operation === "append"));
+      if (!withinValid) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["operation"],
+          message: `${operation} @ ${scope} is not a valid operation for a within-refined heading target`,
+        });
+      }
+    }
+    if (input.createTargetIfMissing) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["createTargetIfMissing"],
+        message:
+          "`createTargetIfMissing` cannot be combined with `within`: a positional block cannot be created by its index",
+      });
+    }
   }
 
   // Cell validity.

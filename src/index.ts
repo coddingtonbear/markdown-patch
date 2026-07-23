@@ -10,6 +10,7 @@ export type {
   DocumentModel,
   SectionNode,
   BlockNode,
+  BodyChild,
   FrontmatterEntry,
 } from "./model.js";
 export { projectMap, headingTreePaths } from "./projection.js";
@@ -30,6 +31,7 @@ export {
   isValidCell,
   assertValidCell,
   isBlockTableRowInstruction,
+  isWithinInstruction,
 } from "./instructions.js";
 export {
   InstructionInputSchema,
@@ -47,6 +49,10 @@ export type {
   HeadingWriteInstruction,
   HeadingMoveInstruction,
   HeadingDeleteInstruction,
+  HeadingWithinInstruction,
+  HeadingWithinWriteInstruction,
+  HeadingWithinDeleteInstruction,
+  HeadingWithinSiblingInsertInstruction,
   BlockInstruction,
   BlockWriteInstruction,
   BlockMarkerReplaceInstruction,

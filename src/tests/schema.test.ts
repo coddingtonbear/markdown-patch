@@ -90,6 +90,25 @@ const valid: { name: string; instruction: InstructionInput }[] = [
     name: "frontmatter delete",
     instruction: { targetType: "frontmatter", target: "a", operation: "delete" },
   },
+  {
+    name: "heading within write (literal splice into a body block)",
+    instruction: { targetType: "heading", target: ["A"], within: -1, operation: "append", content: "\n- x" },
+  },
+  {
+    name: "heading within delete",
+    instruction: { targetType: "heading", target: ["A"], within: 0, operation: "delete" },
+  },
+  {
+    name: "heading within sibling insert",
+    instruction: {
+      targetType: "heading",
+      target: ["A"],
+      within: 1,
+      operation: "prepend",
+      scope: "markerAndContent",
+      content: "new block",
+    },
+  },
 ];
 
 describe("InstructionInputSchema", () => {
@@ -200,6 +219,65 @@ describe("InstructionInputSchema", () => {
       {
         name: "a heading marker rename containing an embedded newline",
         instruction: { targetType: "heading", target: ["A"], operation: "replace", scope: "marker", content: "New\nline" },
+      },
+      {
+        name: "within on a block target",
+        instruction: { targetType: "block", target: "abc", within: 0, operation: "append", content: "x" },
+      },
+      {
+        name: "within on a frontmatter target",
+        instruction: { targetType: "frontmatter", target: "a", within: 0, operation: "replace", value: "v" },
+      },
+      {
+        name: "a non-integer within",
+        instruction: { targetType: "heading", target: ["A"], within: 0.5, operation: "append", content: "x" },
+      },
+      {
+        name: "within with marker scope",
+        instruction: { targetType: "heading", target: ["A"], within: 0, operation: "replace", scope: "marker", content: "x" },
+      },
+      {
+        name: "within with parent scope",
+        instruction: {
+          targetType: "heading",
+          target: ["A"],
+          within: 0,
+          operation: "replace",
+          scope: "parent",
+          destination: { parent: null, place: "last" },
+        },
+      },
+      {
+        name: "a within replace @ markerAndContent (content covers it)",
+        instruction: {
+          targetType: "heading",
+          target: ["A"],
+          within: 0,
+          operation: "replace",
+          scope: "markerAndContent",
+          content: "x",
+        },
+      },
+      {
+        name: "a within delete @ markerAndContent (content covers it)",
+        instruction: {
+          targetType: "heading",
+          target: ["A"],
+          within: 0,
+          operation: "delete",
+          scope: "markerAndContent",
+        },
+      },
+      {
+        name: "within combined with createTargetIfMissing",
+        instruction: {
+          targetType: "heading",
+          target: ["A"],
+          within: 0,
+          operation: "append",
+          content: "x",
+          createTargetIfMissing: true,
+        },
       },
     ];
 

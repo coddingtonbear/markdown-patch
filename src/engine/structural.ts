@@ -192,9 +192,10 @@ export const structuralHeading = (
 
 /**
  * Consume the block's line terminator and, if one follows, a single blank-line
- * separator, so removing a block does not leave a dangling gap.
+ * separator, so removing a block does not leave a dangling gap.  Shared with
+ * the `within` body-block delete in engine.ts, which follows the same contract.
  */
-const consumeTrailingBlank = (document: string, from: number): number => {
+export const consumeTrailingBlank = (document: string, from: number): number => {
   let i = from;
   const eatEol = (): boolean => {
     if (document[i] === "\r" && document[i + 1] === "\n") {

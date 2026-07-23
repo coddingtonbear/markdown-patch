@@ -12,7 +12,7 @@
  * modules and later increments; until then those cells raise a clear error.
  */
 
-import { buildModel, DocumentModel, SectionNode, BlockNode } from "./model.js";
+import { buildModel, DocumentModel, SectionNode, BlockNode, BodyChild } from "./model.js";
 import { resolveTarget } from "./resolve.js";
 import { Edit } from "./splice.js";
 import {
@@ -24,7 +24,7 @@ import {
 } from "./ranges.js";
 import { toLineEnding, sectionFragment, ownedGaps, splice } from "./text.js";
 import { rebaseHeadings } from "./levels.js";
-import { structuralHeading, deleteBlock } from "./engine/structural.js";
+import { structuralHeading, deleteBlock, consumeTrailingBlank } from "./engine/structural.js";
 import { patchFrontmatter } from "./engine/frontmatter.js";
 import { createHeading, createBlock } from "./engine/create.js";
 import { patchTableRows } from "./engine/table.js";
@@ -32,6 +32,7 @@ import {
   Instruction,
   InstructionInput,
   HeadingInstruction,
+  HeadingWithinInstruction,
   BlockInstruction,
   PatchResult,
   EngineError,
@@ -42,6 +43,7 @@ import {
   assertValidCell,
   withDefaultScope,
   isBlockTableRowInstruction,
+  isWithinInstruction,
 } from "./instructions.js";
 import { InstructionInputSchema } from "./schema.js";
 import { ResolvedTarget } from "./resolve.js";
@@ -87,6 +89,16 @@ const scopeSpanText = (
           : blockFullRange(block);
     return document.slice(range.start, range.end);
   }
+  if (resolved.kind === "headingChild") {
+    // `content`: the addressed block itself.  `markerAndContent` (sibling
+    // insert): the whole section body, so a retried insert is still refused
+    // even though the new block lands outside the addressed child.
+    const range =
+      scope === "content"
+        ? resolved.child.range
+        : headingContentRange(resolved.section);
+    return document.slice(range.start, range.end);
+  }
   return null;
 };
 
@@ -106,6 +118,14 @@ const preexistsProbe = (
   resolved: ResolvedTarget,
   scope: string
 ): string => {
+  if (resolved.kind === "headingChild") {
+    // A content-scope within write is a literal splice (never rebased); a
+    // markerAndContent sibling insert splices a fragment rebased to the
+    // section's level, so compare what the write path would produce.
+    return scope === "markerAndContent"
+      ? rebaseHeadings(content, resolved.section.heading?.level ?? 0).text
+      : content;
+  }
   if (resolved.kind !== "heading") {
     return content;
   }
@@ -123,7 +143,10 @@ const preexistsProbe = (
 const patchHeading = (
   document: string,
   model: DocumentModel,
-  instruction: HeadingInstruction,
+  // `within` instructions resolve to a headingChild and dispatch to
+  // patchHeadingChild instead; excluding them here keeps the write-narrowing
+  // below (to HeadingWriteInstruction) sound.
+  instruction: Exclude<HeadingInstruction, HeadingWithinInstruction>,
   section: SectionNode
 ): PatchResult => {
   if (instruction.operation === "delete" || instruction.scope === "parent") {
@@ -305,6 +328,70 @@ const markerRenameEdit = (
   return { range, text: "#".repeat(level) + " " + newText + eol };
 };
 
+// --- Heading body-block (within) handlers --------------------------------
+
+/**
+ * Apply a `within`-refined heading instruction to one top-level block of the
+ * section's direct body.  `content`-scope writes are literal splices — the
+ * caller owns the joint, exactly the `^id` block contract, which is what lets
+ * an `append` *continue* an existing paragraph or list — and `content`-scope
+ * delete removes the block plus its separator.  `markerAndContent`
+ * `prepend`/`append` insert a *new* block beside the addressed one, with the
+ * library-owned separators every new-block insertion gets.
+ */
+const patchHeadingChild = (
+  document: string,
+  model: DocumentModel,
+  instruction: HeadingWithinInstruction,
+  section: SectionNode,
+  child: BodyChild,
+  index: number
+): PatchResult => {
+  if (instruction.scope === "markerAndContent") {
+    // Sibling insert.  Levels in the fragment are relative to the section,
+    // the same baseline as a content-scope write into the same body.
+    const fragment = sectionFragment(
+      instruction.content,
+      section.heading?.level ?? 0,
+      model.lineEnding
+    );
+    // "append after child k" ≡ "insert before child k+1" (or at the body end
+    // for the last child): anchoring on the next sibling keeps the insert
+    // *past* any isolated `^id` marker line annotating the addressed child,
+    // so the marker stays bound to its block.
+    const siblings = section.bodyChildren;
+    const at =
+      instruction.operation === "prepend"
+        ? child.range.start
+        : index + 1 < siblings.length
+          ? siblings[index + 1].range.start
+          : section.body.end;
+    return splice(
+      document,
+      [
+        blockEdit(document, model, { start: at, end: at }, fragment.text, {
+          // The heading line above the body start, and the owned trailing
+          // gap / next marker / EOF below the body end, are self-delimiting.
+          padBefore: at !== section.body.start,
+          padAfter: at !== section.body.end,
+        }),
+      ],
+      fragment.warnings
+    );
+  }
+  if (instruction.operation === "delete") {
+    const end = consumeTrailingBlank(document, child.range.end);
+    return splice(
+      document,
+      [{ range: { start: child.range.start, end }, text: "" }],
+      []
+    );
+  }
+  // Literal splice on the block's own span; only line endings are normalized.
+  const value = toLineEnding(instruction.content, model.lineEnding);
+  return splice(document, [contentEdit(child.range, instruction.operation, value)], []);
+};
+
 // --- Block handlers ------------------------------------------------------
 
 const patchBlock = (
@@ -437,8 +524,29 @@ export const patch = (
   }
 
   // `resolveTarget` dispatches on `targetType`, so the resolved kind always
-  // matches the instruction; narrow explicitly for the type system.
-  if (instruction.targetType === "heading" && resolved.kind === "heading") {
+  // matches the instruction; narrow explicitly for the type system.  A
+  // `within` instruction resolves to a headingChild and only ever reaches
+  // patchHeadingChild — patchHeading never sees one.
+  if (instruction.targetType === "heading" && resolved.kind === "headingChild") {
+    if (!isWithinInstruction(instruction)) {
+      throw new EngineError(
+        "resolved a headingChild for an instruction without `within`"
+      );
+    }
+    return patchHeadingChild(
+      document,
+      model,
+      instruction,
+      resolved.section,
+      resolved.child,
+      resolved.index
+    );
+  }
+  if (
+    instruction.targetType === "heading" &&
+    resolved.kind === "heading" &&
+    !isWithinInstruction(instruction)
+  ) {
     return patchHeading(document, model, instruction, resolved.section);
   }
   if (instruction.targetType === "block" && resolved.kind === "block") {
