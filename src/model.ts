@@ -32,7 +32,27 @@ export interface SectionNode {
   children: SectionNode[];
   /** `^id`-bearing blocks that live directly in this section's body. */
   blocks: BlockNode[];
+  /**
+   * The ordered top-level blocks of this section's *direct* body (paragraphs,
+   * lists, tables, code fences, …), the sequence a positional `within` index
+   * addresses.  Like {@link blocks}, an overlay rather than a partition:
+   * blank-line gaps and isolated `^id` marker lines belong to no child, so
+   * the rendered block count here matches Obsidian's section cache.
+   */
+  bodyChildren: BodyChild[];
   parent: SectionNode | null;
+}
+
+/** One top-level block of a section's direct body. */
+export interface BodyChild {
+  /** marked token type: `paragraph`, `list`, `table`, `code`, `blockquote`, `hr`, … */
+  kind: string;
+  /**
+   * The block's visible span, trailing line endings excluded (the same
+   * convention as {@link BlockNode.content} and Obsidian's block spans).  An
+   * inline `^id` sits inside its block's token, so the span includes it.
+   */
+  range: DocumentRange;
 }
 
 /**
@@ -230,6 +250,7 @@ const buildSectionTree = (
     trailingGap: { start: 0, end: 0 },
     children: [],
     blocks: [],
+    bodyChildren: [],
     parent: null,
   };
 
@@ -261,6 +282,7 @@ const buildSectionTree = (
       trailingGap: { start: abs(split.contentEnd), end: abs(bodyEnd) },
       children: [],
       blocks: [],
+      bodyChildren: [],
       parent: null,
     };
 
@@ -431,6 +453,41 @@ const findBlocks = (
 };
 
 /**
+ * Populate each section's {@link SectionNode.bodyChildren} from the top-level
+ * token stream.  Top-level tokens tile the content region exactly, so a
+ * running raw-length offset gives exact spans (the `findHeadings` technique)
+ * with none of `findBlocks`' anchoring machinery, which exists only for
+ * descendants.  `heading` and `space` tokens are structure, not body blocks;
+ * a paragraph that is nothing but an isolated `^id` marker line annotates the
+ * block above it and is likewise not counted — matching Obsidian's section
+ * cache, which omits such lines.
+ */
+const findBodyChildren = (
+  content: string,
+  abs: Abs,
+  tokens: marked.TokensList,
+  root: SectionNode
+): void => {
+  let offset = 0;
+  for (const token of tokens) {
+    const rawEnd = offset + token.raw.length;
+    if (token.type !== "heading" && token.type !== "space") {
+      const match = BLOCK_REFERENCE_REGEX.exec(token.raw);
+      const isIsolatedMarkerLine = match !== null && match.index === 0;
+      const end = stripTrailingEol(content, rawEnd, offset);
+      if (!isIsolatedMarkerLine && end > offset) {
+        const section = sectionContaining(root, abs(offset));
+        section.bodyChildren.push({
+          kind: token.type,
+          range: { start: abs(offset), end: abs(end) },
+        });
+      }
+    }
+    offset = rawEnd;
+  }
+};
+
+/**
  * A raw heading in the source document that already ends with the exact
  * reserved sequence used to disambiguate a duplicate sibling heading's
  * address (see {@link disambiguatedHeadingText} in projection.ts) could
@@ -528,6 +585,7 @@ export const buildModel = (document: string): DocumentModel => {
   const headings = findHeadings(normalized, tokens);
   const root = buildSectionTree(normalized, abs, headings);
   findBlocks(normalized, abs, tokens, root);
+  findBodyChildren(normalized, abs, tokens, root);
   assertNoReservedMarkerCollisions(headings);
 
   return {

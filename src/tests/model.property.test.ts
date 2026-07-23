@@ -99,6 +99,18 @@ describe("model partition invariants", () => {
         }
       }
     });
+
+    test("body children fall inside their section body, ordered and disjoint", () => {
+      for (const node of collectSections(model)) {
+        let previousEnd = node.body.start;
+        for (const child of node.bodyChildren) {
+          expect(child.range.start).toBeGreaterThanOrEqual(previousEnd);
+          expect(child.range.start).toBeLessThan(child.range.end);
+          expect(child.range.end).toBeLessThanOrEqual(node.body.end);
+          previousEnd = child.range.end;
+        }
+      }
+    });
   });
 });
 

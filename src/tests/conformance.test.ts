@@ -92,6 +92,24 @@ describe("Obsidian conformance", () => {
       expect([...blockIds(text)].sort()).toEqual(Object.keys(g.blocks).sort());
     });
 
+    test("body children match Obsidian's section spans", () => {
+      // Obsidian's section cache lists every rendered top-level block in
+      // document order, omitting isolated `^id` marker lines; filtering out
+      // heading and yaml entries leaves exactly the spans `bodyChildren`
+      // should produce (pre-order section traversal = document order).
+      const model = buildModel(text);
+      const modelSpans: Array<{ start: number; end: number }> = [];
+      eachSection(model.root, (node) => {
+        for (const child of node.bodyChildren) {
+          modelSpans.push({ start: child.range.start, end: child.range.end });
+        }
+      });
+      const obsidianSpans = g.sections
+        .filter((s) => s.type !== "heading" && s.type !== "yaml")
+        .map((s) => ({ start: s.start, end: s.end }));
+      expect(modelSpans).toEqual(obsidianSpans);
+    });
+
     test("each model block span equals Obsidian's block span", () => {
       const model = buildModel(text);
       eachSection(model.root, (node) => {
