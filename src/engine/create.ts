@@ -13,7 +13,7 @@
 import { DocumentModel } from "../model.js";
 import { resolveHeading } from "../resolve.js";
 import { subtreeEnd } from "../ranges.js";
-import { sectionFragment, toLineEnding, splice } from "../text.js";
+import { sectionFragment, toLineEnding, lineStartGap, splice } from "../text.js";
 import {
   HeadingInstruction,
   BlockInstruction,
@@ -81,10 +81,18 @@ export const createHeading = (
   }
   warnings.push(...body.warnings);
 
+  // The chain opens with a heading marker, which owes no blank line — but the
+  // insertion point (the end of a terminator-less last line) may not be a
+  // line start, and a heading cannot begin mid-line.
   const at = subtreeEnd(ancestor);
   return splice(
     document,
-    [{ range: { start: at, end: at }, text: parts.join("") }],
+    [
+      {
+        range: { start: at, end: at },
+        text: lineStartGap(document, at, model.lineEnding) + parts.join(""),
+      },
+    ],
     warnings
   );
 };

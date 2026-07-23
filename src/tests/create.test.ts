@@ -52,6 +52,22 @@ describe("createTargetIfMissing — headings", () => {
     expect(result.document).toContain("####### B\n");
   });
 
+  test("a heading created at a terminator-less last line starts a fresh line", () => {
+    // The insertion point is the end of a document with no trailing newline;
+    // without the owed line start the new marker would glue onto the last
+    // body line ("…no newline# New Section").
+    const result = patch("# A\nlast line no newline", {
+      targetType: "heading",
+      target: ["New Section"],
+      operation: "append",
+      content: "hello",
+      createTargetIfMissing: true,
+    });
+    expect(result.document).toBe(
+      "# A\nlast line no newline\n# New Section\nhello\n"
+    );
+  });
+
   test("without createTargetIfMissing a missing heading still throws", () => {
     expect(() =>
       patch("# A\na\n", {
