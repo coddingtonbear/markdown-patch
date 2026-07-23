@@ -206,6 +206,13 @@ program
           } catch {
             instruction.value = raw.replace(/\n$/, "");
           }
+        } else if (options.scope === "marker") {
+          // A marker payload is a single-line label (heading text, block id,
+          // frontmatter key), so a shell pipeline's trailing newline is
+          // framing, not content — without this, `echo New Name | mdpatch
+          // patch replace heading Old -s marker` is rejected for the line
+          // break every pipeline appends. Body content keeps its bytes.
+          instruction.content = raw.replace(/\r?\n$/, "");
         } else {
           instruction.content = raw;
         }
