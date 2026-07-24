@@ -2,9 +2,41 @@
 
 Make targeted, structure-aware edits to Markdown documents — without `sed`.
 
-Instead of treating a document as a blob of text, `markdown-patch` understands its structure (headings, block references, frontmatter) and lets you edit a specific location within it.
+Instead of treating a document as a blob of text, `markdown-patch` understands its structure (headings, block references, frontmatter) and lets you edit a specific location within it:
 
-Available as both a **CLI tool** (`mdpatch`) and a **TypeScript/JavaScript library**.
+```diff
+ # Weekly Sync
+
+ ## Notes
+
+ Kim walked through the Q3 timeline.
+
++Decided: we ship on Thursday.
++
+ ## Attendees
+
+ - Adam
+ - Kim
+```
+
+The new paragraph lands inside the `Notes` section — not at the end of the file — and the blank lines around it are the engine's job, not yours. The edit is one instruction, with no line numbers and no regex:
+
+```typescript
+import { patch } from "markdown-patch";
+
+const { document } = patch(note, {
+  targetType: "heading",
+  target: ["Weekly Sync", "Notes"],
+  operation: "append",
+  content: "Decided: we ship on Thursday.",
+});
+```
+
+The same edit from a shell, with the bundled `mdpatch` CLI:
+
+```sh
+echo "Decided: we ship on Thursday." | mdpatch patch append heading "Weekly Sync::Notes" notes.md
+```
 
 **API docs:** https://coddingtonbear.github.io/markdown-patch/
 
@@ -15,6 +47,17 @@ npm install markdown-patch
 ```
 
 The `mdpatch` binary is included and available after install.
+
+## Why
+
+The obvious ways to edit Markdown programmatically all break on contact with real documents:
+
+- **Regex and line numbers can't see structure.** In a changelog, `### Fixed` appears under every single release: a pattern matches all of them, while the heading path `["Changelog", "Unreleased", "Fixed"]` names exactly one. And when even the text is ambiguous — two identical sibling headings — the document map hands you a distinct address for each occurrence.
+- **Hand-spliced text gets the joints wrong.** One missing `\n` merges two paragraphs; one extra one splits a list. Here, [whitespace is library-owned](#whitespace-is-library-owned): the engine supplies the separators, and `"X"`, `"X\n"`, and `"\nX\n"` all produce the same document.
+- **Pasted sections land at the wrong depth.** Splicing a `## Details` subtree under a `###` heading means rewriting every `#` in it. Here, [heading levels are relative](#relative-heading-levels) — content is rebased to fit where it lands.
+- **The file may have changed under you.** Between reading a document and writing your edit, anything can happen. Pass [`ifMatch`](#optimistic-concurrency) and a stale patch fails cleanly instead of landing in the wrong place.
+
+These properties matter most when the editor isn't a person. An LLM agent maintaining a note shouldn't re-emit a 4,000-token file to add one paragraph: it can read the compact document map instead of the whole document, target one section, and append — cheaper, faster, and incapable of mangling the 3,900 tokens it had no business touching. `markdown-patch` is the editing engine behind [Obsidian Local REST API](https://github.com/coddingtonbear/obsidian-local-rest-api)'s PATCH endpoints and MCP tools, where exactly that kind of client is the norm.
 
 ## The model
 
