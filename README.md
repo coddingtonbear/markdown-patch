@@ -1,5 +1,7 @@
 # markdown-patch
 
+![](http://coddingtonbear-public.s3.amazonaws.com/github/markdown-patch/demo.gif)
+
 Make targeted, structure-aware edits to Markdown documents — without `sed`.
 
 Instead of treating a document as a blob of text, `markdown-patch` understands its structure (headings, block references, frontmatter) and lets you edit a specific location within it:
