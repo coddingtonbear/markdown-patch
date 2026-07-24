@@ -42,6 +42,32 @@ echo "Decided: we ship on Thursday." | mdpatch patch append heading "Weekly Sync
 
 **API docs:** https://coddingtonbear.github.io/markdown-patch/
 
+**Contents**
+
+<!-- toc -->
+
+- [Install](#install)
+- [Why](#why)
+- [The model](#the-model)
+- [Library usage](#library-usage)
+  * [Relative heading levels](#relative-heading-levels)
+  * [Whitespace is library-owned](#whitespace-is-library-owned)
+  * [Positional block edits: `within`](#positional-block-edits-within)
+  * [Table rows](#table-rows)
+  * [Frontmatter](#frontmatter)
+  * [Renaming, deleting, and moving](#renaming-deleting-and-moving)
+  * [Inspecting a document](#inspecting-a-document)
+  * [Optimistic concurrency](#optimistic-concurrency)
+  * [Errors](#errors)
+- [CLI reference](#cli-reference)
+  * [`mdpatch patch`](#mdpatch-patch)
+  * [`mdpatch apply`](#mdpatch-apply)
+  * [`mdpatch query`](#mdpatch-query)
+  * [`mdpatch print-map`](#mdpatch-print-map)
+- [Migrating from 1.x](#migrating-from-1x)
+
+<!-- tocstop -->
+
 ## Install
 
 ```sh
