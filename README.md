@@ -34,7 +34,7 @@ The payload rides in exactly one field, chosen by what it is:
 | Field | Type | Used for |
 |---|---|---|
 | `content` | `string` | Heading and block bodies/labels, and frontmatter key renames |
-| `value` | `unknown` (JSON) | Frontmatter values |
+| `value` | `unknown` (JSON) | Frontmatter values, and table rows (`string[][]`) |
 | `destination` | `ParentSpec` | Where a moved heading lands |
 
 Not every combination is meaningful. `prepend @ parent`, or any `parent` scope on a block or frontmatter target, is not part of the algebra and is rejected with an `InvalidCellError`.
@@ -131,7 +131,23 @@ Two footguns to know about:
 
 Because indices are positional, they are meant for single-request use: read the section (or its map), count its rendered blocks, and pair the edit with `ifMatch` from the same read so a concurrent change fails the patch instead of landing on the wrong block.
 
-> This contract intentionally reverses commit `4f84d89`, which documented the earlier "spliced verbatim / a leading `\n` buys the blank line" engine behavior rather than fixing it. That behavior contradicted the 2.0 design principle that the library owns whitespace, and preserved (in mutated form) the 1.x failure mode where a caller forgetting newline bookkeeping merges paragraphs.
+### Table rows
+
+A `block` target whose block is a table supports structured row edits. Put a 2-D array of cell text in `value` instead of literal text in `content` — the carrier you choose decides which kind of write it is:
+
+```typescript
+patch(document, {
+  targetType: "block",
+  target: "inventory",
+  operation: "append",
+  value: [
+    ["widget", "4"],
+    ["sprocket", "1"],
+  ],
+});
+```
+
+`replace` swaps the table's body rows while keeping its header and separator lines; `prepend`/`append` insert rows before/after the existing body rows. Cells are *content*, not row source: a `|` in a cell is escaped for you, other markdown is passed through as written, and each row must match the table's column count. A cell containing a line break is rejected rather than silently split or rewritten as `<br>`. Structured row edits require a block target (`^id` on the table); a `within`-addressed table takes only literal-text edits.
 
 ### Frontmatter
 
@@ -202,6 +218,8 @@ const map = projectMap(buildModel(document));
 
 Each `headings` entry is an array whose length is that heading's level, so `["Meeting Notes", "Action Items"]` is two deep. Pass one straight back as a `target`. A `null` element marks a skipped level; `""` is a genuinely empty heading.
 
+Duplicates are individually addressable. When two sibling headings share the same text (or two blocks share an id), the first occurrence keeps its plain text and each later occurrence's map entry carries an opaque, non-printable marker suffix. Copy such an entry verbatim from the map into your `target` — the suffix is made of reserved codepoints you are not meant to type or construct yourself. (A document whose own heading text already ends in the reserved sequence is rejected at parse time with `ReservedDuplicateMarkerError`, so a synthesized address can never collide with real text.)
+
 `readTarget` is the mirror image of `patch` — the same `(targetType, target)` address, read instead of written:
 
 ```typescript
@@ -213,6 +231,14 @@ readTarget(document, { targetType: "heading", target: ["Meeting Notes", "Action 
 readTarget(document, { targetType: "frontmatter", target: "tags" });
 // { kind: "frontmatter", value: ["alpha"] }
 ```
+
+Reads take an optional `scope` mirroring the patch scopes, with one invariant tying the two together: **read at scope S, then `replace` at scope S with the value unchanged, is a no-op.**
+
+- `content` (the default) — the node's body: a heading's body de-levelled by the target's own level (so writing it back through a `content`-scope `replace` round-trips), a block's literal text, a frontmatter key's parsed value.
+- `marker` — the label: a heading's raw text (no `#`s, no duplicate-marker suffix), a block's bare id, a frontmatter key.
+- `markerAndContent` — the whole node, in exactly the shape a `markerAndContent` `replace` consumes: a heading's subtree re-levelled to its parent's baseline (its own heading line reads as `# Title`), a block's full span including its `^id`. The one deviation from the invariant is frontmatter, which reads as a `{key: value}` object — the shape a `markerAndContent` `prepend`/`append` takes, since a frontmatter `replace` carries a plain value at either scope.
+
+A `within` read supports only `content` — a positional body block has no marker of its own.
 
 ### Optimistic concurrency
 
@@ -235,10 +261,17 @@ All failures extend `EngineError`:
 | Error | Raised when |
 |---|---|
 | `InvalidCellError` | The operation×scope combination is not part of the algebra |
+| `InvalidInstructionError` | The instruction is malformed — a bad field, target shape, or payload carrier for an otherwise-valid cell |
 | `TargetNotFoundError` | The address does not resolve (and `createTargetIfMissing` was not set) |
 | `PreconditionFailedError` | The `ifMatch` version did not match |
 | `ContentPreexistsError` | `rejectIfContentPreexists` was set and the value was already there |
 | `MergeError` | A frontmatter merge hit a type mismatch |
+| `FrontmatterParseError` | The frontmatter block is not parseable YAML |
+| `FrontmatterKeyCollisionError` | A key rename or entry insert would create a duplicate key |
+| `ReservedDuplicateMarkerError` | The source document's own text ends in the reserved duplicate-marker sequence |
+| `NotATableError` | A table-row `value` addressed a block that is not a table |
+| `TableColumnCountError` | A supplied row's cell count does not match the table's columns |
+| `InvalidCellContentError` | A table cell's text cannot be written as a row (e.g. contains a line break) |
 
 ## CLI reference
 
@@ -295,9 +328,11 @@ Read a target's content and write it to stdout (or a file with `-o`): markdown f
 mdpatch query [options] <targetType> <target> <documentPath>
 ```
 
+`-s, --scope` selects `content` (default), `marker`, or `markerAndContent`, mirroring the patch scopes — what a scope returns is what a `replace` at that scope consumes. See [Read scopes](#inspecting-a-document). `-d, --delimiter` overrides the `::` heading-path delimiter, as on `patch`.
+
 ### `mdpatch print-map`
 
-Show a document's addressable map — its `version` token (for `--if-match`), frontmatter fields, heading tree, and block ids — as JSON. With a regex, list only matching addresses, one `type<TAB>address` per line.
+Show a document's addressable map — its `version` token (for `--if-match`), frontmatter fields, heading tree, and block ids — as JSON. With a regex, list only matching addresses, one `type<TAB>address` per line (`-d, --delimiter` overrides the `::` joining the heading paths).
 
 ```
 mdpatch print-map <documentPath> [regex]
