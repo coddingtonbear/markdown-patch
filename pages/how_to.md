@@ -133,12 +133,12 @@ const map = projectMap(buildModel(myDocument));
 // {
 //   version: "c23234",
 //   frontmatterFields: ["status", "tags"],
-//   headings: [["Meeting Notes"], ["Meeting Notes", "Action Items"]],
+//   headings: { "Meeting Notes": { "Action Items": {} } },
 //   blocks: []
 // }
 ```
 
-Each `headings` entry can be passed straight back as a `target`, and its length is the heading's level.
+`headings` nests by containment: each heading's text maps to an object of its child headings, and a leaf maps to `{}`. The path of keys down to a heading — `["Meeting Notes", "Action Items"]` — is exactly the `target` you pass back, and {@link Reference.headingTreePaths} turns the tree into that list of addresses.
 
 # Read a target instead of writing it
 
