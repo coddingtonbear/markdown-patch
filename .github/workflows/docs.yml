@@ -43,15 +43,19 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Install dependencies
         run: npm install
-      - name: Run Build Script
-        # Outputs to the './_site' directory by default
+      - name: Build API docs
+        # typedoc outputs to './docs/' (see typedoc.json)
         run: npm run docs
+      - name: Assemble site
+        # Landing page at the root, typedoc API docs under /api/
+        run: |
+          mkdir -p _site/api
+          cp -R site/. _site/
+          cp -R docs/. _site/api/
       - name: Upload artifact
-        # Automatically uploads an artifact from the './_site' directory by default
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: "./docs/"
+          path: "./_site/"
 
   # Deployment job
   deploy:

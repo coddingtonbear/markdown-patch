@@ -40,7 +40,7 @@ The same edit from a shell, with the bundled `mdpatch` CLI:
 echo "Decided: we ship on Thursday." | mdpatch patch append heading "Weekly Sync::Notes" notes.md
 ```
 
-**API docs:** https://coddingtonbear.github.io/markdown-patch/
+**Website:** https://coddingtonbear.github.io/markdown-patch/ · **API docs:** https://coddingtonbear.github.io/markdown-patch/api/
 
 **Contents**
 
