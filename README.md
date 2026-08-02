@@ -280,14 +280,16 @@ import { buildModel, projectMap } from "markdown-patch";
 
 const map = projectMap(buildModel(document));
 // {
-//   version: "c23234",
+//   version: "329b63",
 //   frontmatterFields: ["status"],
-//   headings: [["Meeting Notes"], ["Meeting Notes", "Action Items"]],
+//   headings: { "Meeting Notes": { "Action Items": {} } },
 //   blocks: []
 // }
 ```
 
-Each `headings` entry is an array whose length is that heading's level, so `["Meeting Notes", "Action Items"]` is two deep. Pass one straight back as a `target`. A `null` element marks a skipped level; `""` is a genuinely empty heading.
+`headings` is a tree that nests by containment: each heading's text is a key mapping to an object of its child headings, and a leaf heading maps to `{}`. A heading's address is the path of keys from the top level down to it — `["Meeting Notes", "Action Items"]` — which is exactly what you pass back as a `target`; `headingTreePaths(map.headings)` turns the whole tree into that list of addresses for you.
+
+The tree carries no heading levels, because nesting is by containment rather than by `#`-count: a level skipped in the source (an `h1` followed directly by an `h3`) is not a hole in the tree — the deeper heading is simply a child of the section that contains it. A heading with no text at all is the key `""`.
 
 Duplicates are individually addressable. When two sibling headings share the same text (or two blocks share an id), the first occurrence keeps its plain text and each later occurrence's map entry carries an opaque, non-printable marker suffix. Copy such an entry verbatim from the map into your `target` — the suffix is made of reserved codepoints you are not meant to type or construct yourself. (A document whose own heading text already ends in the reserved sequence is rejected at parse time with `ReservedDuplicateMarkerError`, so a synthesized address can never collide with real text.)
 
@@ -427,7 +429,8 @@ The 1.x API spread its addressing across a `::`-joined `target` string with a se
 | `trimTargetWhitespace` | *(dropped; the engine owns boundary whitespace)* |
 | `getDocumentMap(doc)` | `projectMap(buildModel(doc))` |
 
-Two behavioral differences to watch for when migrating:
+Three behavioral differences to watch for when migrating:
 
 - **Heading levels are now relative.** 1.x took the `#`s in your content literally; the current engine rebases them against the span being edited.
 - **Heading `content` scope covers the whole subtree.** In 1.x it stopped at the next heading of any level.
+- **The map is a different shape.** `getDocumentMap` returned every heading as a flat `Record` keyed by a `::`-joined string, each entry carrying that heading's source ranges and level. `projectMap` returns addresses only: headings as a [tree nested by containment](#inspecting-a-document), blocks as bare ids, frontmatter as field names — no offsets and no levels.
