@@ -113,7 +113,8 @@ export const mapChips = (
   for (const path of headingTreePaths(map.headings)) {
     chips.push({
       group: "headings",
-      label: path.join("::"),
+      // A readable path; the instruction gets the array form the library takes.
+      label: path.join(" › "),
       fields: { targetType: "heading", target: path },
     });
   }
@@ -132,6 +133,58 @@ export const mapChips = (
     });
   }
   return { chips, error: null };
+};
+
+export type OptionField = "targetType" | "operation" | "scope";
+
+/** One clickable enum value for an instruction field. */
+export interface OptionChip {
+  field: OptionField;
+  value: string;
+}
+
+/**
+ * Every value the engine accepts for the instruction's enumerated fields, so
+ * a visitor can see what exists without reading the types. Read mode has no
+ * operation and no `parent` scope (that scope only makes sense for a move).
+ */
+export const optionChips = (mode: "patch" | "read"): OptionChip[] => {
+  const of = (field: OptionField, values: readonly string[]): OptionChip[] =>
+    values.map((value) => ({ field, value }));
+  const targetTypes = of("targetType", ["heading", "block", "frontmatter"]);
+  if (mode === "read") {
+    return [
+      ...targetTypes,
+      ...of("scope", ["content", "marker", "markerAndContent"]),
+    ];
+  }
+  return [
+    ...targetTypes,
+    ...of("operation", ["replace", "prepend", "append", "delete"]),
+    ...of("scope", ["content", "marker", "markerAndContent", "parent"]),
+  ];
+};
+
+/** The enumerated fields currently set in the instruction text, for
+ *  highlighting the matching chips. Unparseable text selects nothing. */
+export const selectedOptions = (
+  instructionText: string
+): Partial<Record<OptionField, string>> => {
+  let current: JsonObject | null;
+  try {
+    current = asObject(JSON.parse(instructionText));
+  } catch (error) {
+    return {};
+  }
+  if (!current) return {};
+  const picked: Partial<Record<OptionField, string>> = {};
+  for (const field of ["targetType", "operation", "scope"] as const) {
+    const value = current[field];
+    if (typeof value === "string") picked[field] = value;
+  }
+  // `scope` defaults to "content" when omitted, so show that as selected.
+  if (picked.scope === undefined) picked.scope = "content";
+  return picked;
 };
 
 const asObject = (value: unknown): JsonObject | null =>
@@ -192,12 +245,17 @@ export const runInstruction = (
     if (mode === "read") {
       const target = instruction as ReadTarget;
       const result = readTarget(document, target);
+      // Show the targeted content itself, as `mdpatch query` prints it — not
+      // the `{ kind, content }` envelope readTarget wraps it in. Frontmatter
+      // values are JSON-encoded so a string is distinguishable from a number.
+      const text =
+        result.kind === "frontmatter"
+          ? JSON.stringify(result.value, null, 2)
+          : result.content;
       return {
         kind: "ok",
         status: `ok — read at scope ${JSON.stringify(target.scope ?? "content")}`,
-        rows: JSON.stringify(result, null, 2)
-          .split("\n")
-          .map((line): DiffRow => [line, ""]),
+        rows: text.split("\n").map((line): DiffRow => [line, ""]),
         warnings: [],
       };
     }
@@ -267,6 +325,7 @@ export const mount = (): void => {
   const docEl = need<HTMLTextAreaElement>("pg-doc");
   const instrEl = need<HTMLTextAreaElement>("pg-instr");
   const mapEl = need<HTMLDivElement>("pg-map");
+  const optionsEl = need<HTMLDivElement>("pg-options");
   const statusEl = need<HTMLParagraphElement>("pg-status");
   const resultEl = need<HTMLPreElement>("pg-result");
   const resultTitleEl = need<HTMLElement>("pg-result-title");
@@ -327,10 +386,41 @@ export const mount = (): void => {
     }
   };
 
+  const renderOptions = (): void => {
+    optionsEl.replaceChildren();
+    const picked = selectedOptions(instrEl.value);
+    let lastField: OptionField | null = null;
+    for (const chip of optionChips(mode)) {
+      if (chip.field !== lastField) {
+        const label = window.document.createElement("span");
+        label.className = "group";
+        label.textContent = chip.field;
+        optionsEl.append(label);
+        lastField = chip.field;
+      }
+      const button = window.document.createElement("button");
+      button.type = "button";
+      button.className = "addr";
+      button.textContent = chip.value;
+      button.title = `set ${chip.field} to ${JSON.stringify(chip.value)}`;
+      button.setAttribute("aria-pressed", String(picked[chip.field] === chip.value));
+      button.addEventListener("click", () => {
+        instrEl.value = foldAddress(
+          instrEl.value,
+          { [chip.field]: chip.value },
+          DEMO_INSTRUCTIONS[mode]
+        );
+        run();
+      });
+      optionsEl.append(button);
+    }
+  };
+
   const run = (): void => {
     renderMap();
+    renderOptions();
     resultTitleEl.textContent =
-      mode === "read" ? "readTarget(…) — nothing written" : "result.document";
+      mode === "read" ? "what readTarget returns — nothing written" : "result.document";
     const outcome = runInstruction(docEl.value, instrEl.value, mode);
     if (outcome.kind === "error") {
       statusEl.className = "pg-status err";

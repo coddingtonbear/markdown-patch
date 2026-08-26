@@ -79,12 +79,12 @@ describe("mapChips", () => {
     expect(chips![0]!.label).toMatch(/^[0-9a-f]{6}$/);
   });
 
-  it("offers every heading path, joined the way print-map shows them", () => {
+  it("offers every heading path, labelled readably but targeted as an array", () => {
     const { chips } = playground.mapChips(DOCUMENT);
     const headings = chips!.filter((chip) => chip.group === "headings");
     expect(headings.map((chip) => chip.label)).toEqual([
       "Weekly Sync",
-      "Weekly Sync::Notes",
+      "Weekly Sync › Notes",
     ]);
     expect(headings[1]!.fields).toEqual({
       targetType: "heading",
@@ -213,8 +213,21 @@ describe("runInstruction", () => {
     );
     expect(outcome.kind).toBe("ok");
     if (outcome.kind !== "ok") return;
-    expect(outcome.rows.map(([text]) => text).join("\n")).toContain('"draft"');
+    expect(outcome.rows.map(([text]) => text).join("\n")).toBe('"draft"');
     expect(outcome.status).toContain('scope "content"');
+  });
+
+  it("shows a section's content itself, not the readTarget envelope", () => {
+    const outcome = playground.runInstruction(
+      DOCUMENT,
+      JSON.stringify({ targetType: "heading", target: ["Title"] }),
+      "read"
+    );
+    expect(outcome.kind).toBe("ok");
+    if (outcome.kind !== "ok") return;
+    const text = outcome.rows.map(([t]) => t).join("\n");
+    expect(text).toContain("body");
+    expect(text).not.toContain('"kind"');
   });
 
   it("names malformed JSON as a syntax error, not an engine error", () => {
@@ -282,5 +295,37 @@ describe("runInstruction", () => {
       kind: "error",
       name: "PreconditionFailedError",
     });
+  });
+});
+
+describe("optionChips", () => {
+  it("lists every operation and scope for patch mode", () => {
+    const chips = playground.optionChips("patch");
+    const values = (field: string) =>
+      chips.filter((c) => c.field === field).map((c) => c.value);
+    expect(values("targetType")).toEqual(["heading", "block", "frontmatter"]);
+    expect(values("operation")).toEqual(["replace", "prepend", "append", "delete"]);
+    expect(values("scope")).toEqual(["content", "marker", "markerAndContent", "parent"]);
+  });
+
+  it("drops operation and the parent scope in read mode", () => {
+    const chips = playground.optionChips("read");
+    expect(chips.some((c) => c.field === "operation")).toBe(false);
+    expect(chips.map((c) => c.value)).not.toContain("parent");
+  });
+});
+
+describe("selectedOptions", () => {
+  it("reads the enumerated fields and defaults scope to content", () => {
+    expect(
+      playground.selectedOptions(
+        JSON.stringify({ targetType: "heading", target: ["A"], operation: "append" })
+      )
+    ).toEqual({ targetType: "heading", operation: "append", scope: "content" });
+  });
+
+  it("selects nothing for text that isn't an object", () => {
+    expect(playground.selectedOptions("{oops")).toEqual({});
+    expect(playground.selectedOptions("[1]")).toEqual({});
   });
 });
