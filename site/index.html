@@ -124,7 +124,7 @@
     margin: 0; font-family: var(--mono); font-size: 0.82rem; line-height: 1.5;
     overflow-x: auto; tab-size: 2;
   }
-  .docline { display: block; padding: 0 6px; border-radius: 3px; white-space: pre; }
+  .docline { display: block; padding: 0 6px; border-radius: 3px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .docline.add { background: var(--add-bg); color: var(--add-ink); }
   .docline.add::before { content: "+ "; font-weight: 700; }
   .docline.del { background: var(--del-bg); color: var(--del-ink); text-decoration: line-through; }
@@ -259,6 +259,7 @@
 
     <div class="demo" aria-label="Interactive patch demo">
       <div class="demo-head">
+        <span class="live">Examples</span>
         <div class="toggles">
           <div class="toggle" id="mode" role="group" aria-label="Read or write">
             <button data-mode="write" aria-pressed="true">Write</button>
