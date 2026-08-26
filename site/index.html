@@ -10,38 +10,62 @@
 <link rel="canonical" href="https://coddingtonbear.github.io/markdown-patch/">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩹</text></svg>">
 <style>
+  @font-face {
+    font-family: "Routed Gothic Wide";
+    src: url("./fonts/routed-gothic-wide.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
   :root {
-    --bg: #fbfcfb;
+    color-scheme: light dark;
+    --bg: #f4f6f9;
     --bg-raised: #ffffff;
-    --bg-inset: #f1f5f2;
-    --ink: #16211a;
-    --ink-soft: #4b5a50;
-    --ink-faint: #8a978e;
-    --line: #dde5df;
-    --accent: #1a7f4b;
-    --accent-ink: #0f5c35;
-    --add-bg: #e2f4e8;
-    --add-ink: #14602f;
-    --del-bg: #fbeaea;
-    --del-ink: #8a2020;
+    --bg-inset: #e8edf3;
+    --ink: #171b21;
+    --ink-soft: #495460;
+    --ink-faint: #747f8c;
+    --line: #cdd5df;
+    --accent: #2b62b0;
+    --accent-ink: #205092;
+    --on-accent: #ffffff;
+    /* Controls sit *above* the card they're on, never below it — a button
+       painted with --bg-inset reads as a hole, not something you can press. */
+    --control: #ffffff;
+    --control-line: #8194ac;
+    --field: #ffffff;
+    --live-strip: #e4edf8;
+    --focus-ring: rgb(43 98 176 / 0.24);
+    /* Red and green are spoken for: they mean removed and added, nothing else. */
+    --add-bg: #ddf0e3;
+    --add-ink: #14663a;
+    --del-bg: #fbe1e6;
+    --del-ink: #a01e40;
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --face: "Routed Gothic Wide", ui-sans-serif, var(--sans);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #101512;
-      --bg-raised: #161d18;
-      --bg-inset: #0c100d;
-      --ink: #e6ede8;
-      --ink-soft: #a8b5ac;
-      --ink-faint: #6b776f;
-      --line: #26302a;
-      --accent: #3fbf7f;
-      --accent-ink: #5ed99a;
-      --add-bg: #143423;
-      --add-ink: #7fe0ab;
-      --del-bg: #3a1c1c;
-      --del-ink: #f0a3a3;
+      --bg: #1b1f25;
+      --bg-raised: #23282f;
+      --bg-inset: #16191e;
+      --ink: #e8ecf2;
+      --ink-soft: #abb5c2;
+      --ink-faint: #828d9b;
+      --line: #363d47;
+      --accent: #5f9be6;
+      --accent-ink: #8dbaf3;
+      --on-accent: #0c1420;
+      --control: #303740;
+      --control-line: #748395;
+      --field: #181c22;
+      --live-strip: #222c38;
+      --focus-ring: rgb(95 155 230 / 0.28);
+      --add-bg: #163a25;
+      --add-ink: #7fdca6;
+      --del-bg: #3d1c26;
+      --del-ink: #f5a0b4;
     }
   }
   * { box-sizing: border-box; }
@@ -59,32 +83,38 @@
     display: flex; align-items: center; gap: 20px;
     padding: 18px 0; border-bottom: 1px solid var(--line);
   }
-  .brand { font-family: var(--mono); font-weight: 700; font-size: 1rem; color: var(--ink); }
+  .brand { font-family: var(--face); font-weight: 400; font-size: 1.15rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); }
   .brand .tick { color: var(--accent); }
-  nav .links { margin-left: auto; display: flex; gap: 20px; font-size: 0.92rem; flex-wrap: wrap; }
+  nav .links {
+    margin-left: auto; display: flex; gap: 18px; font-size: 0.88rem; flex-wrap: wrap;
+    font-family: var(--face); text-transform: uppercase; letter-spacing: 0.08em;
+  }
   nav .links a { color: var(--ink-soft); }
 
   .hero { display: grid; grid-template-columns: minmax(300px, 5fr) 7fr; gap: 48px; padding: 64px 0 56px; align-items: start; }
   @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } }
   h1 {
-    font-size: clamp(1.9rem, 3.6vw, 2.7rem); line-height: 1.12;
-    letter-spacing: -0.02em; margin: 0 0 16px; text-wrap: balance; font-weight: 750;
+    font-family: var(--face); font-size: clamp(1.7rem, 3.2vw, 2.4rem); line-height: 1.14;
+    letter-spacing: 0.01em; margin: 0 0 16px; text-wrap: balance; font-weight: 400;
+    text-transform: uppercase;
   }
   .hero p.lede { font-size: 1.08rem; color: var(--ink-soft); margin: 0 0 24px; max-width: 42ch; }
   .install {
     display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 0.92rem;
-    background: var(--bg-inset); border: 1px solid var(--line); border-radius: 8px;
+    background: var(--field); border: 1px solid var(--control-line); border-radius: 8px;
     padding: 10px 14px; margin-bottom: 20px; width: fit-content;
   }
   .install .dollar { color: var(--ink-faint); user-select: none; }
   .ctas { display: flex; gap: 12px; flex-wrap: wrap; }
   .btn {
-    display: inline-block; padding: 10px 18px; border-radius: 8px; font-weight: 600;
+    display: inline-block; padding: 10px 18px; border-radius: 8px; font-weight: 400;
+    font-family: var(--face); text-transform: uppercase; letter-spacing: 0.07em;
     font-size: 0.95rem; border: 1px solid transparent;
   }
-  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.primary { background: var(--accent); color: var(--on-accent); box-shadow: 0 1px 2px rgb(0 0 0 / 0.16); }
   .btn.primary:hover { text-decoration: none; filter: brightness(1.08); }
-  .btn.ghost { border-color: var(--line); color: var(--ink); background: var(--bg-raised); }
+  .btn.ghost { border-color: var(--control-line); color: var(--ink); background: var(--control); box-shadow: 0 1px 2px rgb(0 0 0 / 0.07); }
+  .btn.ghost:hover { text-decoration: none; border-color: var(--accent); color: var(--accent-ink); }
   .ctas .hint { flex-basis: 100%; font-size: 0.82rem; color: var(--ink-faint); margin-top: 2px; }
 
   .demo {
@@ -93,32 +123,37 @@
   }
   .demo-head {
     display: flex; align-items: center; gap: 8px; padding: 10px 14px;
-    border-bottom: 1px solid var(--line); font-size: 0.8rem; color: var(--ink-faint);
-    text-transform: uppercase; letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--line); font-size: 0.78rem; color: var(--ink-faint);
+    font-family: var(--face); text-transform: uppercase; letter-spacing: 0.12em;
+    background: var(--live-strip);
   }
   .demo-head .live { color: var(--accent-ink); font-weight: 700; }
   .demo-head .toggles { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
-  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .toggle { display: inline-flex; border: 1px solid var(--control-line); border-radius: 6px; overflow: hidden; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
   .toggle button {
-    font: 700 0.72rem var(--sans); letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--ink-soft); background: var(--bg-inset); border: 0; padding: 4px 10px; cursor: pointer;
+    font: 400 0.75rem var(--face); letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-soft); background: var(--control); border: 0; padding: 5px 11px; cursor: pointer;
   }
-  .toggle button + button { border-left: 1px solid var(--line); }
-  .toggle button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .toggle button:hover { color: var(--accent-ink); }
+  .toggle button + button { border-left: 1px solid var(--control-line); }
+  .toggle button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
   .ops { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
   .ops button {
-    font: 600 0.85rem var(--sans); color: var(--ink-soft); background: var(--bg-inset);
-    border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer;
+    font: 400 0.8rem var(--face); letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-soft); background: var(--control);
+    border: 1px solid var(--control-line); border-radius: 999px; padding: 6px 14px; cursor: pointer;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
   }
-  .ops button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .ops button:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .ops button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .panes { display: grid; grid-template-columns: 1fr 1fr; }
   @media (max-width: 640px) { .panes { grid-template-columns: 1fr; } }
   .pane { padding: 14px 16px; min-width: 0; }
   .pane + .pane { border-left: 1px solid var(--line); }
   @media (max-width: 640px) { .pane + .pane { border-left: 0; border-top: 1px solid var(--line); } }
   .pane h3 {
-    margin: 0 0 10px; font-size: 0.72rem; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--ink-faint); font-weight: 700;
+    margin: 0 0 10px; font-family: var(--face); font-size: 0.76rem; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--ink-faint); font-weight: 400;
   }
   pre {
     margin: 0; font-family: var(--mono); font-size: 0.82rem; line-height: 1.5;
@@ -143,8 +178,9 @@
   }
   .pg-head {
     display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-wrap: wrap;
-    border-bottom: 1px solid var(--line); font-size: 0.8rem; color: var(--ink-faint);
-    text-transform: uppercase; letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--line); font-size: 0.78rem; color: var(--ink-faint);
+    font-family: var(--face); text-transform: uppercase; letter-spacing: 0.12em;
+    background: var(--live-strip);
   }
   .pg-head .live { color: var(--accent-ink); font-weight: 700; }
   .pg-head .toggles { margin-left: auto; display: flex; gap: 8px; }
@@ -156,40 +192,48 @@
   .pg-block { padding: 14px 16px; }
   .pg-block + .pg-block { border-top: 1px solid var(--line); }
   .pg-block h3 {
-    margin: 0 0 10px; font-size: 0.72rem; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--ink-faint); font-weight: 700;
+    margin: 0 0 10px; font-family: var(--face); font-size: 0.76rem; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--ink-faint); font-weight: 400;
     display: flex; align-items: baseline; gap: 8px;
   }
-  .pg-block h3 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 0.72rem; }
+  .pg-block h3 .t { white-space: nowrap; }
+  .pg-block h3 .hint { font-family: var(--sans); text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 0.74rem; }
   .pg-input {
     display: block; width: 100%; font-family: var(--mono); font-size: 0.82rem; line-height: 1.5;
-    color: var(--ink); background: var(--bg-inset); border: 1px solid var(--line);
+    color: var(--ink); background: var(--field); border: 1px solid var(--control-line);
     border-radius: 8px; padding: 10px 12px; resize: vertical; tab-size: 2;
+  }
+  .pg-input:focus-visible {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring);
   }
   .pg-map { display: flex; flex-wrap: wrap; gap: 6px; }
   .pg-map .group { flex-basis: 100%; font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint); margin-top: 4px; }
   .pg-map .group:first-child { margin-top: 0; }
   .addr {
-    font: 500 0.78rem var(--mono); color: var(--ink-soft); background: var(--bg-inset);
-    border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; cursor: pointer;
+    font: 500 0.78rem var(--mono); color: var(--ink-soft); background: var(--control);
+    border: 1px solid var(--control-line); border-radius: 999px; padding: 3px 10px; cursor: pointer;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
   }
   .addr:hover { border-color: var(--accent); color: var(--accent-ink); }
   .addr.token { color: var(--accent-ink); }
-  .addr[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .addr[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .pg-status { font-family: var(--mono); font-size: 0.78rem; margin: 10px 0 0; color: var(--ink-faint); }
   .pg-status.err { color: var(--del-ink); }
-  .pg-status .name { font-weight: 700; }
+  .pg-status .name { font-weight: 700; color: var(--accent-ink); }
   .pg-warn { font-size: 0.78rem; color: var(--ink-faint); margin: 8px 0 0; }
   .pg-note { font-size: 0.82rem; color: var(--ink-faint); margin: 14px 0 0; max-width: 78ch; }
   .pg-note code { font-family: var(--mono); font-size: 0.85em; background: var(--bg-inset); padding: 1px 5px; border-radius: 4px; }
 
   section { padding: 48px 0; border-top: 1px solid var(--line); }
-  section h2 { font-size: 1.5rem; letter-spacing: -0.01em; margin: 0 0 8px; text-wrap: balance; }
+  section h2 {
+    font-family: var(--face); font-size: 1.45rem; font-weight: 400;
+    text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0 8px; text-wrap: balance;
+  }
   section > .wrap > p.sub { color: var(--ink-soft); margin: 0 0 28px; max-width: 62ch; }
   .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
   @media (max-width: 820px) { .cards { grid-template-columns: 1fr; } }
   .card { border: 1px solid var(--line); border-radius: 10px; padding: 20px; background: var(--bg-raised); }
-  .card h3 { margin: 0 0 8px; font-size: 1.02rem; }
+  .card h3 { margin: 0 0 8px; font-family: var(--face); font-weight: 400; font-size: 1.05rem; letter-spacing: 0.02em; }
   .card p { margin: 0; font-size: 0.92rem; color: var(--ink-soft); }
   .card code { font-family: var(--mono); font-size: 0.85em; background: var(--bg-inset); padding: 1px 5px; border-radius: 4px; }
 
@@ -197,24 +241,25 @@
   .cmds { border-collapse: collapse; font-size: 0.92rem; min-width: 100%; }
   .cmds th, .cmds td { text-align: left; padding: 9px 20px 9px 0; vertical-align: baseline; }
   .cmds th {
-    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em;
-    color: var(--ink-faint); border-bottom: 1px solid var(--line); font-weight: 700;
+    font-family: var(--face); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--ink-faint); border-bottom: 1px solid var(--line); font-weight: 400;
   }
   .cmds td { border-bottom: 1px solid var(--line); color: var(--ink-soft); }
   .cmds td:first-child { font-family: var(--mono); font-size: 0.85rem; color: var(--ink); white-space: nowrap; }
   .cmds td code { font-family: var(--mono); font-size: 0.85em; background: var(--bg-inset); padding: 1px 5px; border-radius: 4px; }
   .rw {
-    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    font-family: var(--face); font-size: 0.72rem; font-weight: 400;
+    text-transform: uppercase; letter-spacing: 0.1em;
     border-radius: 999px; padding: 3px 10px; white-space: nowrap;
   }
-  .rw.write { background: var(--add-bg); color: var(--add-ink); }
-  .rw.read { background: var(--bg-inset); color: var(--ink-soft); border: 1px solid var(--line); }
+  .rw.write { background: var(--accent); color: var(--on-accent); }
+  .rw.read { background: var(--control); color: var(--ink-soft); border: 1px solid var(--control-line); }
 
   .tok-panel {
     border: 1px solid var(--line); border-radius: 12px; background: var(--bg-raised);
     padding: 22px 26px;
   }
-  .tok-panel h3 { margin: 0 0 18px; font-size: 1.02rem; }
+  .tok-panel h3 { margin: 0 0 18px; font-family: var(--face); font-weight: 400; font-size: 1.05rem; letter-spacing: 0.02em; }
   .bar-row { display: grid; grid-template-columns: 180px 1fr 80px; gap: 14px; align-items: center; margin: 12px 0; }
   @media (max-width: 620px) { .bar-row { grid-template-columns: 1fr; gap: 4px; } }
   .bar-label { font-size: 0.88rem; color: var(--ink-soft); }
@@ -247,7 +292,7 @@
 
   <div class="hero">
     <div>
-      <h1>Structure-aware edits to Markdown documents.</h1>
+      <h1>Structure-aware edits to Markdown documents</h1>
       <p class="lede">Address a heading, block, or frontmatter field — then read it back, or append, replace, and move content. No line numbers, no regex, no <code style="font-family:var(--mono)">sed</code>.</p>
       <div class="install"><span class="dollar">$</span> npm install markdown-patch</div>
       <div class="ctas">
@@ -289,7 +334,7 @@
 
 <section id="playground">
   <div class="wrap">
-    <h2>Now run it on your own document.</h2>
+    <h2>Now run it on your own document</h2>
     <p class="sub">Everything above is a canned example. This is the actual npm package, bundled for the browser and running on this page — paste your own Markdown, write your own instruction, and watch the engine work. Nothing is uploaded; there is no server.</p>
 
     <div class="pg">
@@ -310,7 +355,7 @@
             <textarea class="pg-input" id="pg-doc" rows="14" spellcheck="false" aria-describedby="pg-map-hint" disabled></textarea>
           </div>
           <div class="pg-block">
-            <h3>Document map <span class="hint" id="pg-map-hint">— the addresses <code>projectMap</code> / <code>print-map</code> give you. Click one to target it.</span></h3>
+            <h3><span class="t">Document map</span> <span class="hint" id="pg-map-hint">— the addresses <code>projectMap</code> / <code>print-map</code> give you. Click one to target it.</span></h3>
             <div class="pg-map" id="pg-map"></div>
           </div>
         </div>
@@ -321,7 +366,7 @@
             <p class="pg-status" id="pg-status"></p>
           </div>
           <div class="pg-block">
-            <h3>Options <span class="hint">— every value the engine accepts for these fields. Click one to set it.</span></h3>
+            <h3><span class="t">Options</span> <span class="hint">— every value the engine accepts for these fields. Click one to set it.</span></h3>
             <div class="pg-map" id="pg-options"></div>
           </div>
           <div class="pg-block">
@@ -339,7 +384,7 @@
 
 <section id="docs">
   <div class="wrap">
-    <h2>The failure modes you already know, closed off.</h2>
+    <h2>The failure modes you already know, closed off</h2>
     <p class="sub">The obvious ways to edit Markdown programmatically all break on contact with real documents. Each one is handled by the engine, not by your code.</p>
     <div class="cards">
       <div class="card">
@@ -372,7 +417,7 @@
 
 <section id="cli">
   <div class="wrap">
-    <h2>Write it — or just read it.</h2>
+    <h2>Write it — or just read it</h2>
     <p class="sub">Every address you can patch, you can also query. The bundled <code style="font-family:var(--mono)">mdpatch</code> CLI and the TypeScript API drive the same engine: two commands write, two retrieve.</p>
     <div class="cmd-scroll"><table class="cmds">
       <tr><th>command</th><th></th><th>what it does</th></tr>
@@ -387,7 +432,7 @@
 
 <section id="agents">
   <div class="wrap">
-    <h2>Built for editors that aren't people.</h2>
+    <h2>Built for editors that aren't people</h2>
     <p class="sub">An LLM agent shouldn't re-emit a 4,000-token file to add one paragraph — and with markdown-patch it can't mangle the 3,900 tokens it had no business touching. This is the engine behind <a href="https://github.com/coddingtonbear/obsidian-local-rest-api">Obsidian Local REST API</a>'s PATCH endpoints and MCP tools, where exactly that kind of client is the norm.</p>
 
     <div class="tok-panel">
