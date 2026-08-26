@@ -284,6 +284,8 @@ const DEMO_DOCUMENT = [
   "",
   "Kim walked through the Q3 timeline.",
   "",
+  "Legal review is the open blocker. ^blocker",
+  "",
   "## Attendees",
   "",
   "- Adam",
