@@ -2,3 +2,4 @@ dist/*
 node_modules/*
 docs/*
 demo.gif
+site/playground.bundle.js

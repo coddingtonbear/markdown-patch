@@ -22,6 +22,8 @@
     --accent-ink: #0f5c35;
     --add-bg: #e2f4e8;
     --add-ink: #14602f;
+    --del-bg: #fbeaea;
+    --del-ink: #8a2020;
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   }
@@ -38,6 +40,8 @@
       --accent-ink: #5ed99a;
       --add-bg: #143423;
       --add-ink: #7fe0ab;
+      --del-bg: #3a1c1c;
+      --del-ink: #f0a3a3;
     }
   }
   * { box-sizing: border-box; }
@@ -123,11 +127,58 @@
   .docline { display: block; padding: 0 6px; border-radius: 3px; white-space: pre; }
   .docline.add { background: var(--add-bg); color: var(--add-ink); }
   .docline.add::before { content: "+ "; font-weight: 700; }
+  .docline.del { background: var(--del-bg); color: var(--del-ink); text-decoration: line-through; }
+  .docline.del::before { content: "- "; font-weight: 700; text-decoration: none; }
   .instr { background: var(--bg-inset); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
   .instr .dollar { color: var(--ink-faint); user-select: none; }
   .instr .fn { color: var(--accent-ink); }
   .instr-note { color: var(--ink-faint); font-size: 0.78rem; margin: 0; }
   .key { color: var(--accent-ink); }
+
+  .pg {
+    border: 1px solid var(--line); border-radius: 12px; background: var(--bg-raised);
+    overflow: hidden; box-shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+  }
+  .pg-head {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--line); font-size: 0.8rem; color: var(--ink-faint);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .pg-head .live { color: var(--accent-ink); font-weight: 700; }
+  .pg-head .toggles { margin-left: auto; display: flex; gap: 8px; }
+  .pg-cols { display: grid; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 860px) { .pg-cols { grid-template-columns: 1fr; } }
+  .pg-col { min-width: 0; }
+  .pg-col + .pg-col { border-left: 1px solid var(--line); }
+  @media (max-width: 860px) { .pg-col + .pg-col { border-left: 0; border-top: 1px solid var(--line); } }
+  .pg-block { padding: 14px 16px; }
+  .pg-block + .pg-block { border-top: 1px solid var(--line); }
+  .pg-block h3 {
+    margin: 0 0 10px; font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--ink-faint); font-weight: 700;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .pg-block h3 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 0.72rem; }
+  .pg-input {
+    display: block; width: 100%; font-family: var(--mono); font-size: 0.82rem; line-height: 1.5;
+    color: var(--ink); background: var(--bg-inset); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px; resize: vertical; tab-size: 2;
+  }
+  .pg-map { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pg-map .group { flex-basis: 100%; font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint); margin-top: 4px; }
+  .pg-map .group:first-child { margin-top: 0; }
+  .addr {
+    font: 500 0.78rem var(--mono); color: var(--ink-soft); background: var(--bg-inset);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; cursor: pointer;
+  }
+  .addr:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .addr.token { color: var(--accent-ink); }
+  .pg-status { font-family: var(--mono); font-size: 0.78rem; margin: 10px 0 0; color: var(--ink-faint); }
+  .pg-status.err { color: var(--del-ink); }
+  .pg-status .name { font-weight: 700; }
+  .pg-warn { font-size: 0.78rem; color: var(--ink-faint); margin: 8px 0 0; }
+  .pg-note { font-size: 0.82rem; color: var(--ink-faint); margin: 14px 0 0; max-width: 78ch; }
+  .pg-note code { font-family: var(--mono); font-size: 0.85em; background: var(--bg-inset); padding: 1px 5px; border-radius: 4px; }
 
   section { padding: 48px 0; border-top: 1px solid var(--line); }
   section h2 { font-size: 1.5rem; letter-spacing: -0.01em; margin: 0 0 8px; text-wrap: balance; }
@@ -182,6 +233,7 @@
   <nav>
     <span class="brand">markdown<span class="tick">-</span>patch</span>
     <div class="links">
+      <a href="#playground">Playground</a>
       <a href="#docs">Docs</a>
       <a href="#cli">CLI</a>
       <a href="#agents">For agents</a>
@@ -231,6 +283,52 @@
     </div>
   </div>
 </div>
+
+<section id="playground">
+  <div class="wrap">
+    <h2>Now run it on your own document.</h2>
+    <p class="sub">Everything above is a canned example. This is the actual npm package, bundled for the browser and running on this page — paste your own Markdown, write your own instruction, and watch the engine work. Nothing is uploaded; there is no server.</p>
+
+    <div class="pg">
+      <div class="pg-head">
+        <span class="live">●&nbsp;Live</span>
+        <span>markdown-patch, running in your browser</span>
+        <div class="toggles">
+          <div class="toggle" id="pg-mode" role="group" aria-label="Patch or read">
+            <button type="button" data-pgmode="patch" aria-pressed="true">Patch</button>
+            <button type="button" data-pgmode="read" aria-pressed="false">Read</button>
+          </div>
+        </div>
+      </div>
+      <div class="pg-cols">
+        <div class="pg-col">
+          <div class="pg-block">
+            <h3><label for="pg-doc">Your document</label></h3>
+            <textarea class="pg-input" id="pg-doc" rows="14" spellcheck="false" aria-describedby="pg-map-hint" disabled></textarea>
+          </div>
+          <div class="pg-block">
+            <h3>Document map <span class="hint" id="pg-map-hint">— what <code>print-map</code> would return. Click an address to target it.</span></h3>
+            <div class="pg-map" id="pg-map"></div>
+          </div>
+        </div>
+        <div class="pg-col">
+          <div class="pg-block">
+            <h3><label for="pg-instr">The instruction</label></h3>
+            <textarea class="pg-input" id="pg-instr" rows="9" spellcheck="false" disabled></textarea>
+            <p class="pg-status" id="pg-status"></p>
+          </div>
+          <div class="pg-block">
+            <h3 id="pg-result-title">result.document</h3>
+            <pre id="pg-result"></pre>
+            <p class="pg-warn" id="pg-warn" hidden></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="pg-note" id="pg-unbuilt">The playground bundle isn't built in this checkout — <code style="font-family:var(--mono)">npm run build:site</code> produces it, and the Pages workflow builds it on every deploy.</p>
+    <p class="pg-note">Errors are the engine's own — <code>InvalidInstructionError</code>, <code>TargetNotFoundError</code>, <code>PreconditionFailedError</code> — thrown by the same code an <code style="font-family:var(--mono)">npm install</code> gets you. Click the <code>version</code> token to send it as <code>ifMatch</code>, then edit the document out from under the instruction to watch a stale write fail.</p>
+  </div>
+</section>
 
 <section id="docs">
   <div class="wrap">
@@ -584,5 +682,11 @@
     obs.observe(document.querySelector(".tok-panel"));
   }
 </script>
+
+<!-- The playground: `npm run build:site` bundles site/playground.ts — the engine
+     included, with Node's crypto aliased to a pure-JS SHA-256 — into
+     playground.bundle.js. It is generated, so a fresh checkout does not have
+     it, and the page says as much until it loads. -->
+<script type="module" src="./playground.bundle.js"></script>
 </body>
 </html>
