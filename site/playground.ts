@@ -128,7 +128,8 @@ export const mapChips = (
   for (const id of map.blocks) {
     chips.push({
       group: "blocks",
-      label: `^${id}`,
+      // The bare id — it is what the instruction takes; the group label says "blocks".
+      label: id,
       fields: { targetType: "block", target: id },
     });
   }

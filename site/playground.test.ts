@@ -104,7 +104,7 @@ describe("mapChips", () => {
     expect(blocks).toEqual([
       {
         group: "blocks",
-        label: "^note-1",
+        label: "note-1",
         fields: { targetType: "block", target: "note-1" },
       },
     ]);
