@@ -3,6 +3,9 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "node",
+    /* Tests are never emitted, and site/crypto-shim.ts (bundled, not compiled
+       by `tsc`) has its own suite, so the test compiler's root is the repo. */
+    "rootDir": ".",
     "types": ["jest", "node"]
   }
 }

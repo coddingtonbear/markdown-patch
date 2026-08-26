@@ -22,6 +22,8 @@
     --accent-ink: #0f5c35;
     --add-bg: #e2f4e8;
     --add-ink: #14602f;
+    --del-bg: #fbeaea;
+    --del-ink: #8a2020;
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   }
@@ -38,6 +40,8 @@
       --accent-ink: #5ed99a;
       --add-bg: #143423;
       --add-ink: #7fe0ab;
+      --del-bg: #3a1c1c;
+      --del-ink: #f0a3a3;
     }
   }
   * { box-sizing: border-box; }
@@ -93,6 +97,14 @@
     text-transform: uppercase; letter-spacing: 0.08em;
   }
   .demo-head .live { color: var(--accent-ink); font-weight: 700; }
+  .demo-head .toggles { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .toggle button {
+    font: 700 0.72rem var(--sans); letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-soft); background: var(--bg-inset); border: 0; padding: 4px 10px; cursor: pointer;
+  }
+  .toggle button + button { border-left: 1px solid var(--line); }
+  .toggle button[aria-pressed="true"] { background: var(--accent); color: #fff; }
   .ops { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
   .ops button {
     font: 600 0.85rem var(--sans); color: var(--ink-soft); background: var(--bg-inset);
@@ -115,10 +127,61 @@
   .docline { display: block; padding: 0 6px; border-radius: 3px; white-space: pre; }
   .docline.add { background: var(--add-bg); color: var(--add-ink); }
   .docline.add::before { content: "+ "; font-weight: 700; }
+  .docline.del { background: var(--del-bg); color: var(--del-ink); text-decoration: line-through; }
+  .docline.del::before { content: "- "; font-weight: 700; text-decoration: none; }
   .instr { background: var(--bg-inset); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
-  .cli-line { color: var(--ink-soft); font-size: 0.78rem; }
-  .cli-line .dollar { color: var(--ink-faint); }
+  .instr pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: visible; }
+  .instr-note code { font-family: var(--mono); font-size: 0.92em; }
+  .instr .dollar { color: var(--ink-faint); user-select: none; }
+  .instr .fn, .instr-note .fn { color: var(--accent-ink); }
+  .instr-note { color: var(--ink-faint); font-size: 0.78rem; margin: 0; }
   .key { color: var(--accent-ink); }
+
+  .pg {
+    border: 1px solid var(--line); border-radius: 12px; background: var(--bg-raised);
+    overflow: hidden; box-shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+  }
+  .pg-head {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--line); font-size: 0.8rem; color: var(--ink-faint);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .pg-head .live { color: var(--accent-ink); font-weight: 700; }
+  .pg-head .toggles { margin-left: auto; display: flex; gap: 8px; }
+  .pg-cols { display: grid; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 860px) { .pg-cols { grid-template-columns: 1fr; } }
+  .pg-col { min-width: 0; }
+  .pg-col + .pg-col { border-left: 1px solid var(--line); }
+  @media (max-width: 860px) { .pg-col + .pg-col { border-left: 0; border-top: 1px solid var(--line); } }
+  .pg-block { padding: 14px 16px; }
+  .pg-block + .pg-block { border-top: 1px solid var(--line); }
+  .pg-block h3 {
+    margin: 0 0 10px; font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--ink-faint); font-weight: 700;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .pg-block h3 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 0.72rem; }
+  .pg-input {
+    display: block; width: 100%; font-family: var(--mono); font-size: 0.82rem; line-height: 1.5;
+    color: var(--ink); background: var(--bg-inset); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px; resize: vertical; tab-size: 2;
+  }
+  .pg-map { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pg-map .group { flex-basis: 100%; font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint); margin-top: 4px; }
+  .pg-map .group:first-child { margin-top: 0; }
+  .addr {
+    font: 500 0.78rem var(--mono); color: var(--ink-soft); background: var(--bg-inset);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; cursor: pointer;
+  }
+  .addr:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .addr.token { color: var(--accent-ink); }
+  .addr[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pg-status { font-family: var(--mono); font-size: 0.78rem; margin: 10px 0 0; color: var(--ink-faint); }
+  .pg-status.err { color: var(--del-ink); }
+  .pg-status .name { font-weight: 700; }
+  .pg-warn { font-size: 0.78rem; color: var(--ink-faint); margin: 8px 0 0; }
+  .pg-note { font-size: 0.82rem; color: var(--ink-faint); margin: 14px 0 0; max-width: 78ch; }
+  .pg-note code { font-family: var(--mono); font-size: 0.85em; background: var(--bg-inset); padding: 1px 5px; border-radius: 4px; }
 
   section { padding: 48px 0; border-top: 1px solid var(--line); }
   section h2 { font-size: 1.5rem; letter-spacing: -0.01em; margin: 0 0 8px; text-wrap: balance; }
@@ -173,6 +236,7 @@
   <nav>
     <span class="brand">markdown<span class="tick">-</span>patch</span>
     <div class="links">
+      <a href="#playground">Playground</a>
       <a href="#docs">Docs</a>
       <a href="#cli">CLI</a>
       <a href="#agents">For agents</a>
@@ -194,13 +258,24 @@
     </div>
 
     <div class="demo" aria-label="Interactive patch demo">
-      <div class="demo-head"><span class="live">●&nbsp;Try it</span> pick an operation, watch it land</div>
+      <div class="demo-head">
+        <div class="toggles">
+          <div class="toggle" id="mode" role="group" aria-label="Read or write">
+            <button data-mode="write" aria-pressed="true">Write</button>
+            <button data-mode="read" aria-pressed="false">Read</button>
+          </div>
+          <div class="toggle" id="door" role="group" aria-label="JSON or CLI">
+            <button data-door="json" aria-pressed="true">JSON</button>
+            <button data-door="cli" aria-pressed="false">CLI</button>
+          </div>
+        </div>
+      </div>
       <div class="ops" id="ops" role="group" aria-label="Example operations"></div>
       <div class="panes">
         <div class="pane">
-          <h3>The instruction</h3>
+          <h3 id="instr-title">The instruction</h3>
           <div class="instr"><pre id="instr"></pre></div>
-          <p class="cli-line" id="cli"></p>
+          <p class="instr-note" id="instr-note"></p>
         </div>
         <div class="pane">
           <h3 id="result-title">notes.md — after</h3>
@@ -210,6 +285,56 @@
     </div>
   </div>
 </div>
+
+<section id="playground">
+  <div class="wrap">
+    <h2>Now run it on your own document.</h2>
+    <p class="sub">Everything above is a canned example. This is the actual npm package, bundled for the browser and running on this page — paste your own Markdown, write your own instruction, and watch the engine work. Nothing is uploaded; there is no server.</p>
+
+    <div class="pg">
+      <div class="pg-head">
+        <span class="live">●&nbsp;Try it</span>
+        <span>markdown-patch, running in your browser</span>
+        <div class="toggles">
+          <div class="toggle" id="pg-mode" role="group" aria-label="Patch or read">
+            <button type="button" data-pgmode="patch" aria-pressed="true">Patch</button>
+            <button type="button" data-pgmode="read" aria-pressed="false">Read</button>
+          </div>
+        </div>
+      </div>
+      <div class="pg-cols">
+        <div class="pg-col">
+          <div class="pg-block">
+            <h3><label for="pg-doc">Your document</label></h3>
+            <textarea class="pg-input" id="pg-doc" rows="14" spellcheck="false" aria-describedby="pg-map-hint" disabled></textarea>
+          </div>
+          <div class="pg-block">
+            <h3>Document map <span class="hint" id="pg-map-hint">— the addresses <code>projectMap</code> / <code>print-map</code> give you. Click one to target it.</span></h3>
+            <div class="pg-map" id="pg-map"></div>
+          </div>
+        </div>
+        <div class="pg-col">
+          <div class="pg-block">
+            <h3><label for="pg-instr">The instruction</label></h3>
+            <textarea class="pg-input" id="pg-instr" rows="9" spellcheck="false" disabled></textarea>
+            <p class="pg-status" id="pg-status"></p>
+          </div>
+          <div class="pg-block">
+            <h3>Options <span class="hint">— every value the engine accepts for these fields. Click one to set it.</span></h3>
+            <div class="pg-map" id="pg-options"></div>
+          </div>
+          <div class="pg-block">
+            <h3 id="pg-result-title">result.document</h3>
+            <pre id="pg-result"></pre>
+            <p class="pg-warn" id="pg-warn" hidden></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="pg-note" id="pg-unbuilt">The playground bundle isn't built in this checkout — <code style="font-family:var(--mono)">npm run build:site</code> produces it, and the Pages workflow builds it on every deploy.</p>
+    <p class="pg-note">Errors are the engine's own — <code>InvalidInstructionError</code>, <code>TargetNotFoundError</code>, <code>PreconditionFailedError</code> — thrown by the same code an <code style="font-family:var(--mono)">npm install</code> gets you. Click the <code>version</code> token to send it as <code>ifMatch</code>, then edit the document out from under the instruction to watch a stale write fail.</p>
+  </div>
+</section>
 
 <section id="docs">
   <div class="wrap">
@@ -327,13 +452,20 @@
     "- Adam",
     "- Kim",
   ];
-  // Each op: label, instruction (JSON) or instrText (library call), optional CLI
-  // line, and the resulting output as [lineText, isAdded] pairs (precomputed
-  // against the engine's documented semantics).
+  // Each example is shown two ways — as the JSON instruction the library
+  // takes and as an mdpatch command — and lives in either the write set or
+  // the read set. Results are precomputed against the engine's documented
+  // semantics.
   function lines(edit) {
     return BASE.map((l) => [l, false]).flatMap(edit);
   }
-  const OPS = [
+  function plain(rows) {
+    return rows.map((l) => [l, false]);
+  }
+  function json(obj) {
+    return JSON.stringify(obj, null, 2);
+  }
+  const WRITE_OPS = [
     {
       label: "Append to a section",
       instr: {
@@ -383,79 +515,178 @@
         target: ["Weekly Sync", "Attendees"],
         within: -1,
         operation: "append",
-        content: "\\n- Priya",
+        content: "\n- Priya",
       },
+      // No flag form for `within`: the full instruction goes through `apply`.
       cli: null,
       result: lines(([l, a]) =>
         l === "- Kim" ? [[l, a], ["- Priya", true]] : [[l, a]]
       ),
     },
+  ];
+  const READ_OPS = [
     {
       label: "Read a section",
-      instrText: 'readTarget(note, {\n  targetType: "heading",\n  target: ["Weekly Sync", "Notes"]\n})',
-      cli: 'mdpatch query heading "Weekly Sync::Notes" notes.md',
-      resultTitle: "stdout — nothing written",
-      result: [["Kim walked through the Q3 timeline.", false]],
+      lib: {
+        fn: "readTarget",
+        arg: { targetType: "heading", target: ["Weekly Sync", "Notes"] },
+        result: plain(["Kim walked through the Q3 timeline."]),
+        title: "result.content",
+      },
+      cli: {
+        cmd: 'mdpatch query heading "Weekly Sync::Notes" notes.md',
+        result: plain(["Kim walked through the Q3 timeline."]),
+      },
+    },
+    {
+      label: "Read a frontmatter value",
+      lib: {
+        fn: "readTarget",
+        arg: { targetType: "frontmatter", target: "status" },
+        result: plain(['"draft"']),
+        title: "result.value",
+      },
+      cli: {
+        cmd: "mdpatch query frontmatter status notes.md",
+        result: plain(['"draft"']),
+      },
     },
     {
       label: "Map the document",
-      instrText: "projectMap(buildModel(note))",
-      cli: "mdpatch print-map notes.md",
-      resultTitle: "the addressable map",
-      result: [
-        ["{", false],
-        ['  "version": "2b0a04",', false],
-        ['  "frontmatterFields": [', false],
-        ['    "status"', false],
-        ["  ],", false],
-        ['  "headings": {', false],
-        ['    "Weekly Sync": {', false],
-        ['      "Notes": {},', false],
-        ['      "Attendees": {}', false],
-        ["    }", false],
-        ["  },", false],
-        ['  "blocks": []', false],
-        ["}", false],
-      ],
+      lib: {
+        text: "projectMap(buildModel(note))",
+        result: null, // filled below
+      },
+      cli: {
+        cmd: "mdpatch print-map notes.md",
+        result: null,
+      },
+    },
+    {
+      label: "Find matching addresses",
+      lib: {
+        text: 'headingTreePaths(projectMap(buildModel(note)).headings)\n  .filter((path) => /Notes/.test(path.join("::")))',
+        result: plain(['[["Weekly Sync", "Notes"]]']),
+      },
+      cli: {
+        cmd: 'mdpatch print-map notes.md "Notes"',
+        result: plain(["heading\tWeekly Sync::Notes"]),
+      },
     },
   ];
+  const MAP = plain(
+    json({
+      version: "2b0a04",
+      frontmatterFields: ["status"],
+      headings: { "Weekly Sync": { Notes: {}, Attendees: {} } },
+      blocks: [],
+    }).split("\n")
+  );
+  READ_OPS[2].lib.result = MAP;
+  READ_OPS[2].cli.result = MAP;
 
+  const state = { mode: "write", door: "json", index: 0 };
   const opsEl = document.getElementById("ops");
   const instrEl = document.getElementById("instr");
-  const cliEl = document.getElementById("cli");
+  const instrTitleEl = document.getElementById("instr-title");
+  const instrNoteEl = document.getElementById("instr-note");
   const resultEl = document.getElementById("result");
   const resultTitleEl = document.getElementById("result-title");
 
-  function renderInstr(obj) {
-    const json = JSON.stringify(obj, null, 2);
-    return json.replace(/"(\w+)":/g, '<span class="key">"$1"</span>:');
-  }
   function esc(s) {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
   }
-  function select(i) {
-    const op = OPS[i];
-    [...opsEl.children].forEach((b, j) =>
-      b.setAttribute("aria-pressed", String(i === j))
-    );
-    instrEl.innerHTML = op.instr ? renderInstr(op.instr) : esc(op.instrText);
-    resultTitleEl.textContent = op.resultTitle || "notes.md — after";
-    cliEl.innerHTML = op.cli
-      ? '<span class="dollar">$</span> ' + esc(op.cli)
-      : "<em>Full-model instructions run through <code>mdpatch apply</code>.</em>";
-    resultEl.innerHTML = op.result
+  function hiJson(obj) {
+    return esc(json(obj)).replace(/"(\w+)":/g, '<span class="key">"$1"</span>:');
+  }
+  function handTo(fn, param) {
+    return "Hand this to <code><span class=\"fn\">" + fn + "</span>(note, " + param + ")</code>";
+  }
+  function shell(cmd) {
+    return '<span class="dollar">$</span> ' + esc(cmd);
+  }
+  function applyHeredoc(instr) {
+    return shell("mdpatch apply notes.md - <<'EOF'") + "\n" + hiJson(instr) + "\nEOF";
+  }
+
+  function render() {
+    const ops = state.mode === "write" ? WRITE_OPS : READ_OPS;
+    const op = ops[state.index];
+    const jsonDoor = state.door === "json";
+    let instr, note = "", result, resultTitle;
+    if (state.mode === "write") {
+      if (jsonDoor) {
+        instr = hiJson(op.instr);
+        note = handTo("patch", "instruction") + " — <code>result.document</code> is the new text.";
+        resultTitle = "result.document";
+      } else if (op.cli) {
+        instr = shell(op.cli);
+        resultTitle = "notes.md — after";
+      } else {
+        instr = applyHeredoc(op.instr);
+        note = "No flag for within on mdpatch patch — the full instruction goes through apply.";
+        resultTitle = "notes.md — after";
+      }
+      result = op.result;
+    } else if (jsonDoor) {
+      if (op.lib.text) {
+        instr = esc(op.lib.text);
+        note = "No instruction object for this one — it's a plain library call.";
+        resultTitle = "return value — nothing written";
+      } else {
+        instr = hiJson(op.lib.arg);
+        note = handTo(op.lib.fn, "target") + " — nothing is written.";
+        resultTitle = op.lib.title;
+      }
+      result = op.lib.result;
+    } else {
+      instr = shell(op.cli.cmd);
+      result = op.cli.result;
+      resultTitle = "stdout — nothing written";
+    }
+    instrTitleEl.textContent = jsonDoor ? "The instruction" : "The command";
+    instrEl.innerHTML = instr;
+    instrNoteEl.innerHTML = note;
+    resultTitleEl.textContent = resultTitle;
+    resultEl.innerHTML = result
       .map(([l, add]) =>
         '<span class="docline' + (add ? " add" : "") + '">' + (esc(l) || " ") + "</span>"
       )
       .join("");
   }
-  OPS.forEach((op, i) => {
-    const b = document.createElement("button");
-    b.textContent = op.label;
-    b.addEventListener("click", () => select(i));
-    opsEl.appendChild(b);
-  });
-  select(0);
+  function renderOps() {
+    const ops = state.mode === "write" ? WRITE_OPS : READ_OPS;
+    opsEl.innerHTML = "";
+    ops.forEach((op, i) => {
+      const b = document.createElement("button");
+      b.textContent = op.label;
+      b.setAttribute("aria-pressed", String(i === state.index));
+      b.addEventListener("click", () => {
+        state.index = i;
+        renderOps();
+        render();
+      });
+      opsEl.appendChild(b);
+    });
+  }
+  function wireToggle(id, key) {
+    const buttons = [...document.getElementById(id).querySelectorAll("button")];
+    buttons.forEach((b) =>
+      b.addEventListener("click", () => {
+        const value = b.dataset[key];
+        if (state[key] === value) return;
+        state[key] = value;
+        if (key === "mode") state.index = 0;
+        buttons.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        renderOps();
+        render();
+      })
+    );
+  }
+  wireToggle("mode", "mode");
+  wireToggle("door", "door");
+  renderOps();
+  render();
 
   const fills = document.querySelectorAll(".bar-fill");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -468,5 +699,11 @@
     obs.observe(document.querySelector(".tok-panel"));
   }
 </script>
+
+<!-- The playground: `npm run build:site` bundles site/playground.ts — the engine
+     included, with Node's crypto aliased to a pure-JS SHA-256 — into
+     playground.bundle.js. It is generated, so a fresh checkout does not have
+     it, and the page says as much until it loads. -->
+<script type="module" src="./playground.bundle.js"></script>
 </body>
 </html>

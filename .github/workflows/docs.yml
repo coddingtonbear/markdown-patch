@@ -46,11 +46,16 @@ jobs:
       - name: Build API docs
         # typedoc outputs to './docs/' (see typedoc.json)
         run: npm run docs
+      - name: Build the browser bundle
+        # The landing-page playground runs the real engine client-side;
+        # the bundle is generated here rather than committed.
+        run: npm run build:site
       - name: Assemble site
         # Landing page at the root, typedoc API docs under /api/
         run: |
           mkdir -p _site/api
           cp -R site/. _site/
+          rm -f _site/*.ts
           cp -R docs/. _site/api/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
