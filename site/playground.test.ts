@@ -184,6 +184,71 @@ describe("foldAddress", () => {
   });
 });
 
+describe("swapCarrier", () => {
+  it("moves content into value when the target becomes a frontmatter field", () => {
+    expect(
+      playground.swapCarrier({ targetType: "frontmatter", target: "status", content: "done" })
+    ).toEqual({ targetType: "frontmatter", target: "status", value: "done" });
+  });
+
+  it("moves value back into content when the target leaves frontmatter", () => {
+    expect(
+      playground.swapCarrier({ targetType: "heading", target: ["A"], value: "text" })
+    ).toEqual({ targetType: "heading", target: ["A"], content: "text" });
+  });
+
+  it("serialises a structured value it moves into content", () => {
+    expect(
+      playground.swapCarrier({ targetType: "block", target: "b", value: ["x", 1] })
+    ).toEqual({ targetType: "block", target: "b", content: '["x",1]' });
+  });
+
+  it("keeps a frontmatter key rename in content", () => {
+    const instruction = { targetType: "frontmatter", target: "a", scope: "marker", content: "b" };
+    expect(playground.swapCarrier(instruction)).toEqual(instruction);
+  });
+
+  it("leaves table rows in value on a block target", () => {
+    const instruction = { targetType: "block", target: "t", value: [["a", "b"]] };
+    expect(playground.swapCarrier(instruction)).toEqual(instruction);
+  });
+
+  it("leaves an instruction carrying both payloads for the engine to reject", () => {
+    const instruction = { targetType: "frontmatter", target: "a", content: "x", value: "y" };
+    expect(playground.swapCarrier(instruction)).toEqual(instruction);
+  });
+});
+
+describe("foldAddress swaps the carrier on a target switch", () => {
+  it("rewrites content as value when a frontmatter chip is clicked", () => {
+    const folded = playground.foldAddress(
+      JSON.stringify({ targetType: "heading", target: ["A"], operation: "replace", content: "done" }),
+      { targetType: "frontmatter", target: "status" },
+      {}
+    );
+    expect(JSON.parse(folded)).toEqual({
+      targetType: "frontmatter",
+      target: "status",
+      operation: "replace",
+      value: "done",
+    });
+  });
+
+  it("rewrites value as content when a heading chip is clicked", () => {
+    const folded = playground.foldAddress(
+      JSON.stringify({ targetType: "frontmatter", target: "status", operation: "replace", value: "done" }),
+      { targetType: "heading", target: ["A"] },
+      {}
+    );
+    expect(JSON.parse(folded)).toEqual({
+      targetType: "heading",
+      target: ["A"],
+      operation: "replace",
+      content: "done",
+    });
+  });
+});
+
 describe("runInstruction", () => {
   const DOCUMENT = "---\nstatus: draft\n---\n\n# Title\n\nbody\n";
 

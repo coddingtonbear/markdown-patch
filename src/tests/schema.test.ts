@@ -310,3 +310,45 @@ describe("patch() boundary validation", () => {
     expect(document).toContain("title: Set");
   });
 });
+
+describe("frontmatter carrier errors explain the rule", () => {
+  const messagesOf = (instruction: unknown): string[] => {
+    const parsed = InstructionInputSchema.safeParse(instruction);
+    return parsed.success ? [] : parsed.error.issues.map((issue) => issue.message);
+  };
+
+  it("says why a value write must ride in `value` when it was given `content`", () => {
+    const [message] = messagesOf({
+      targetType: "frontmatter",
+      target: "a",
+      operation: "replace",
+      content: "x",
+    });
+    expect(message).toContain("carries its payload in `value`, not `content`");
+    expect(message).toContain("can be any JSON");
+  });
+
+  it("says why a value write must ride in `value` when no payload was given", () => {
+    const [message] = messagesOf({ targetType: "frontmatter", target: "a", operation: "replace" });
+    expect(message).toContain("requires `value`");
+    expect(message).toContain("can be any JSON");
+  });
+
+  it("says why a key rename rides in `content`", () => {
+    const [message] = messagesOf({
+      targetType: "frontmatter",
+      target: "a",
+      operation: "replace",
+      scope: "marker",
+      value: "b",
+    });
+    expect(message).toContain("carries its payload in `content`, not `value`");
+    expect(message).toContain("key name is a string");
+  });
+
+  it("does not attach the frontmatter reason to other targets", () => {
+    const [message] = messagesOf({ targetType: "heading", target: ["A"], operation: "replace", value: 1 });
+    expect(message).toContain("not `value`");
+    expect(message).not.toContain("JSON");
+  });
+});

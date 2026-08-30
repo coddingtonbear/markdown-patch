@@ -210,7 +210,46 @@ export const foldAddress = (
   } catch (error) {
     current = null;
   }
-  return JSON.stringify({ ...(current ?? fallback), ...fields }, null, 2);
+  return JSON.stringify(
+    swapCarrier({ ...(current ?? fallback), ...fields }),
+    null,
+    2
+  );
+};
+
+/** Table rows: the one structured `value` a non-frontmatter (block) target takes. */
+const isTableRows = (value: unknown): boolean =>
+  Array.isArray(value) &&
+  value.every((row) => Array.isArray(row) && row.every((cell) => typeof cell === "string"));
+
+/**
+ * Move the payload into the carrier the instruction's target now needs. A
+ * frontmatter field's value can be any JSON, so it rides in `value`; every
+ * string payload — a heading or block body, or a key name in a frontmatter
+ * `marker` rename — rides in `content`. Switching targets in the playground
+ * shouldn't strand the visitor's payload in the carrier the old target took,
+ * so the swap happens here, where every chip click lands. Only a lone payload
+ * is moved; an instruction that already carries both is left for the engine
+ * to reject, and block table rows stay in `value` where they belong.
+ */
+export const swapCarrier = (instruction: JsonObject): JsonObject => {
+  const wantsValue =
+    instruction.targetType === "frontmatter" && instruction.scope !== "marker";
+  const hasContent = instruction.content !== undefined;
+  const hasValue = instruction.value !== undefined;
+  if (wantsValue && hasContent && !hasValue) {
+    const { content, ...rest } = instruction;
+    return { ...rest, value: content };
+  }
+  if (!wantsValue && hasValue && !hasContent) {
+    const { value, ...rest } = instruction;
+    if (instruction.targetType === "block" && isTableRows(value)) return instruction;
+    return {
+      ...rest,
+      content: typeof value === "string" ? value : JSON.stringify(value),
+    };
+  }
+  return instruction;
 };
 
 const messageOf = (error: unknown): string =>

@@ -191,6 +191,28 @@ const expectedCarriers = (
 const carriers = ["content", "value", "destination"] as const;
 
 /**
+ * Why a frontmatter cell insists on the carrier it does — appended to the
+ * carrier errors so a caller who reached for `content` out of habit learns the
+ * rule, not just the rejection: a field's value can be any JSON, which only
+ * the structured `value` carrier can hold; a key name is always a string, so
+ * a `marker` rename rides in `content` like every other label.
+ */
+const carrierReason = (
+  targetType: TargetType,
+  scope: Scope,
+  expected: readonly Carrier[]
+): string => {
+  if (targetType !== "frontmatter") return "";
+  if (expected[0] === "value") {
+    return " — a frontmatter field's value can be any JSON (string, number, boolean, array, object, null), so must be passed via the `value` field instead of `content`";
+  }
+  if (scope === "marker") {
+    return " — a frontmatter key name is a string; to set the key name, use the `content` field.";
+  }
+  return "";
+};
+
+/**
  * A block id's allowed character set — mirrors `BLOCK_REFERENCE_REGEX` in
  * `model.ts`, which is what actually recognizes a `^id` marker in the
  * document.  A target or rename outside this set could never address (or
@@ -322,7 +344,7 @@ const instructionAlgebra = (
       path: [expected[0]],
       message: `${operation} @ ${scope} on a ${targetType} target requires ${
         expected.length === 1 ? `\`${expected[0]}\`` : expected.map((c) => `\`${c}\``).join(" or ")
-      }`,
+      }${carrierReason(targetType, scope, expected)}`,
     });
   } else if (present.length > 1) {
     for (const carrier of present) {
@@ -340,7 +362,7 @@ const instructionAlgebra = (
       path: [present[0]],
       message: `${operation} @ ${scope} on a ${targetType} target carries its payload in ${
         expected.length === 1 ? `\`${expected[0]}\`` : expected.map((c) => `\`${c}\``).join(" or ")
-      }, not \`${present[0]}\``,
+      }, not \`${present[0]}\`${carrierReason(targetType, scope, expected)}`,
     });
   } else if (
     targetType === "block" &&
