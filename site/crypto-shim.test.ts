@@ -61,6 +61,14 @@ describe("crypto shim", () => {
     ).toBe(createHash("sha256").update(text, "utf8").digest("hex"));
   });
 
+  it("copies a Buffer, so reusing it before digest changes nothing", () => {
+    const buffer = Buffer.from("# Title\n", "utf8");
+    const expected = nodeCreateHash("sha256").update(buffer).digest("hex");
+    const hash = createHash("sha256").update(buffer);
+    buffer.fill(0);
+    expect(hash.digest("hex")).toBe(expected);
+  });
+
   it("is chunk-boundary agnostic", () => {
     const whole = createHash("sha256").update("abcdefghij", "utf8");
     const split = createHash("sha256")

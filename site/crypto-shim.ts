@@ -152,7 +152,8 @@ export const createHash = (algorithm: string): Hash => {
     update(data: string | Uint8Array, encoding: ShimEncoding = "utf8"): Hash {
       if (typeof data !== "string") {
         // Copied, so a caller reusing its buffer cannot change what we hash.
-        chunks.push(data.slice());
+        // (Not `data.slice()`: on a Node `Buffer` that returns a shared view.)
+        chunks.push(new Uint8Array(data));
         return hash;
       }
       if (encoding !== "utf8") {
