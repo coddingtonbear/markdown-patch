@@ -1,7 +1,8 @@
 /**
  * A browser stand-in for the sliver of Node's `crypto` the engine actually
- * uses: `createHash("sha256").update(text, "utf8").digest("hex")`, called once
- * by `versionOf` in `src/model.ts` to derive a document's `version` token.
+ * uses: `createHash("sha256").update(data, "utf8").digest("hex")`, called by
+ * `versionOf` in `src/model.ts` to derive a document's `version` token from
+ * either a string or its raw bytes.
  *
  * The library is deliberately left alone — `esbuild --alias:crypto=` points at
  * this file when bundling for the browser, so a document's version token is
@@ -124,10 +125,11 @@ export type ShimEncoding = "utf8";
 
 /**
  * The subset of Node's `Hash` the engine uses. `update` accumulates and
- * `digest` finalizes, so multi-chunk callers behave the same as Node's.
+ * `digest` finalizes, so multi-chunk callers behave the same as Node's.  As in
+ * Node, bytes are hashed verbatim and the encoding applies only to strings.
  */
 export interface Hash {
-  update(data: string, encoding?: ShimEncoding): Hash;
+  update(data: string | Uint8Array, encoding?: ShimEncoding): Hash;
   digest(encoding: "hex"): string;
 }
 
@@ -147,7 +149,13 @@ export const createHash = (algorithm: string): Hash => {
   }
   const chunks: Uint8Array[] = [];
   const hash: Hash = {
-    update(data: string, encoding: ShimEncoding = "utf8"): Hash {
+    update(data: string | Uint8Array, encoding: ShimEncoding = "utf8"): Hash {
+      if (typeof data !== "string") {
+        // Copied, so a caller reusing its buffer cannot change what we hash.
+        // (Not `data.slice()`: on a Node `Buffer` that returns a shared view.)
+        chunks.push(new Uint8Array(data));
+        return hash;
+      }
       if (encoding !== "utf8") {
         throw new Error(
           `crypto shim supports only "utf8" input; got ${JSON.stringify(encoding)}`

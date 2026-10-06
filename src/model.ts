@@ -131,8 +131,24 @@ const preProcess = (document: string): PreprocessedDocument => {
   };
 };
 
-const versionOf = (document: string): string =>
-  createHash("sha256").update(document, "utf8").digest("hex").slice(0, 6);
+/**
+ * The version token of a document: the SHA-256 digest of the document's UTF-8
+ * bytes, as lowercase hex, truncated to its first 6 characters.
+ *
+ * This is the same value as {@link PublicMap.version} (and
+ * {@link DocumentModel.version}) and the token an instruction's `ifMatch`
+ * precondition compares against, so it can be computed — e.g. as an HTTP
+ * ETag — without parsing the document.
+ *
+ * Pass a string to hash its UTF-8 encoding, or a `Uint8Array` (including a
+ * `Buffer`) to hash those bytes verbatim, undecoded; a string and its UTF-8
+ * bytes yield the same token.
+ *
+ * The derivation is part of the public contract: tokens held by clients must
+ * keep validating, so it will not change without a major version bump.
+ */
+export const versionOf = (document: string | Uint8Array): string =>
+  createHash("sha256").update(document).digest("hex").slice(0, 6);
 
 /**
  * marked collapses every `\r\n` (and lone `\r`) to `\n` in `token.raw`, so

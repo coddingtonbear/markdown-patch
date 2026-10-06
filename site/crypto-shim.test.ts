@@ -44,6 +44,31 @@ describe("crypto shim", () => {
     }
   );
 
+  it.each([
+    ["empty bytes", new Uint8Array([])],
+    ["invalid UTF-8", new Uint8Array([0xff, 0xfe, 0x00, 0x80])],
+    ["a subarray view", new TextEncoder().encode("xx# Title\nyy").subarray(2, 10)],
+  ])("matches Node's sha256 for %s", (_label, bytes) => {
+    expect(createHash("sha256").update(bytes).digest("hex")).toBe(
+      nodeCreateHash("sha256").update(bytes).digest("hex")
+    );
+  });
+
+  it("hashes a string and its UTF-8 bytes identically", () => {
+    const text = "héllo 🎯";
+    expect(
+      createHash("sha256").update(new TextEncoder().encode(text)).digest("hex")
+    ).toBe(createHash("sha256").update(text, "utf8").digest("hex"));
+  });
+
+  it("copies a Buffer, so reusing it before digest changes nothing", () => {
+    const buffer = Buffer.from("# Title\n", "utf8");
+    const expected = nodeCreateHash("sha256").update(buffer).digest("hex");
+    const hash = createHash("sha256").update(buffer);
+    buffer.fill(0);
+    expect(hash.digest("hex")).toBe(expected);
+  });
+
   it("is chunk-boundary agnostic", () => {
     const whole = createHash("sha256").update("abcdefghij", "utf8");
     const split = createHash("sha256")

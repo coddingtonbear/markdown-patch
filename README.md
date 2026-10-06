@@ -327,6 +327,17 @@ patch(document, {
 });
 ```
 
+To get the token without parsing the document — to serve it as an HTTP `ETag`, say — call `versionOf`. It returns exactly the map's `version`: the SHA-256 of the document's UTF-8 bytes, as lowercase hex, truncated to 6 characters. It also takes a `Uint8Array` (or `Buffer`) and hashes those bytes as-is, so a string and its UTF-8 encoding produce the same token:
+
+```typescript
+import { versionOf } from "markdown-patch";
+
+versionOf(document) === map.version;                            // true
+versionOf(new TextEncoder().encode(document)) === map.version;  // true
+```
+
+This derivation is part of the public API and will not change outside a major release, so stored tokens keep validating.
+
 ### Errors
 
 All failures extend `EngineError`:

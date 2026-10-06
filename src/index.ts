@@ -5,7 +5,7 @@
 export type { DocumentRange } from "./types.js";
 
 export { patch } from "./engine.js";
-export { buildModel } from "./model.js";
+export { buildModel, versionOf } from "./model.js";
 export type {
   DocumentModel,
   SectionNode,
