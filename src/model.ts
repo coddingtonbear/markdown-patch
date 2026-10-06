@@ -148,12 +148,7 @@ const preProcess = (document: string): PreprocessedDocument => {
  * keep validating, so it will not change without a major version bump.
  */
 export const versionOf = (document: string | Uint8Array): string =>
-  (typeof document === "string"
-    ? createHash("sha256").update(document, "utf8")
-    : createHash("sha256").update(document)
-  )
-    .digest("hex")
-    .slice(0, 6);
+  createHash("sha256").update(document).digest("hex").slice(0, 6);
 
 /**
  * marked collapses every `\r\n` (and lone `\r`) to `\n` in `token.raw`, so
